@@ -1,6 +1,6 @@
-# [Project name]
+# Global Diplomatic Relations
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+Secure workspace for managing diplomatic relationships, government contacts, meetings, agreements, and follow-up work.
 
 ## Run & Operate
 
@@ -22,15 +22,24 @@ _Replace the heading above with the project's name, and this line with one sente
 
 ## Where things live
 
-_Populate as you build — short repo map plus pointers to the source-of-truth file for DB schema, API contracts, theme files, etc._
+- `artifacts/global-dr-platform` — React/Vite application and product UI.
+- `artifacts/api-server` — Express API routes under `/api`.
+- `lib/api-spec/openapi.yaml` — source of truth for API contracts.
+- `lib/db/src/schema` — Drizzle/PostgreSQL schema.
 
 ## Architecture decisions
 
-_Populate as you build — non-obvious choices a reader couldn't infer from the code (3-5 bullets)._
+- The first release focuses on operational engagement workflows; intelligence scraping and autonomous agents are later phases.
+- OpenAPI is the shared contract between the generated React client and Express API.
+- Official contact records preserve verification state and source-oriented review rather than silently trusting automation.
+- The built-in PostgreSQL database is used for development persistence.
 
 ## Product
 
-_Describe the high-level user-facing capabilities of this app once they exist._
+- Executive overview with live counts, engagement pipeline, upcoming meetings, and recent activity.
+- Searchable country workspaces, government contact directory, meeting pipeline, and agreement lifecycle records.
+- Create flows for countries, contacts, meetings, and agreements with database-backed persistence.
+- Settings and system-health context for the workspace.
 
 ## User preferences
 

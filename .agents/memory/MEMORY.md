@@ -1,0 +1,1 @@
+- [Diplomatic platform MVP scope](mvp-scope.md) — establish trusted operational records and review workflows before autonomous intelligence automation.

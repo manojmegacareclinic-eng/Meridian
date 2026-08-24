@@ -3,20 +3,24 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Global Diplomatic Relations platform API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
-    description: Health operations
+  - name: dashboard
+  - name: countries
+  - name: contacts
+  - name: meetings
+  - name: agreements
+  - name: activity
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,13 +28,344 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /dashboard/summary:
+    get:
+      operationId: getDashboardSummary
+      tags: [dashboard]
+      summary: Get executive dashboard summary
+      responses:
+        "200":
+          description: Dashboard summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardSummary"
+  /countries:
+    get:
+      operationId: listCountries
+      tags: [countries]
+      summary: List countries
+      parameters:
+        - $ref: "#/components/parameters/Search"
+        - name: region
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Countries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Country"
+    post:
+      operationId: createCountry
+      tags: [countries]
+      summary: Create a country workspace
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CountryInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Country"
+  /contacts:
+    get:
+      operationId: listContacts
+      tags: [contacts]
+      summary: List diplomatic contacts
+      parameters:
+        - $ref: "#/components/parameters/Search"
+        - name: countryId
+          in: query
+          schema:
+            type: integer
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [verified, review, outdated]
+      responses:
+        "200":
+          description: Contacts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Contact"
+    post:
+      operationId: createContact
+      tags: [contacts]
+      summary: Create a contact
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ContactInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Contact"
+  /meetings:
+    get:
+      operationId: listMeetings
+      tags: [meetings]
+      summary: List meetings
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [scheduled, completed, follow_up]
+        - name: countryId
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Meetings
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Meeting"
+    post:
+      operationId: createMeeting
+      tags: [meetings]
+      summary: Schedule a meeting
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MeetingInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Meeting"
+  /agreements:
+    get:
+      operationId: listAgreements
+      tags: [agreements]
+      summary: List agreements
+      parameters:
+        - $ref: "#/components/parameters/Search"
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [draft, review, signed, archived]
+      responses:
+        "200":
+          description: Agreements
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Agreement"
+    post:
+      operationId: createAgreement
+      tags: [agreements]
+      summary: Create an agreement record
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AgreementInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Agreement"
+  /activity:
+    get:
+      operationId: listActivity
+      tags: [activity]
+      summary: List recent activity
+      responses:
+        "200":
+          description: Recent activity
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Activity"
 components:
+  parameters:
+    Search:
+      name: search
+      in: query
+      schema:
+        type: string
   schemas:
     HealthStatus:
       type: object
       properties:
         status:
           type: string
-      required:
-        - status
-
+      required: [status]
+    DashboardSummary:
+      type: object
+      required: [countries, contacts, activeEngagements, meetingsThisMonth, agreements, pipeline]
+      properties:
+        countries:
+          type: integer
+        contacts:
+          type: integer
+        activeEngagements:
+          type: integer
+        meetingsThisMonth:
+          type: integer
+        agreements:
+          type: integer
+        pipeline:
+          type: array
+          items:
+            $ref: "#/components/schemas/PipelineStage"
+    PipelineStage:
+      type: object
+      required: [stage, count]
+      properties:
+        stage:
+          type: string
+        count:
+          type: integer
+    Country:
+      type: object
+      required: [id, name, code, region, status, contactsCount, meetingsCount, riskLevel]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        code: { type: string }
+        region: { type: string }
+        status:
+          type: string
+          enum: [active, leads, inactive, agreement, scheduled]
+        contactsCount: { type: integer }
+        meetingsCount: { type: integer }
+        riskLevel:
+          type: string
+          enum: [low, medium, high]
+    CountryInput:
+      type: object
+      required: [name, code, region]
+      properties:
+        name: { type: string, minLength: 1 }
+        code: { type: string, minLength: 2, maxLength: 3 }
+        region: { type: string, minLength: 1 }
+        status:
+          type: string
+          enum: [active, leads, inactive, agreement, scheduled]
+    Contact:
+      type: object
+      required: [id, name, title, institution, countryId, countryName, email, verificationStatus, lastVerified, relationship]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        title: { type: string }
+        institution: { type: string }
+        countryId: { type: integer }
+        countryName: { type: string }
+        email: { type: string }
+        phone:
+          type: ["string", "null"]
+        verificationStatus:
+          type: string
+          enum: [verified, review, outdated]
+        lastVerified:
+          type: string
+          format: date
+        relationship: { type: string }
+    ContactInput:
+      type: object
+      required: [name, title, institution, countryId, email, relationship]
+      properties:
+        name: { type: string, minLength: 1 }
+        title: { type: string, minLength: 1 }
+        institution: { type: string, minLength: 1 }
+        countryId: { type: integer }
+        email: { type: string, format: email }
+        phone: { type: string }
+        relationship: { type: string }
+    Meeting:
+      type: object
+      required: [id, title, countryName, date, status, participants, actionArea]
+      properties:
+        id: { type: integer }
+        title: { type: string }
+        countryName: { type: string }
+        date: { type: string, format: date-time }
+        status:
+          type: string
+          enum: [scheduled, completed, follow_up]
+        participants: { type: integer }
+        actionArea: { type: string }
+        owner: { type: string }
+    MeetingInput:
+      type: object
+      required: [title, countryId, date, actionArea]
+      properties:
+        title: { type: string, minLength: 1 }
+        countryId: { type: integer }
+        date: { type: string, format: date-time }
+        actionArea: { type: string, minLength: 1 }
+        owner: { type: string }
+    Agreement:
+      type: object
+      required: [id, name, type, countryName, status, updatedAt]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        type: { type: string }
+        countryName: { type: string }
+        status:
+          type: string
+          enum: [draft, review, signed, archived]
+        updatedAt: { type: string, format: date }
+        renewalDate:
+          type: ["string", "null"]
+          format: date
+    AgreementInput:
+      type: object
+      required: [name, type, countryId]
+      properties:
+        name: { type: string, minLength: 1 }
+        type: { type: string, minLength: 1 }
+        countryId: { type: integer }
+        status:
+          type: string
+          enum: [draft, review, signed, archived]
+        renewalDate: { type: string, format: date }
+    Activity:
+      type: object
+      required: [id, kind, title, description, occurredAt]
+      properties:
+        id: { type: integer }
+        kind: { type: string }
+        title: { type: string }
+        description: { type: string }
+        occurredAt: { type: string, format: date-time }
+        countryName:
+          type: ["string", "null"]
