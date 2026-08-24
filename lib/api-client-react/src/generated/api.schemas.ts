@@ -145,6 +145,25 @@ export interface MeetingInput {
   owner?: string;
 }
 
+export type MeetingUpdateStatus = typeof MeetingUpdateStatus[keyof typeof MeetingUpdateStatus];
+
+
+export const MeetingUpdateStatus = {
+  scheduled: 'scheduled',
+  completed: 'completed',
+  follow_up: 'follow_up',
+} as const;
+
+export interface MeetingUpdate {
+  /** @minLength 1 */
+  title?: string;
+  date?: string;
+  status?: MeetingUpdateStatus;
+  /** @minLength 1 */
+  actionArea?: string;
+  owner?: string;
+}
+
 export type AgreementStatus = typeof AgreementStatus[keyof typeof AgreementStatus];
 
 
@@ -184,6 +203,26 @@ export interface AgreementInput {
   countryId: number;
   status?: AgreementInputStatus;
   renewalDate?: string;
+}
+
+export type AgreementUpdateStatus = typeof AgreementUpdateStatus[keyof typeof AgreementUpdateStatus];
+
+
+export const AgreementUpdateStatus = {
+  draft: 'draft',
+  review: 'review',
+  signed: 'signed',
+  archived: 'archived',
+} as const;
+
+export interface AgreementUpdate {
+  /** @minLength 1 */
+  name?: string;
+  /** @minLength 1 */
+  type?: string;
+  status?: AgreementUpdateStatus;
+  /** @nullable */
+  renewalDate?: string | null;
 }
 
 export interface Activity {

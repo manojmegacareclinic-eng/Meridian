@@ -6,10 +6,16 @@ import {
   CreateContactBody,
   CreateCountryBody,
   CreateMeetingBody,
+  UpdateMeetingBody,
+  UpdateMeetingParams,
+  UpdateMeetingResponse,
   CreateAgreementResponse,
   CreateContactResponse,
   CreateCountryResponse,
   CreateMeetingResponse,
+  UpdateAgreementBody,
+  UpdateAgreementParams,
+  UpdateAgreementResponse,
   GetDashboardSummaryResponse,
   ListActivityResponse,
   ListAgreementsQueryParams,
@@ -131,6 +137,21 @@ router.post("/meetings", async (req, res): Promise<void> => {
   res.status(201).json(CreateMeetingResponse.parse({ ...row, countryName: country?.name ?? "Unknown" }));
 });
 
+router.patch("/meetings/:id", async (req, res): Promise<void> => {
+  const params = UpdateMeetingParams.safeParse(req.params);
+  const parsed = UpdateMeetingBody.safeParse(req.body);
+  if (!params.success || !parsed.success) { res.status(400).json({ error: "Invalid meeting update." }); return; }
+  const values = {
+    ...parsed.data,
+    date: parsed.data.date ? new Date(parsed.data.date) : undefined,
+  };
+  const [row] = await db.update(meetingsTable).set(values).where(eq(meetingsTable.id, params.data.id)).returning();
+  if (!row) { res.status(404).json({ error: "Meeting not found." }); return; }
+  const [country] = await db.select({ name: countriesTable.name }).from(countriesTable).where(eq(countriesTable.id, row.countryId));
+  await db.insert(activityTable).values({ kind: "meeting", title: "Meeting updated", description: `${row.title} was updated in the engagement calendar.`, countryId: row.countryId });
+  res.json(UpdateMeetingResponse.parse({ ...row, countryName: country?.name ?? "Unknown" }));
+});
+
 router.get("/agreements", async (req, res): Promise<void> => {
   const parsed = ListAgreementsQueryParams.safeParse(req.query);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
@@ -157,6 +178,21 @@ router.post("/agreements", async (req, res): Promise<void> => {
   const [country] = await db.select({ name: countriesTable.name }).from(countriesTable).where(eq(countriesTable.id, row.countryId));
   await db.insert(activityTable).values({ kind: "agreement", title: "Agreement recorded", description: `${row.name} was added to the agreement register.`, countryId: row.countryId });
   res.status(201).json(CreateAgreementResponse.parse({ ...row, countryName: country?.name ?? "Unknown" }));
+});
+
+router.patch("/agreements/:id", async (req, res): Promise<void> => {
+  const params = UpdateAgreementParams.safeParse(req.params);
+  const parsed = UpdateAgreementBody.safeParse(req.body);
+  if (!params.success || !parsed.success) { res.status(400).json({ error: "Invalid agreement update." }); return; }
+  const [row] = await db.update(agreementsTable).set({
+    ...parsed.data,
+    renewalDate: parsed.data.renewalDate === null ? null : parsed.data.renewalDate?.toISOString().slice(0, 10),
+    updatedAt: new Date().toISOString().slice(0, 10),
+  }).where(eq(agreementsTable.id, params.data.id)).returning();
+  if (!row) { res.status(404).json({ error: "Agreement not found." }); return; }
+  const [country] = await db.select({ name: countriesTable.name }).from(countriesTable).where(eq(countriesTable.id, row.countryId));
+  await db.insert(activityTable).values({ kind: "agreement", title: "Agreement updated", description: `${row.name} was updated in the agreement register.`, countryId: row.countryId });
+  res.json(UpdateAgreementResponse.parse({ ...row, countryName: country?.name ?? "Unknown" }));
 });
 
 router.get("/activity", async (_req, res): Promise<void> => {

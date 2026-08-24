@@ -23,6 +23,7 @@ import type {
   Activity,
   Agreement,
   AgreementInput,
+  AgreementUpdate,
   Contact,
   ContactInput,
   Country,
@@ -34,7 +35,8 @@ import type {
   ListCountriesParams,
   ListMeetingsParams,
   Meeting,
-  MeetingInput
+  MeetingInput,
+  MeetingUpdate
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -683,6 +685,78 @@ export const useCreateMeeting = <TError = ErrorType<unknown>,
       return useMutation(getCreateMeetingMutationOptions(options));
     }
 
+export const getUpdateMeetingUrl = (id: number,) => {
+
+
+
+
+  return `/api/meetings/${id}`
+}
+
+/**
+ * @summary Update a meeting
+ */
+export const updateMeeting = async (id: number,
+    meetingUpdate: MeetingUpdate, options?: Parameters<typeof customFetch>[1]): Promise<Meeting> => {
+
+  return customFetch<Meeting>(getUpdateMeetingUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(meetingUpdate)
+  }
+);}
+
+
+
+
+
+export const getUpdateMeetingMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateMeeting>>, TError,{id: number;data: BodyType<MeetingUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateMeeting>>, TError,{id: number;data: BodyType<MeetingUpdate>}, TContext> => {
+
+const mutationKey = ['updateMeeting'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateMeeting>>, {id: number;data: BodyType<MeetingUpdate>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updateMeeting(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateMeetingMutationResult = NonNullable<Awaited<ReturnType<typeof updateMeeting>>>
+    export type UpdateMeetingMutationBody = BodyType<MeetingUpdate>
+    export type UpdateMeetingMutationError = ErrorType<void>
+
+    /**
+ * @summary Update a meeting
+ */
+export const useUpdateMeeting = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateMeeting>>, TError,{id: number;data: BodyType<MeetingUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateMeeting>>,
+        TError,
+        {id: number;data: BodyType<MeetingUpdate>},
+        TContext
+      > => {
+      return useMutation(getUpdateMeetingMutationOptions(options));
+    }
+
 export const getListAgreementsUrl = (params?: ListAgreementsParams,) => {
   const normalizedParams = new URLSearchParams();
 
@@ -836,6 +910,78 @@ export const useCreateAgreement = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getCreateAgreementMutationOptions(options));
+    }
+
+export const getUpdateAgreementUrl = (id: number,) => {
+
+
+
+
+  return `/api/agreements/${id}`
+}
+
+/**
+ * @summary Update an agreement
+ */
+export const updateAgreement = async (id: number,
+    agreementUpdate: AgreementUpdate, options?: Parameters<typeof customFetch>[1]): Promise<Agreement> => {
+
+  return customFetch<Agreement>(getUpdateAgreementUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(agreementUpdate)
+  }
+);}
+
+
+
+
+
+export const getUpdateAgreementMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateAgreement>>, TError,{id: number;data: BodyType<AgreementUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateAgreement>>, TError,{id: number;data: BodyType<AgreementUpdate>}, TContext> => {
+
+const mutationKey = ['updateAgreement'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateAgreement>>, {id: number;data: BodyType<AgreementUpdate>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updateAgreement(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateAgreementMutationResult = NonNullable<Awaited<ReturnType<typeof updateAgreement>>>
+    export type UpdateAgreementMutationBody = BodyType<AgreementUpdate>
+    export type UpdateAgreementMutationError = ErrorType<void>
+
+    /**
+ * @summary Update an agreement
+ */
+export const useUpdateAgreement = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateAgreement>>, TError,{id: number;data: BodyType<AgreementUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateAgreement>>,
+        TError,
+        {id: number;data: BodyType<AgreementUpdate>},
+        TContext
+      > => {
+      return useMutation(getUpdateAgreementMutationOptions(options));
     }
 
 export const getListActivityUrl = () => {

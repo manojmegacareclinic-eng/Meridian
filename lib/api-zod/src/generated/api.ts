@@ -189,6 +189,37 @@ export const CreateMeetingResponse = zod.object({
 
 
 /**
+ * @summary Update a meeting
+ */
+export const UpdateMeetingParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+
+
+
+
+export const UpdateMeetingBody = zod.object({
+  "title": zod.string().min(1).optional(),
+  "date": zod.coerce.date().optional(),
+  "status": zod.enum(['scheduled', 'completed', 'follow_up']).optional(),
+  "actionArea": zod.string().min(1).optional(),
+  "owner": zod.string().optional()
+})
+
+export const UpdateMeetingResponse = zod.object({
+  "id": zod.int(),
+  "title": zod.string(),
+  "countryName": zod.string(),
+  "date": zod.coerce.date(),
+  "status": zod.enum(['scheduled', 'completed', 'follow_up']),
+  "participants": zod.int(),
+  "actionArea": zod.string(),
+  "owner": zod.string().optional()
+})
+
+
+/**
  * @summary List agreements
  */
 export const ListAgreementsQueryParams = zod.object({
@@ -224,6 +255,35 @@ export const CreateAgreementBody = zod.object({
 })
 
 export const CreateAgreementResponse = zod.object({
+  "id": zod.int(),
+  "name": zod.string(),
+  "type": zod.string(),
+  "countryName": zod.string(),
+  "status": zod.enum(['draft', 'review', 'signed', 'archived']),
+  "updatedAt": zod.coerce.date(),
+  "renewalDate": zod.coerce.date().nullish()
+})
+
+
+/**
+ * @summary Update an agreement
+ */
+export const UpdateAgreementParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+
+
+
+
+export const UpdateAgreementBody = zod.object({
+  "name": zod.string().min(1).optional(),
+  "type": zod.string().min(1).optional(),
+  "status": zod.enum(['draft', 'review', 'signed', 'archived']).optional(),
+  "renewalDate": zod.coerce.date().nullish()
+})
+
+export const UpdateAgreementResponse = zod.object({
   "id": zod.int(),
   "name": zod.string(),
   "type": zod.string(),

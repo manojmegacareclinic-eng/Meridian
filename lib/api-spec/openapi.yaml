@@ -160,6 +160,31 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Meeting"
+  /meetings/{id}:
+    patch:
+      operationId: updateMeeting
+      tags: [meetings]
+      summary: Update a meeting
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MeetingUpdate"
+      responses:
+        "200":
+          description: Updated meeting
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Meeting"
+        "404":
+          description: Meeting not found
   /agreements:
     get:
       operationId: listAgreements
@@ -198,6 +223,31 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Agreement"
+  /agreements/{id}:
+    patch:
+      operationId: updateAgreement
+      tags: [agreements]
+      summary: Update an agreement
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AgreementUpdate"
+      responses:
+        "200":
+          description: Updated agreement
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Agreement"
+        "404":
+          description: Agreement not found
   /activity:
     get:
       operationId: listActivity
@@ -332,6 +382,16 @@ components:
         date: { type: string, format: date-time }
         actionArea: { type: string, minLength: 1 }
         owner: { type: string }
+    MeetingUpdate:
+      type: object
+      properties:
+        title: { type: string, minLength: 1 }
+        date: { type: string, format: date-time }
+        status:
+          type: string
+          enum: [scheduled, completed, follow_up]
+        actionArea: { type: string, minLength: 1 }
+        owner: { type: string }
     Agreement:
       type: object
       required: [id, name, type, countryName, status, updatedAt]
@@ -358,6 +418,17 @@ components:
           type: string
           enum: [draft, review, signed, archived]
         renewalDate: { type: string, format: date }
+    AgreementUpdate:
+      type: object
+      properties:
+        name: { type: string, minLength: 1 }
+        type: { type: string, minLength: 1 }
+        status:
+          type: string
+          enum: [draft, review, signed, archived]
+        renewalDate:
+          type: ["string", "null"]
+          format: date
     Activity:
       type: object
       required: [id, kind, title, description, occurredAt]
