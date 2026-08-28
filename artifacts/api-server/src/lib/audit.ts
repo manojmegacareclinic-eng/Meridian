@@ -1,12 +1,14 @@
 import { db, activityTable } from "@workspace/db";
 import type { ActivityInsert } from "@workspace/db";
 
-export type AuditAction = "create" | "update" | "read";
+export type AuditAction = "create" | "update" | "read" | "delete";
 export type AuditEntityType =
   | "country"
   | "contact"
   | "meeting"
   | "agreement"
+  | "document"
+  | "news"
   | "admin_user"
   | "admin_invitation"
   | "dashboard_summary";
