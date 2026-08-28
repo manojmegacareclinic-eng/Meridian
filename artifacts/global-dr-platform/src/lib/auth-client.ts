@@ -6,8 +6,14 @@ import {
 
 export type SessionUserRole = string;
 
+// better-auth's client requires an absolute base URL. The SPA and the auth
+// endpoints share an origin (the Vite /api proxy), so derive it at runtime.
+const apiOrigin = typeof window !== "undefined"
+  ? window.location.origin
+  : "http://localhost:5173";
+
 export const authClient = createAuthClient({
-  baseURL: '/api/auth',
+  baseURL: `${apiOrigin}/api/auth`,
   plugins: [
     // Surface the custom `role` additional field on typed session users.
     inferAdditionalFields<{ user: { role: string } }>({
