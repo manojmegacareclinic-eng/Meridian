@@ -1,8 +1,8 @@
 # Global Diplomatic Relations — Implementation Plan
 
 **Status:** Foundation running; MVP implementation in progress  
-**Last updated:** 26 August 2026  
-**Current next task:** **Task #2 — Require sign-in before exposing confidential diplomatic records**  
+**Last updated:** 28 August 2026  
+**Current next task:** **Task #3 — Audit events for sensitive reads and all data changes**  
 **Source brief:** `attached_assets/Pasted--Global-Diplomatic-Relations-Government-Engagement-Plat_1787756992171.txt`
 
 This is a living delivery plan for the Global Diplomatic Relations (GDP) platform. It translates the enterprise blueprint into an incremental plan that matches the current Replit project instead of requiring a wholesale rewrite.
@@ -31,27 +31,24 @@ When a task is completed, record the evidence briefly, mark the next task as `NE
 - **DONE** — Full workspace TypeScript check passes.
 - **DONE** — API health and dashboard endpoints verified through the Replit proxy.
 - **DONE** — Existing operational UI is available for countries, contacts, meetings, agreements, activity, dashboard metrics, and settings.
+- **DONE** — Task #2 (access control): the workspace is gated behind a sign-in screen; accounts are self-hosted with Better Auth; every API route except `GET /api/healthz` requires a valid session; mutating routes enforce a write-role guard (viewers are read-only); `global_admin`s create accounts, change roles, and invite users from the `/admin` page. Verified by typecheck/build and by the `auth-qa` and `route-qa` suites. See `docs/roles-and-permissions.md`.
 - **PARTIAL** — The current database is empty and the app is using a small operational schema; the blueprint's 195-country coverage and extended intelligence model are not populated yet.
 
-### NEXT — Task #2: access control
+### NEXT — Task #3: audit events
 
-**Require sign-in before exposing confidential diplomatic records.**
+**Record audit events for sensitive reads and all data changes** so there is a uniform, queryable trail of who changed what (and who read confidential records).
 
 Done looks like:
 
-- A user must sign in before opening the diplomatic workspace.
-- API routes reject unauthenticated requests, not just the frontend.
-- The signed-in user is displayed in the workspace shell.
-- The chosen role/permission model is documented and enforced consistently.
-- Clerk configuration requirements are documented without putting secrets in source control.
-
-**Current blocker:** Clerk dependencies are present in the codebase, but no Clerk configuration is currently available in the development environment. Use Replit-managed Clerk unless the product owner explicitly chooses another provider.
+- Every create/update action writes an audit row with actor, action, entity, timestamp, and before/after detail where relevant.
+- Sensitive reads (e.g. dashboard summary, contact verification state) are logged with the actor.
+- The audit trail is visible and queryable (via the activity feed and an audit endpoint), and roles able to view it are documented.
 
 ## Product delivery roadmap
 
 ### Phase 1 — Secure operational foundation
 
-**Status: `PARTIAL` — Task #2 is `NEXT`.**
+**Status: `PARTIAL` — Task #3 is `NEXT`.**
 
 1. Complete authentication and server-side authorization.
 2. Add the initial RBAC roles from the brief:
@@ -160,10 +157,10 @@ Done looks like:
 
 ## Project decisions and boundaries
 
-- Keep the existing pnpm workspace, React/Vite frontend, Express API, PostgreSQL, Drizzle, OpenAPI, and generated client.
+- Keep the existing bun workspace, React/Vite frontend, Express API, PostgreSQL, Drizzle, OpenAPI, and generated client.
 - Do not migrate the project to the blueprint's proposed Next.js, Supabase, Turborepo, or Neo4j stack unless a separate decision explicitly authorizes that change.
-- Use the built-in Replit PostgreSQL database for development persistence.
-- Use Replit-managed Clerk for authentication when Task #2 begins, unless the product owner chooses an external provider.
+- Use PostgreSQL for development persistence.
+- **Authentication provider decision (made 28 August 2026): self-hosted Better Auth.** Clerk was the initial choice but its hosted origin is unreachable on this network, so sign-in moved to a self-hosted Better Auth instance (session cookie + email verification, `BETTER_AUTH_SECRET`, no provider keys). Accounts live in the workspace Postgres; roles are stored on the user record. See `docs/roles-and-permissions.md` for the role model and `README.md` for setup.
 - Treat official records as sensitive. Automation must preserve provenance and route uncertain changes through human review.
 - Build the trusted operational record and review workflow before political-risk scoring, autonomous scraping, or agentic automation.
 
