@@ -22,3 +22,4 @@ export * from "./contacts";
 export * from "./meetings";
 export * from "./agreements";
 export * from "./activity";
+export * from "./auth";
