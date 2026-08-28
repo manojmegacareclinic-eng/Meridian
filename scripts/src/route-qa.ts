@@ -43,6 +43,7 @@ const NAV_ROUTES = [
   { path: "/contacts", testid: "link-nav-contacts", title: "Contacts" },
   { path: "/meetings", testid: "link-nav-meetings", title: "Meetings" },
   { path: "/agreements", testid: "link-nav-agreements", title: "Agreements" },
+  { path: "/audit", testid: "link-nav-audit", title: "Audit" },
   { path: "/settings", testid: "link-nav-settings", title: "Workspace" },
 ];
 
@@ -89,6 +90,14 @@ async function main() {
         const memberRows = await page.locator('[data-testid^="admin-member-row-"]').count();
         check("admin user rows listed", memberRows > 0, `got ${memberRows}`);
         check("manage-role select present", await page.locator('[data-testid^="admin-role-select-"]').first().isVisible());
+
+        await page.goto(`${baseURL}/audit`, { waitUntil: "load" });
+        await page.waitForSelector('[data-testid="audit-filter-action"]', { timeout: 15000 });
+        const auditH1 = ((await page.textContent("header h1")) ?? "").trim();
+        check("audit page header title renders", auditH1 === "Audit", `got "${auditH1}"`);
+        check("audit nav link visible", await page.isVisible('[data-testid="link-nav-audit"]'));
+        await page.waitForSelector('[data-testid^="audit-row-"]', { timeout: 15000 });
+        check("audit rows render", (await page.locator('[data-testid^="audit-row-"]').count()) > 0);
       } else {
         console.log("  SKIP admin page flow (no session cookie from sign-in)");
       }
