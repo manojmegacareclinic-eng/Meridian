@@ -5,10 +5,13 @@
   "type": "module",
   "scripts": {
     "hello": "tsx ./src/hello.ts",
+    "auth-qa": "tsx ./src/auth-qa.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "devDependencies": {
     "@types/node": "catalog:",
+    "@workspace/api-server": "workspace:*",
+    "@workspace/db": "workspace:*",
     "tsx": "catalog:"
   },
   "dependencies": {

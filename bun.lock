@@ -233,6 +233,8 @@
       },
       "devDependencies": {
         "@types/node": "catalog:",
+        "@workspace/api-server": "workspace:*",
+        "@workspace/db": "workspace:*",
         "tsx": "catalog:",
       },
     },
