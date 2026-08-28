@@ -9,9 +9,11 @@
   "dependencies": {
     "@workspace/db": "workspace:*",
     "better-auth": "1.7.2",
-    "drizzle-orm": "catalog:"
+    "drizzle-orm": "catalog:",
+    "nodemailer": "^9.0.6"
   },
   "devDependencies": {
-    "@types/node": "catalog:"
+    "@types/node": "catalog:",
+    "@types/nodemailer": "^8.0.1"
   }
 }

@@ -10,9 +10,9 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@clerk/express": "^2.1.61",
-    "@clerk/shared": "^4.29.3",
+    "@opentelemetry/semantic-conventions": "^1.43.0",
     "@workspace/api-zod": "workspace:*",
+    "@workspace/auth": "workspace:*",
     "@workspace/db": "workspace:*",
     "better-auth": "^1.7.2",
     "cookie-parser": "^1.4.7",
