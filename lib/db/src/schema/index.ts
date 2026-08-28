@@ -21,6 +21,8 @@ export * from "./countries";
 export * from "./contacts";
 export * from "./meetings";
 export * from "./agreements";
+export * from "./documents";
+export * from "./news";
 export * from "./activity";
 export * from "./auth";
 export {

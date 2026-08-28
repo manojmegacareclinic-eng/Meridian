@@ -9,6 +9,12 @@ export const countriesTable = pgTable("countries", {
   region: text("region").notNull(),
   status: text("status").notNull().default("leads"),
   riskLevel: text("risk_level").notNull().default("medium"),
+  language: text("language"),
+  governmentType: text("government_type"),
+  electionYear: integer("election_year"),
+  team: text("team"),
+  priority: text("priority"),
+  strategy: text("strategy"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
