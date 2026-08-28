@@ -48,7 +48,13 @@ export const ListCountriesResponseItem = zod.object({
   "status": zod.enum(['active', 'leads', 'inactive', 'agreement', 'scheduled']),
   "contactsCount": zod.int(),
   "meetingsCount": zod.int(),
-  "riskLevel": zod.enum(['low', 'medium', 'high'])
+  "riskLevel": zod.enum(['low', 'medium', 'high']),
+  "language": zod.string().optional(),
+  "governmentType": zod.enum(['presidential republic', 'semi-presidential', 'parliamentary republic', 'parliamentary monarchy', 'constitutional monarchy', 'absolute monarchy', 'one-party state', 'transitional']).optional(),
+  "electionYear": zod.int().optional(),
+  "team": zod.string().optional(),
+  "priority": zod.enum(['low', 'medium', 'high']).optional(),
+  "strategy": zod.string().optional()
 })
 export const ListCountriesResponse = zod.array(ListCountriesResponseItem)
 
@@ -78,7 +84,84 @@ export const CreateCountryResponse = zod.object({
   "status": zod.enum(['active', 'leads', 'inactive', 'agreement', 'scheduled']),
   "contactsCount": zod.int(),
   "meetingsCount": zod.int(),
-  "riskLevel": zod.enum(['low', 'medium', 'high'])
+  "riskLevel": zod.enum(['low', 'medium', 'high']),
+  "language": zod.string().optional(),
+  "governmentType": zod.enum(['presidential republic', 'semi-presidential', 'parliamentary republic', 'parliamentary monarchy', 'constitutional monarchy', 'absolute monarchy', 'one-party state', 'transitional']).optional(),
+  "electionYear": zod.int().optional(),
+  "team": zod.string().optional(),
+  "priority": zod.enum(['low', 'medium', 'high']).optional(),
+  "strategy": zod.string().optional()
+})
+
+
+/**
+ * @summary Get a country workspace
+ */
+export const GetCountryParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+export const GetCountryResponse = zod.object({
+  "id": zod.int(),
+  "name": zod.string(),
+  "code": zod.string(),
+  "region": zod.string(),
+  "status": zod.enum(['active', 'leads', 'inactive', 'agreement', 'scheduled']),
+  "contactsCount": zod.int(),
+  "meetingsCount": zod.int(),
+  "riskLevel": zod.enum(['low', 'medium', 'high']),
+  "language": zod.string().optional(),
+  "governmentType": zod.enum(['presidential republic', 'semi-presidential', 'parliamentary republic', 'parliamentary monarchy', 'constitutional monarchy', 'absolute monarchy', 'one-party state', 'transitional']).optional(),
+  "electionYear": zod.int().optional(),
+  "team": zod.string().optional(),
+  "priority": zod.enum(['low', 'medium', 'high']).optional(),
+  "strategy": zod.string().optional()
+})
+
+
+/**
+ * @summary Update a country workspace
+ */
+export const UpdateCountryParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+
+export const updateCountryBodyCodeMin = 2;
+export const updateCountryBodyCodeMax = 3;
+
+
+
+
+export const UpdateCountryBody = zod.object({
+  "name": zod.string().min(1).optional(),
+  "code": zod.string().min(updateCountryBodyCodeMin).max(updateCountryBodyCodeMax).optional(),
+  "region": zod.string().min(1).optional(),
+  "status": zod.enum(['active', 'leads', 'inactive', 'agreement', 'scheduled']).optional(),
+  "riskLevel": zod.enum(['low', 'medium', 'high']).optional(),
+  "language": zod.string().optional(),
+  "governmentType": zod.enum(['presidential republic', 'semi-presidential', 'parliamentary republic', 'parliamentary monarchy', 'constitutional monarchy', 'absolute monarchy', 'one-party state', 'transitional']).optional(),
+  "electionYear": zod.int().optional(),
+  "team": zod.string().optional(),
+  "priority": zod.enum(['low', 'medium', 'high']).optional(),
+  "strategy": zod.string().optional()
+})
+
+export const UpdateCountryResponse = zod.object({
+  "id": zod.int(),
+  "name": zod.string(),
+  "code": zod.string(),
+  "region": zod.string(),
+  "status": zod.enum(['active', 'leads', 'inactive', 'agreement', 'scheduled']),
+  "contactsCount": zod.int(),
+  "meetingsCount": zod.int(),
+  "riskLevel": zod.enum(['low', 'medium', 'high']),
+  "language": zod.string().optional(),
+  "governmentType": zod.enum(['presidential republic', 'semi-presidential', 'parliamentary republic', 'parliamentary monarchy', 'constitutional monarchy', 'absolute monarchy', 'one-party state', 'transitional']).optional(),
+  "electionYear": zod.int().optional(),
+  "team": zod.string().optional(),
+  "priority": zod.enum(['low', 'medium', 'high']).optional(),
+  "strategy": zod.string().optional()
 })
 
 
@@ -224,7 +307,8 @@ export const UpdateMeetingResponse = zod.object({
  */
 export const ListAgreementsQueryParams = zod.object({
   "search": zod.coerce.string().optional(),
-  "status": zod.enum(['draft', 'review', 'signed', 'archived']).optional()
+  "status": zod.enum(['draft', 'review', 'signed', 'archived']).optional(),
+  "countryId": zod.coerce.number().int().optional()
 })
 
 export const ListAgreementsResponseItem = zod.object({
@@ -297,6 +381,10 @@ export const UpdateAgreementResponse = zod.object({
 /**
  * @summary List recent activity
  */
+export const ListActivityQueryParams = zod.object({
+  "countryId": zod.coerce.number().int().optional()
+})
+
 export const ListActivityResponseItem = zod.object({
   "id": zod.int(),
   "kind": zod.string(),
@@ -347,6 +435,204 @@ export const ListAuditResponseItem = zod.object({
 }).nullish()
 }))
 export const ListAuditResponse = zod.array(ListAuditResponseItem)
+
+
+/**
+ * @summary List documents for a country
+ */
+export const ListDocumentsQueryParams = zod.object({
+  "countryId": zod.coerce.number().int().optional(),
+  "type": zod.coerce.string().optional(),
+  "status": zod.enum(['draft', 'review', 'approved', 'signed', 'archived']).optional(),
+  "agreementId": zod.coerce.number().int().optional(),
+  "limit": zod.coerce.number().int().optional()
+})
+
+export const ListDocumentsResponseItem = zod.object({
+  "id": zod.int(),
+  "countryId": zod.int(),
+  "title": zod.string(),
+  "type": zod.string(),
+  "url": zod.string().nullish(),
+  "datedOn": zod.coerce.date().nullish(),
+  "notes": zod.string().nullish(),
+  "agreementId": zod.int().nullish(),
+  "agreementName": zod.string().nullish(),
+  "status": zod.enum(['draft', 'review', 'approved', 'signed', 'archived']),
+  "createdAt": zod.coerce.date().optional()
+})
+export const ListDocumentsResponse = zod.array(ListDocumentsResponseItem)
+
+
+/**
+ * @summary Create a document record
+ */
+
+
+
+export const CreateDocumentBody = zod.object({
+  "countryId": zod.int(),
+  "title": zod.string().min(1),
+  "type": zod.string().optional(),
+  "url": zod.string().optional(),
+  "datedOn": zod.coerce.date().optional(),
+  "notes": zod.string().optional(),
+  "agreementId": zod.int().optional(),
+  "status": zod.enum(['draft', 'review', 'approved', 'signed', 'archived']).optional()
+})
+
+export const CreateDocumentResponse = zod.object({
+  "id": zod.int(),
+  "countryId": zod.int(),
+  "title": zod.string(),
+  "type": zod.string(),
+  "url": zod.string().nullish(),
+  "datedOn": zod.coerce.date().nullish(),
+  "notes": zod.string().nullish(),
+  "agreementId": zod.int().nullish(),
+  "agreementName": zod.string().nullish(),
+  "status": zod.enum(['draft', 'review', 'approved', 'signed', 'archived']),
+  "createdAt": zod.coerce.date().optional()
+})
+
+
+/**
+ * @summary Update a document
+ */
+export const UpdateDocumentParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+
+
+
+export const UpdateDocumentBody = zod.object({
+  "title": zod.string().min(1).optional(),
+  "type": zod.string().optional(),
+  "url": zod.string().nullish(),
+  "datedOn": zod.coerce.date().nullish(),
+  "notes": zod.string().nullish(),
+  "agreementId": zod.int().nullish(),
+  "status": zod.enum(['draft', 'review', 'approved', 'signed', 'archived']).optional()
+})
+
+export const UpdateDocumentResponse = zod.object({
+  "id": zod.int(),
+  "countryId": zod.int(),
+  "title": zod.string(),
+  "type": zod.string(),
+  "url": zod.string().nullish(),
+  "datedOn": zod.coerce.date().nullish(),
+  "notes": zod.string().nullish(),
+  "agreementId": zod.int().nullish(),
+  "agreementName": zod.string().nullish(),
+  "status": zod.enum(['draft', 'review', 'approved', 'signed', 'archived']),
+  "createdAt": zod.coerce.date().optional()
+})
+
+
+/**
+ * @summary Delete a document
+ */
+export const DeleteDocumentParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+export const DeleteDocumentResponse = zod.object({
+  "id": zod.int()
+})
+
+
+/**
+ * @summary List news items for a country
+ */
+export const ListNewsQueryParams = zod.object({
+  "countryId": zod.coerce.number().int().optional(),
+  "limit": zod.coerce.number().int().optional()
+})
+
+export const ListNewsResponseItem = zod.object({
+  "id": zod.int(),
+  "countryId": zod.int(),
+  "title": zod.string(),
+  "source": zod.string(),
+  "url": zod.string().nullish(),
+  "summary": zod.string().nullish(),
+  "publishedAt": zod.coerce.date(),
+  "createdAt": zod.coerce.date().optional()
+})
+export const ListNewsResponse = zod.array(ListNewsResponseItem)
+
+
+/**
+ * @summary Create a news item
+ */
+
+
+
+
+export const CreateNewsBody = zod.object({
+  "countryId": zod.int(),
+  "title": zod.string().min(1),
+  "source": zod.string().min(1),
+  "url": zod.string().optional(),
+  "summary": zod.string().optional(),
+  "publishedAt": zod.coerce.date()
+})
+
+export const CreateNewsResponse = zod.object({
+  "id": zod.int(),
+  "countryId": zod.int(),
+  "title": zod.string(),
+  "source": zod.string(),
+  "url": zod.string().nullish(),
+  "summary": zod.string().nullish(),
+  "publishedAt": zod.coerce.date(),
+  "createdAt": zod.coerce.date().optional()
+})
+
+
+/**
+ * @summary Update a news item
+ */
+export const UpdateNewsParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+
+
+
+
+export const UpdateNewsBody = zod.object({
+  "title": zod.string().min(1).optional(),
+  "source": zod.string().min(1).optional(),
+  "url": zod.string().nullish(),
+  "summary": zod.string().nullish(),
+  "publishedAt": zod.coerce.date().optional()
+})
+
+export const UpdateNewsResponse = zod.object({
+  "id": zod.int(),
+  "countryId": zod.int(),
+  "title": zod.string(),
+  "source": zod.string(),
+  "url": zod.string().nullish(),
+  "summary": zod.string().nullish(),
+  "publishedAt": zod.coerce.date(),
+  "createdAt": zod.coerce.date().optional()
+})
+
+
+/**
+ * @summary Delete a news item
+ */
+export const DeleteNewsParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+export const DeleteNewsResponse = zod.object({
+  "id": zod.int()
+})
 
 
 /**

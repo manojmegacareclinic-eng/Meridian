@@ -43,6 +43,29 @@ export const CountryRiskLevel = {
   high: 'high',
 } as const;
 
+export type CountryGovernmentType = typeof CountryGovernmentType[keyof typeof CountryGovernmentType];
+
+
+export const CountryGovernmentType = {
+  presidential_republic: 'presidential republic',
+  'semi-presidential': 'semi-presidential',
+  parliamentary_republic: 'parliamentary republic',
+  parliamentary_monarchy: 'parliamentary monarchy',
+  constitutional_monarchy: 'constitutional monarchy',
+  absolute_monarchy: 'absolute monarchy',
+  'one-party_state': 'one-party state',
+  transitional: 'transitional',
+} as const;
+
+export type CountryPriority = typeof CountryPriority[keyof typeof CountryPriority];
+
+
+export const CountryPriority = {
+  low: 'low',
+  medium: 'medium',
+  high: 'high',
+} as const;
+
 export interface Country {
   id: number;
   name: string;
@@ -52,6 +75,75 @@ export interface Country {
   contactsCount: number;
   meetingsCount: number;
   riskLevel: CountryRiskLevel;
+  language?: string;
+  governmentType?: CountryGovernmentType;
+  electionYear?: number;
+  team?: string;
+  priority?: CountryPriority;
+  strategy?: string;
+}
+
+export type CountryUpdateStatus = typeof CountryUpdateStatus[keyof typeof CountryUpdateStatus];
+
+
+export const CountryUpdateStatus = {
+  active: 'active',
+  leads: 'leads',
+  inactive: 'inactive',
+  agreement: 'agreement',
+  scheduled: 'scheduled',
+} as const;
+
+export type CountryUpdateRiskLevel = typeof CountryUpdateRiskLevel[keyof typeof CountryUpdateRiskLevel];
+
+
+export const CountryUpdateRiskLevel = {
+  low: 'low',
+  medium: 'medium',
+  high: 'high',
+} as const;
+
+export type CountryUpdateGovernmentType = typeof CountryUpdateGovernmentType[keyof typeof CountryUpdateGovernmentType];
+
+
+export const CountryUpdateGovernmentType = {
+  presidential_republic: 'presidential republic',
+  'semi-presidential': 'semi-presidential',
+  parliamentary_republic: 'parliamentary republic',
+  parliamentary_monarchy: 'parliamentary monarchy',
+  constitutional_monarchy: 'constitutional monarchy',
+  absolute_monarchy: 'absolute monarchy',
+  'one-party_state': 'one-party state',
+  transitional: 'transitional',
+} as const;
+
+export type CountryUpdatePriority = typeof CountryUpdatePriority[keyof typeof CountryUpdatePriority];
+
+
+export const CountryUpdatePriority = {
+  low: 'low',
+  medium: 'medium',
+  high: 'high',
+} as const;
+
+export interface CountryUpdate {
+  /** @minLength 1 */
+  name?: string;
+  /**
+     * @minLength 2
+     * @maxLength 3
+     */
+  code?: string;
+  /** @minLength 1 */
+  region?: string;
+  status?: CountryUpdateStatus;
+  riskLevel?: CountryUpdateRiskLevel;
+  language?: string;
+  governmentType?: CountryUpdateGovernmentType;
+  electionYear?: number;
+  team?: string;
+  priority?: CountryUpdatePriority;
+  strategy?: string;
 }
 
 export type CountryInputStatus = typeof CountryInputStatus[keyof typeof CountryInputStatus];
@@ -353,6 +445,125 @@ export interface InvitationCreation {
   invitation: AdminInvitation;
 }
 
+export type DocumentStatus = typeof DocumentStatus[keyof typeof DocumentStatus];
+
+
+export const DocumentStatus = {
+  draft: 'draft',
+  review: 'review',
+  approved: 'approved',
+  signed: 'signed',
+  archived: 'archived',
+} as const;
+
+export interface Document {
+  id: number;
+  countryId: number;
+  title: string;
+  type: string;
+  /** @nullable */
+  url?: string | null;
+  /** @nullable */
+  datedOn?: string | null;
+  /** @nullable */
+  notes?: string | null;
+  /** @nullable */
+  agreementId?: number | null;
+  /** @nullable */
+  agreementName?: string | null;
+  status: DocumentStatus;
+  createdAt?: string;
+}
+
+export type DocumentInputStatus = typeof DocumentInputStatus[keyof typeof DocumentInputStatus];
+
+
+export const DocumentInputStatus = {
+  draft: 'draft',
+  review: 'review',
+  approved: 'approved',
+  signed: 'signed',
+  archived: 'archived',
+} as const;
+
+export interface DocumentInput {
+  countryId: number;
+  /** @minLength 1 */
+  title: string;
+  type?: string;
+  url?: string;
+  datedOn?: string;
+  notes?: string;
+  agreementId?: number;
+  status?: DocumentInputStatus;
+}
+
+export type DocumentUpdateStatus = typeof DocumentUpdateStatus[keyof typeof DocumentUpdateStatus];
+
+
+export const DocumentUpdateStatus = {
+  draft: 'draft',
+  review: 'review',
+  approved: 'approved',
+  signed: 'signed',
+  archived: 'archived',
+} as const;
+
+export interface DocumentUpdate {
+  /** @minLength 1 */
+  title?: string;
+  type?: string;
+  /** @nullable */
+  url?: string | null;
+  /** @nullable */
+  datedOn?: string | null;
+  /** @nullable */
+  notes?: string | null;
+  /** @nullable */
+  agreementId?: number | null;
+  status?: DocumentUpdateStatus;
+}
+
+export interface News {
+  id: number;
+  countryId: number;
+  title: string;
+  source: string;
+  /** @nullable */
+  url?: string | null;
+  /** @nullable */
+  summary?: string | null;
+  publishedAt: string;
+  createdAt?: string;
+}
+
+export interface NewsInput {
+  countryId: number;
+  /** @minLength 1 */
+  title: string;
+  /** @minLength 1 */
+  source: string;
+  url?: string;
+  summary?: string;
+  publishedAt: string;
+}
+
+export interface NewsUpdate {
+  /** @minLength 1 */
+  title?: string;
+  /** @minLength 1 */
+  source?: string;
+  /** @nullable */
+  url?: string | null;
+  /** @nullable */
+  summary?: string | null;
+  publishedAt?: string;
+}
+
+export interface DeleteResponse {
+  id: number;
+}
+
 export type SearchParameter = string;
 
 export type AuditLimitParameter = number;
@@ -394,6 +605,7 @@ export const ListMeetingsStatus = {
 export type ListAgreementsParams = {
 search?: SearchParameter;
 status?: ListAgreementsStatus;
+countryId?: number;
 };
 
 export type ListAgreementsStatus = typeof ListAgreementsStatus[keyof typeof ListAgreementsStatus];
@@ -406,6 +618,10 @@ export const ListAgreementsStatus = {
   archived: 'archived',
 } as const;
 
+export type ListActivityParams = {
+countryId?: number;
+};
+
 export type ListAuditParams = {
 action?: string;
 entityType?: string;
@@ -415,5 +631,29 @@ actorId?: string;
  * @maximum 200
  */
 limit?: AuditLimitParameter;
+};
+
+export type ListDocumentsParams = {
+countryId?: number;
+type?: string;
+status?: ListDocumentsStatus;
+agreementId?: number;
+limit?: number;
+};
+
+export type ListDocumentsStatus = typeof ListDocumentsStatus[keyof typeof ListDocumentsStatus];
+
+
+export const ListDocumentsStatus = {
+  draft: 'draft',
+  review: 'review',
+  approved: 'approved',
+  signed: 'signed',
+  archived: 'archived',
+} as const;
+
+export type ListNewsParams = {
+countryId?: number;
+limit?: number;
 };
 

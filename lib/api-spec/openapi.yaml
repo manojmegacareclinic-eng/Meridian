@@ -17,6 +17,8 @@ tags:
   - name: activity
   - name: audit
   - name: admin
+  - name: documents
+  - name: news
 paths:
   /healthz:
     get:
@@ -79,6 +81,49 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Country"
+  /countries/{id}:
+    get:
+      operationId: getCountry
+      tags: [countries]
+      summary: Get a country workspace
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Country
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Country"
+        "404":
+          description: Country not found
+    patch:
+      operationId: updateCountry
+      tags: [countries]
+      summary: Update a country workspace
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CountryUpdate"
+      responses:
+        "200":
+          description: Updated country
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Country"
+        "404":
+          description: Country not found
   /contacts:
     get:
       operationId: listContacts
@@ -199,6 +244,10 @@ paths:
           schema:
             type: string
             enum: [draft, review, signed, archived]
+        - name: countryId
+          in: query
+          schema:
+            type: integer
       responses:
         "200":
           description: Agreements
@@ -255,6 +304,11 @@ paths:
       operationId: listActivity
       tags: [activity]
       summary: List recent activity
+      parameters:
+        - name: countryId
+          in: query
+          schema:
+            type: integer
       responses:
         "200":
           description: Recent activity
@@ -296,6 +350,185 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/AuditEntry"
+  /documents:
+    get:
+      operationId: listDocuments
+      tags: [documents]
+      summary: List documents for a country
+      parameters:
+        - name: countryId
+          in: query
+          schema:
+            type: integer
+        - name: type
+          in: query
+          schema:
+            type: string
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [draft, review, approved, signed, archived]
+        - name: agreementId
+          in: query
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Documents
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Document"
+    post:
+      operationId: createDocument
+      tags: [documents]
+      summary: Create a document record
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DocumentInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Document"
+  /documents/{id}:
+    patch:
+      operationId: updateDocument
+      tags: [documents]
+      summary: Update a document
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DocumentUpdate"
+      responses:
+        "200":
+          description: Updated document
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Document"
+        "404":
+          description: Document not found
+    delete:
+      operationId: deleteDocument
+      tags: [documents]
+      summary: Delete a document
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeleteResponse"
+        "404":
+          description: Document not found
+  /news:
+    get:
+      operationId: listNews
+      tags: [news]
+      summary: List news items for a country
+      parameters:
+        - name: countryId
+          in: query
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: News items
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/News"
+    post:
+      operationId: createNews
+      tags: [news]
+      summary: Create a news item
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NewsInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/News"
+  /news/{id}:
+    patch:
+      operationId: updateNews
+      tags: [news]
+      summary: Update a news item
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NewsUpdate"
+      responses:
+        "200":
+          description: Updated news item
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/News"
+        "404":
+          description: News item not found
+    delete:
+      operationId: deleteNews
+      tags: [news]
+      summary: Delete a news item
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeleteResponse"
+        "404":
+          description: News item not found
   /admin/users:
     get:
       operationId: listAdminUsers
@@ -444,6 +677,38 @@ components:
         riskLevel:
           type: string
           enum: [low, medium, high]
+        language: { type: string }
+        governmentType:
+          type: string
+          enum: [presidential republic, semi-presidential, parliamentary republic, parliamentary monarchy, constitutional monarchy, absolute monarchy, one-party state, transitional]
+        electionYear: { type: integer }
+        team: { type: string }
+        priority:
+          type: string
+          enum: [low, medium, high]
+        strategy: { type: string }
+    CountryUpdate:
+      type: object
+      properties:
+        name: { type: string, minLength: 1 }
+        code: { type: string, minLength: 2, maxLength: 3 }
+        region: { type: string, minLength: 1 }
+        status:
+          type: string
+          enum: [active, leads, inactive, agreement, scheduled]
+        riskLevel:
+          type: string
+          enum: [low, medium, high]
+        language: { type: string }
+        governmentType:
+          type: string
+          enum: [presidential republic, semi-presidential, parliamentary republic, parliamentary monarchy, constitutional monarchy, absolute monarchy, one-party state, transitional]
+        electionYear: { type: integer }
+        team: { type: string }
+        priority:
+          type: string
+          enum: [low, medium, high]
+        strategy: { type: string }
     CountryInput:
       type: object
       required: [name, code, region]
@@ -675,3 +940,96 @@ components:
       properties:
         invitation:
           $ref: "#/components/schemas/AdminInvitation"
+    Document:
+      type: object
+      required: [id, countryId, title, type, status]
+      properties:
+        id: { type: integer }
+        countryId: { type: integer }
+        title: { type: string }
+        type: { type: string }
+        url:
+          type: ["string", "null"]
+        datedOn:
+          type: ["string", "null"]
+          format: date
+        notes:
+          type: ["string", "null"]
+        agreementId:
+          type: ["integer", "null"]
+        agreementName:
+          type: ["string", "null"]
+        status:
+          type: string
+          enum: [draft, review, approved, signed, archived]
+        createdAt: { type: string, format: date-time }
+    DocumentInput:
+      type: object
+      required: [countryId, title]
+      properties:
+        countryId: { type: integer }
+        title: { type: string, minLength: 1 }
+        type: { type: string }
+        url: { type: string }
+        datedOn: { type: string, format: date }
+        notes: { type: string }
+        agreementId: { type: integer }
+        status:
+          type: string
+          enum: [draft, review, approved, signed, archived]
+    DocumentUpdate:
+      type: object
+      properties:
+        title: { type: string, minLength: 1 }
+        type: { type: string }
+        url:
+          type: ["string", "null"]
+        datedOn:
+          type: ["string", "null"]
+          format: date
+        notes:
+          type: ["string", "null"]
+        agreementId:
+          type: ["integer", "null"]
+        status:
+          type: string
+          enum: [draft, review, approved, signed, archived]
+    News:
+      type: object
+      required: [id, countryId, title, source, publishedAt]
+      properties:
+        id: { type: integer }
+        countryId: { type: integer }
+        title: { type: string }
+        source: { type: string }
+        url:
+          type: ["string", "null"]
+        summary:
+          type: ["string", "null"]
+        publishedAt: { type: string, format: date-time }
+        createdAt: { type: string, format: date-time }
+    NewsInput:
+      type: object
+      required: [countryId, title, source, publishedAt]
+      properties:
+        countryId: { type: integer }
+        title: { type: string, minLength: 1 }
+        source: { type: string, minLength: 1 }
+        url: { type: string }
+        summary: { type: string }
+        publishedAt: { type: string, format: date-time }
+    NewsUpdate:
+      type: object
+      properties:
+        title: { type: string, minLength: 1 }
+        source: { type: string, minLength: 1 }
+        url:
+          type: ["string", "null"]
+        summary:
+          type: ["string", "null"]
+        publishedAt: { type: string, format: date-time }
+    DeleteResponse:
+      type: object
+      required: [id]
+      properties:
+        id: { type: integer }

@@ -5,6 +5,8 @@
  * Global Diplomatic Relations platform API
  * OpenAPI spec version: 0.1.0
  */
+import type { CountryGovernmentType } from './countryGovernmentType';
+import type { CountryPriority } from './countryPriority';
 import type { CountryRiskLevel } from './countryRiskLevel';
 import type { CountryStatus } from './countryStatus';
 
@@ -17,4 +19,10 @@ export interface Country {
   contactsCount: number;
   meetingsCount: number;
   riskLevel: CountryRiskLevel;
+  language?: string;
+  governmentType?: CountryGovernmentType;
+  electionYear?: number;
+  team?: string;
+  priority?: CountryPriority;
+  strategy?: string;
 }

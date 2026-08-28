@@ -11,4 +11,5 @@ import type { SearchParameter } from './searchParameter';
 export type ListAgreementsParams = {
 search?: SearchParameter;
 status?: ListAgreementsStatus;
+countryId?: number;
 };
