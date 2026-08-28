@@ -11,12 +11,30 @@ import { chromium } from "playwright";
 
 const mode = process.env.ROUTE_QA_MODE === "real-auth" ? "real-auth" : "demo";
 const baseURL = process.env.ROUTE_QA_BASE_URL ?? "http://localhost:5173";
+const qaEmail = process.env.ROUTE_QA_EMAIL ?? "admin@meridian.gov";
+const qaPassword = process.env.ROUTE_QA_PASSWORD;
 
 let passed = 0;
 let failed = 0;
 function check(name: string, cond: boolean, detail = "") {
   if (cond) { passed++; console.log(`  PASS ${name}`); }
   else { failed++; console.log(`  FAIL ${name} ${detail}`); }
+}
+
+// Minimal cookie jar: collects set-cookie from responses and replays them.
+function cookieJar() {
+  let jar = new Map<string, string>();
+  const capture = (res: Response) => {
+    for (const raw of res.headers.getSetCookie()) {
+      const [pair] = raw.split(";");
+      const eq = pair.indexOf("=");
+      if (eq < 0) continue;
+      jar.set(pair.slice(0, eq), pair.slice(eq + 1));
+    }
+  };
+  const header = () =>
+    [...jar.entries()].map(([k, v]) => `${k}=${v}`).join("; ");
+  return { capture, header, readonly: () => jar.size > 0 };
 }
 
 const NAV_ROUTES = [
@@ -43,6 +61,40 @@ async function main() {
     check("sign-in button visible", await page.isVisible('[data-testid="button-sign-in"]'));
     const shellCount = await page.locator('[data-testid="current-user-name"]').count();
     check("application shell hidden until signed in", shellCount === 0, `got ${shellCount} user markers`);
+
+    if (qaPassword) {
+      // Programmatic sign-in against the dev server proxy; hand the session cookie to the browser.
+      const jar = cookieJar();
+      const signIn = await fetch(`${baseURL}/api/auth/sign-in/email`, {
+        method: "POST",
+        headers: { "content-type": "application/json", origin: baseURL },
+        body: JSON.stringify({ email: qaEmail, password: qaPassword }),
+      });
+      jar.capture(signIn);
+      check("admin sign-in via API succeeds", signIn.status === 200, `got ${signIn.status}`);
+      if (jar.readonly()) {
+        const context = page.context();
+        for (const [name, value] of jarMap(jar)) {
+          await context.addCookies([{ name, value, url: baseURL }]);
+        }
+        await page.goto(`${baseURL}/`, { waitUntil: "load" });
+        await page.waitForSelector('[data-testid="current-user-name"]', { timeout: 15000 });
+        check("admin nav link visible", await page.isVisible('[data-testid="link-nav-admin"]'));
+
+        await page.goto(`${baseURL}/admin`, { waitUntil: "load" });
+        await page.waitForSelector('[data-testid="link-nav-admin"]', { timeout: 15000 });
+        const h1 = ((await page.textContent("header h1")) ?? "").trim();
+        check("admin page header title renders", h1 === "Administration", `got "${h1}"`);
+        await page.waitForSelector('[data-testid^="admin-member-row-"]', { timeout: 15000 });
+        const memberRows = await page.locator('[data-testid^="admin-member-row-"]').count();
+        check("admin user rows listed", memberRows > 0, `got ${memberRows}`);
+        check("manage-role select present", await page.locator('[data-testid^="admin-role-select-"]').first().isVisible());
+      } else {
+        console.log("  SKIP admin page flow (no session cookie from sign-in)");
+      }
+    } else {
+      console.log("  SKIP admin page flow (set ROUTE_QA_PASSWORD to exercise the signed-in admin page)");
+    }
   } else {
     // Demo session resolves synchronously; confirm the shell arrives.
     await page.goto(`${baseURL}/`, { waitUntil: "load" });
@@ -76,6 +128,17 @@ async function main() {
   await browser.close();
   console.log(`\n${failed === 0 ? "ALL PASS" : `${failed} FAILURES`} (${passed} passed)`);
   process.exit(failed === 0 ? 0 : 1);
+}
+
+function jarMap(jar: ReturnType<typeof cookieJar>): Map<string, string> {
+  const result = new Map<string, string>();
+  const header = jar.header();
+  for (const pair of header.split("; ")) {
+    const eq = pair.indexOf("=");
+    if (eq < 0) continue;
+    result.set(pair.slice(0, eq), pair.slice(eq + 1));
+  }
+  return result;
 }
 
 main().catch((err) => {

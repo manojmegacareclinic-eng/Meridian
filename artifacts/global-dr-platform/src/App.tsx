@@ -29,14 +29,21 @@ import {
 import {
   getGetDashboardSummaryQueryKey,
   getListActivityQueryKey,
+  getListAdminMembersQueryKey,
+  getListAdminUsersQueryKey,
   getListAgreementsQueryKey,
   getListContactsQueryKey,
   getListCountriesQueryKey,
   getListMeetingsQueryKey,
+  useCreateAdminInvitation,
+  useCreateAdminUser,
   useCreateAgreement,
   useCreateContact,
   useCreateCountry,
   useCreateMeeting,
+  useListAdminMembers,
+  useListAdminUsers,
+  useUpdateAdminUserRole,
   useUpdateMeeting,
   useUpdateAgreement,
   useGetDashboardSummary,
@@ -48,6 +55,8 @@ import {
   useListMeetings,
 } from '@workspace/api-client-react';
 import type {
+  AdminUser,
+  AdminUserInput,
   Agreement,
   AgreementInput,
   Contact,
@@ -59,7 +68,7 @@ import type {
 } from '@workspace/api-client-react';
 import { Link, useLocation } from '@tanstack/react-router';
 import { queryClient } from '@/lib/query';
-import { authDemoEnabled, useSessionInfo } from '@/lib/auth';
+import { authDemoEnabled, roleLabel, useSessionInfo } from '@/lib/auth';
 import {
   authClient,
   sendVerificationEmail,
@@ -74,6 +83,8 @@ const navItems = [
   { href: '/meetings', label: 'Meetings', icon: CalendarDays },
   { href: '/agreements', label: 'Agreements', icon: FileCheck2 },
 ];
+
+const adminItem = { href: '/admin', label: 'Administration', icon: SlidersHorizontal };
 
 const formatDate = (value?: string | null, withYear = false) => {
   if (!value) return '—';
@@ -134,7 +145,9 @@ export function Shell({ children }: { children: React.ReactNode }) {
   const pathname = useLocation().pathname;
   const { user } = useSessionInfo();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const pageName = pathname === '/' ? 'Overview' : navItems.find((item) => item.href === pathname)?.label ?? 'Workspace';
+  const isAdmin = user?.role === 'global_admin' && !authDemoEnabled();
+  const allNavItems = isAdmin ? [...navItems, adminItem] : navItems;
+  const pageName = pathname === '/' ? 'Overview' : allNavItems.find((item) => item.href === pathname)?.label ?? 'Workspace';
   return <div className="min-h-[100dvh] bg-[hsl(var(--background))] text-[hsl(var(--foreground))]">
     <aside className={`fixed inset-y-0 left-0 z-40 flex w-[260px] flex-col bg-[hsl(var(--sidebar))] px-5 py-6 text-[hsl(var(--sidebar-foreground))] shadow-xl transition-transform duration-300 lg:translate-x-0 ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}`}>
       <div className="mb-10 flex items-center justify-between px-2">
@@ -156,6 +169,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
         })}
       </nav>
       <div className="mt-9 mb-3 px-3 text-[10px] font-bold uppercase tracking-[.2em] text-[hsl(190_19%_58%)]">Governance</div>
+      {isAdmin && <Link to="/admin" className={`flex items-center gap-3 rounded-xl px-3 py-3 text-[13px] font-semibold ${pathname === '/admin' ? 'bg-[hsl(var(--sidebar-accent))]' : 'text-[hsl(190_19%_72%)] hover:bg-[hsl(var(--sidebar-accent))]'}`} data-testid="link-nav-admin"><SlidersHorizontal size={17} /><span>Administration</span></Link>}
       <Link to="/settings" className={`flex items-center gap-3 rounded-xl px-3 py-3 text-[13px] font-semibold ${pathname === '/settings' ? 'bg-[hsl(var(--sidebar-accent))]' : 'text-[hsl(190_19%_72%)] hover:bg-[hsl(var(--sidebar-accent))]'}`} data-testid="link-nav-settings"><Settings size={17} /><span>Settings</span></Link>
       <div className="mt-auto rounded-2xl border border-[hsl(var(--sidebar-border))] bg-[hsl(190_31%_19%)] p-4">
         <div className="mb-3 flex items-center gap-2 text-[hsl(42_30%_88%)]"><ShieldCheck size={15} className="text-[hsl(var(--sidebar-primary))]" /><span className="text-xs font-bold">Workspace secured</span></div>
@@ -338,6 +352,60 @@ function SettingRow({ label, description, checked, onChange, testId }: { label: 
 
 function AccessLine({ label, value }: { label: string; value: string }) {
   return <div className="flex justify-between gap-3 text-xs"><span className="text-[hsl(42_25%_69%)]">{label}</span><span className="text-right font-bold">{value}</span></div>;
+}
+
+export function AdminPage() {
+  const usersQuery = useListAdminUsers();
+  const membersQuery = useListAdminMembers();
+  const createUser = useCreateAdminUser();
+  const updateRole = useUpdateAdminUserRole();
+  const createInvite = useCreateAdminInvitation();
+  const [newEmail, setNewEmail] = useState('');
+  const [newName, setNewName] = useState('');
+  const [newRole, setNewRole] = useState<AdminUserInput['role']>('viewer');
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [notice, setNotice] = useState<{ email: string; tempPassword: string; verificationToken: string | null } | null>(null);
+  const users = usersQuery.data ?? [];
+  const invitations = membersQuery.data?.invitations ?? [];
+  const invalidate = () => {
+    void queryClient.invalidateQueries({ queryKey: getListAdminUsersQueryKey() });
+    void queryClient.invalidateQueries({ queryKey: getListAdminMembersQueryKey() });
+  };
+  const submitCreate = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    createUser.mutate(
+      { data: { email: newEmail, name: newName, role: newRole } },
+      {
+        onSuccess: (res) => {
+          setNotice({ email: res.user.email, tempPassword: res.tempPassword, verificationToken: res.verificationToken ?? null });
+          setNewEmail('');
+          setNewName('');
+          void invalidate();
+        },
+      },
+    );
+  };
+  const changeRole = (user: AdminUser, role: string) => {
+    if (role === user.role) return;
+    updateRole.mutate({ id: user.id, data: { role: role as AdminUserInput['role'] } }, { onSuccess: () => invalidate() });
+  };
+  const submitInvite = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    createInvite.mutate({ data: { email: inviteEmail } }, { onSuccess: () => { setInviteEmail(''); void invalidate(); } });
+  };
+  return <div className="animate-rise-in"><PageIntro eyebrow="Governance / Admin" title="Who holds the room." description="Manage workspace access: create accounts, assign roles, and invite colleagues to Meridian." />
+    {notice && <div className="mb-6 rounded-2xl border border-[hsl(var(--accent-foreground)/.4)] bg-[hsl(42_76%_68%/.12)] p-5">
+      <div className="flex items-start justify-between gap-4"><div><p className="text-sm font-bold">Account for {notice.email} is ready</p><p className="mt-1 text-xs text-[hsl(var(--muted-foreground))]">Share the temporary password with the user — it is shown only once. They will be asked to verify their email on first sign-in.</p></div><button onClick={() => setNotice(null)} className="rounded-lg p-1 text-[hsl(var(--muted-foreground))] hover:bg-[hsl(var(--muted))]" aria-label="Dismiss notice" data-testid="button-dismiss-notice"><X size={16} /></button></div>
+      <div className="mt-4 grid max-w-2xl gap-3 sm:grid-cols-2"><div className="rounded-xl bg-[hsl(var(--card))] p-3"><p className="text-[10px] font-bold uppercase tracking-[.12em] text-[hsl(var(--muted-foreground))]">Temporary password</p><p className="mt-1 break-all font-mono text-sm" data-testid="text-temp-password">{notice.tempPassword}</p></div><div className="rounded-xl bg-[hsl(var(--card))] p-3"><p className="text-[10px] font-bold uppercase tracking-[.12em] text-[hsl(var(--muted-foreground))]">Verification token</p><p className="mt-1 break-all font-mono text-sm" data-testid="text-verification-code">{notice.verificationToken ?? '—'}</p></div></div>
+    </div>}
+    <div className="grid gap-6">
+      <section className="rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--card))]"><div className="border-b border-[hsl(var(--border))] px-6 py-5"><h3 className="font-serif text-[22px]">Create a user account</h3><p className="mt-1 text-xs text-[hsl(var(--muted-foreground))]">Accounts are issued with a temporary password and require email verification.</p></div><form onSubmit={submitCreate} className="grid gap-4 p-6 sm:grid-cols-2 lg:grid-cols-4"><FormField label="Email"><input value={newEmail} onChange={(event) => setNewEmail(event.target.value)} type="email" required placeholder="name@ministry.gov" className={inputClass} data-testid="input-admin-user-email" /></FormField><FormField label="Full name"><input value={newName} onChange={(event) => setNewName(event.target.value)} required placeholder="Full name" className={inputClass} data-testid="input-admin-user-name" /></FormField><FormField label="Role"><select value={newRole} onChange={(event) => setNewRole(event.target.value as AdminUserInput['role'])} className={selectClass} data-testid="select-admin-user-role">{['global_admin', 'regional_director', 'country_lead', 'research', 'meeting_coordinator', 'viewer'].map((role) => <option value={role} key={role}>{roleLabel(role)}</option>)}</select></FormField><div className="flex items-end"><PrimaryButton type="submit" testId="button-admin-create-user">{createUser.isPending ? 'Creating…' : 'Create account'}</PrimaryButton></div></form></section>
+      <section className="rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--card))]"><div className="border-b border-[hsl(var(--border))] px-6 py-5"><h3 className="font-serif text-[22px]">Workspace users</h3><p className="mt-1 text-xs text-[hsl(var(--muted-foreground))]">Global roles gate data access; adjust them here.</p></div>
+        {usersQuery.isLoading ? <div className="p-6"><LoadingRows count={4} /></div> : usersQuery.isError ? <div className="p-6"><ErrorState onRetry={() => void usersQuery.refetch()} /></div> : users.length ? <div className="overflow-x-auto"><table className="w-full text-left text-xs"><thead><tr className="border-b border-[hsl(var(--border))] bg-[hsl(var(--secondary)/.55)] text-[10px] font-bold uppercase tracking-[.1em] text-[hsl(var(--muted-foreground))]"><th className="px-6 py-3">User</th><th className="px-6 py-3">Email</th><th className="px-6 py-3">Verified</th><th className="px-6 py-3">Role</th></tr></thead><tbody className="divide-y divide-[hsl(var(--border))]">{users.map((user) => <tr key={user.id} data-testid={`admin-member-row-${user.id}`}><td className="px-6 py-4 font-bold">{user.name}</td><td className="px-6 py-4 text-[hsl(var(--muted-foreground))]">{user.email}</td><td className="px-6 py-4"><StatusPill tone={user.emailVerified ? 'green' : 'gold'}>{user.emailVerified ? 'Verified' : 'Pending'}</StatusPill></td><td className="px-6 py-4"><select value={user.role} onChange={(event) => changeRole(user, event.target.value)} disabled={updateRole.isPending} className="h-8 rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--background))] px-2 text-[11px] font-bold" aria-label={`Change role for ${user.name}`} data-testid={`admin-role-select-${user.id}`}>{['global_admin', 'regional_director', 'country_lead', 'research', 'meeting_coordinator', 'viewer'].map((role) => <option value={role} key={role}>{roleLabel(role)}</option>)}</select></td></tr>)}</tbody></table></div> : <div className="p-6"><EmptyState icon={Users} title="No users yet" description="Create the first account to invite your team." /></div>}
+      </section>
+      <section className="rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--card))]"><div className="border-b border-[hsl(var(--border))] px-6 py-5"><h3 className="font-serif text-[22px]">Invitations</h3><p className="mt-1 text-xs text-[hsl(var(--muted-foreground))]">Invite existing accounts into the workspace org.</p></div><form onSubmit={submitInvite} className="flex flex-col gap-3 border-b border-[hsl(var(--border))] p-6 sm:flex-row sm:items-end"><FormField label="Account email"><input value={inviteEmail} onChange={(event) => setInviteEmail(event.target.value)} type="email" required placeholder="name@ministry.gov" className={inputClass} data-testid="input-admin-invite-email" /></FormField><PrimaryButton type="submit" testId="button-admin-invite">{createInvite.isPending ? 'Sending…' : 'Send invitation'}</PrimaryButton></form><div className="divide-y divide-[hsl(var(--border))]">{invitations.length ? invitations.map((invitation) => <div key={invitation.id} className="flex items-center justify-between gap-4 px-6 py-4" data-testid={`admin-invitation-row-${invitation.id}`}><div className="min-w-0"><p className="truncate text-xs font-bold">{invitation.email}</p><p className="mt-1 text-[11px] text-[hsl(var(--muted-foreground))]">Invited · {formatDate(invitation.expiresAt, true)}</p></div><StatusPill tone={toneForStatus(invitation.status)}>{invitation.status.replace('_', ' ')}</StatusPill></div>) : <div className="px-6 py-8 text-center text-xs text-[hsl(var(--muted-foreground))]">No invitations yet.</div>}</div></section>
+    </div>
+  </div>;
 }
 
 export function QuickAddListener() {
