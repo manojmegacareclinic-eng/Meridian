@@ -234,7 +234,9 @@
       "devDependencies": {
         "@types/node": "catalog:",
         "@workspace/api-server": "workspace:*",
+        "@workspace/auth": "workspace:*",
         "@workspace/db": "workspace:*",
+        "drizzle-orm": "catalog:",
         "playwright": "^1.53.0",
         "tsx": "catalog:",
       },

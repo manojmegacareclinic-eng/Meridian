@@ -7,12 +7,15 @@
     "hello": "tsx ./src/hello.ts",
     "auth-qa": "tsx ./src/auth-qa.ts",
     "route-qa": "tsx ./src/route-qa.ts",
+    "create-user": "tsx ./src/create-user.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "devDependencies": {
     "@types/node": "catalog:",
     "@workspace/api-server": "workspace:*",
+    "@workspace/auth": "workspace:*",
     "@workspace/db": "workspace:*",
+    "drizzle-orm": "catalog:",
     "playwright": "^1.53.0",
     "tsx": "catalog:"
   },
