@@ -31,7 +31,7 @@ When a task is completed, record the evidence briefly, mark the next task as `NE
 - **DONE** — Full workspace TypeScript check passes.
 - **DONE** — API health and dashboard endpoints verified through the Replit proxy.
 - **DONE** — Existing operational UI is available for countries, contacts, meetings, agreements, activity, dashboard metrics, and settings.
-- **DONE** — Task #2 (access control): the workspace is gated behind a sign-in screen; accounts are self-hosted with Better Auth; every API route except `GET /api/healthz` requires a valid session; mutating routes enforce a write-role guard (viewers are read-only); `global_admin`s create accounts, change roles, and invite users from the `/admin` page. Verified by typecheck/build and by the `auth-qa` and `route-qa` suites. See `docs/roles-and-permissions.md`.
+- **DONE** — Task #2 (access control): the workspace is gated behind a sign-in screen; accounts are self-hosted with Better Auth; every API route except `GET /api/healthz` requires a valid session; mutating routes enforce a write-role guard (viewers are read-only); `global_admin`s create accounts, change roles, and invite users from the `/admin` page. Verified by typecheck/build and by the QA suites on a clean database — `auth-qa` 19/19 PASS, SPA demo `route-qa` 16/16 PASS, real-auth `route-qa` 8/8 PASS (sign-in gate, admin nav, `/admin` page). See `docs/roles-and-permissions.md`.
 - **PARTIAL** — The current database is empty and the app is using a small operational schema; the blueprint's 195-country coverage and extended intelligence model are not populated yet.
 
 ### NEXT — Task #3: audit events
