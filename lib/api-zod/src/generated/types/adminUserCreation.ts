@@ -5,13 +5,11 @@
  * Global Diplomatic Relations platform API
  * OpenAPI spec version: 0.1.0
  */
+import type { AdminUser } from './adminUser';
 
-export interface Activity {
-  id: number;
-  kind: string;
-  title: string;
-  description: string;
-  occurredAt: Date;
+export interface AdminUserCreation {
+  user: AdminUser;
+  tempPassword: string;
   /** @nullable */
-  countryName?: string | null;
+  verificationToken?: string | null;
 }

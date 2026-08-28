@@ -6,7 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface PipelineStage {
-  stage: string;
-  count: number;
+export interface UpdateUserRoleResponse {
+  id: string;
+  role: string;
 }

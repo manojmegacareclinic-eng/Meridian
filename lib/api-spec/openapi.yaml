@@ -15,6 +15,7 @@ tags:
   - name: meetings
   - name: agreements
   - name: activity
+  - name: admin
 paths:
   /healthz:
     get:
@@ -262,6 +263,91 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/Activity"
+  /admin/users:
+    get:
+      operationId: listAdminUsers
+      tags: [admin]
+      summary: List all workspace users
+      responses:
+        "200":
+          description: Users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AdminUser"
+    post:
+      operationId: createAdminUser
+      tags: [admin]
+      summary: Create a workspace user (temp password issued)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminUserInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminUserCreation"
+  /admin/users/{id}/role:
+    patch:
+      operationId: updateAdminUserRole
+      tags: [admin]
+      summary: Update a workspace user's global role
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateUserRoleBody"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UpdateUserRoleResponse"
+  /admin/members:
+    get:
+      operationId: listAdminMembers
+      tags: [admin]
+      summary: List workspace members and invitations
+      responses:
+        "200":
+          description: Members and invitations
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminMembersOverview"
+  /admin/invitations:
+    post:
+      operationId: createAdminInvitation
+      tags: [admin]
+      summary: Invite an existing account to the workspace org
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateInvitationBody"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InvitationCreation"
 components:
   parameters:
     Search:
@@ -440,3 +526,94 @@ components:
         occurredAt: { type: string, format: date-time }
         countryName:
           type: ["string", "null"]
+    AdminUser:
+      type: object
+      required: [id, name, email, role, emailVerified]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        email: { type: string, format: email }
+        role: { type: string }
+        emailVerified: { type: boolean }
+        memberId:
+          type: ["string", "null"]
+    AdminUserInput:
+      type: object
+      required: [email, name, role]
+      properties:
+        email: { type: string, format: email }
+        name: { type: string, minLength: 1 }
+        role:
+          type: string
+          enum: [global_admin, regional_director, country_lead, research, meeting_coordinator, viewer]
+    AdminUserCreation:
+      type: object
+      required: [user, tempPassword]
+      properties:
+        user:
+          $ref: "#/components/schemas/AdminUser"
+        tempPassword: { type: string }
+        verificationToken:
+          type: ["string", "null"]
+    UpdateUserRoleBody:
+      type: object
+      required: [role]
+      properties:
+        role:
+          type: string
+          enum: [global_admin, regional_director, country_lead, research, meeting_coordinator, viewer]
+    UpdateUserRoleResponse:
+      type: object
+      required: [id, role]
+      properties:
+        id: { type: string }
+        role: { type: string }
+    AdminMember:
+      type: object
+      required: [id, organizationId, userId, role, name, email]
+      properties:
+        id: { type: string }
+        organizationId: { type: string }
+        userId: { type: string }
+        role: { type: string }
+        name: { type: string }
+        email: { type: string }
+    AdminInvitation:
+      type: object
+      required: [id, organizationId, email, role, status, inviterId, expiresAt]
+      properties:
+        id: { type: string }
+        organizationId: { type: string }
+        email: { type: string }
+        role:
+          type: ["string", "null"]
+        status: { type: string }
+        inviterId: { type: string }
+        expiresAt:
+          type: ["string", "null"]
+          format: date-time
+    AdminMembersOverview:
+      type: object
+      required: [members, invitations]
+      properties:
+        members:
+          type: array
+          items:
+            $ref: "#/components/schemas/AdminMember"
+        invitations:
+          type: array
+          items:
+            $ref: "#/components/schemas/AdminInvitation"
+    CreateInvitationBody:
+      type: object
+      required: [email]
+      properties:
+        email: { type: string, format: email }
+        role:
+          type: ["string", "null"]
+    InvitationCreation:
+      type: object
+      required: [invitation]
+      properties:
+        invitation:
+          $ref: "#/components/schemas/AdminInvitation"

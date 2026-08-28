@@ -25,7 +25,7 @@ function check(name: string, cond: boolean, detail = "") {
   else { failed++; console.log(`  FAIL ${name} ${detail}`); }
 }
 
-const QA_EMAILS = ["qa@meridian.local", "qa-viewer@meridian.local"];
+const QA_EMAILS = ["qa@meridian.local", "qa-viewer@meridian.local", "qa-admin2@meridian.local"];
 // Unique per-run country code so a previously-aborted run can never collide
 // (the insert schema constrains `code` to 3 chars).
 const QA_CODE = `QA${Math.floor(1 + Math.random() * 9)}`;
@@ -168,7 +168,74 @@ async function main() {
     `status=${adminPost.status} body=${JSON.stringify(adminPostBody).slice(0, 200)}`,
   );
 
-  // 10. Cleanup: remove disposable users (cascades accounts/sessions/members)
+  // 10-16. Admin endpoints: global_admin only; any global_admin may invite.
+  const viewerAdmUsers = await fetch(`${origin}/api/admin/users`, {
+    headers: { cookie: viewerJar.header() },
+  });
+  check("GET /api/admin/users as viewer -> 403", viewerAdmUsers.status === 403, `got ${viewerAdmUsers.status}`);
+
+  const viewerAdmPost = await fetch(`${origin}/api/admin/users`, {
+    method: "POST",
+    headers: { "content-type": "application/json", cookie: viewerJar.header() },
+    body: JSON.stringify({ email: "qa-nope@meridian.local", name: "Nope", role: "viewer" }),
+  });
+  check("POST /api/admin/users as viewer -> 403", viewerAdmPost.status === 403, `got ${viewerAdmPost.status}`);
+
+  const admUsers = await fetch(`${origin}/api/admin/users`, {
+    headers: { cookie: adminJar.header() },
+  });
+  const admUsersBody = (await admUsers.json().catch(() => [])) as unknown[];
+  check(
+    "GET /api/admin/users as global_admin -> 200 lists qa user",
+    admUsers.status === 200 &&
+      admUsersBody.some((u) => (u as { email?: string }).email === QA_EMAILS[0]),
+    `status=${admUsers.status} count=${admUsersBody.length}`,
+  );
+
+  const admCreate = await fetch(`${origin}/api/admin/users`, {
+    method: "POST",
+    headers: { "content-type": "application/json", cookie: adminJar.header() },
+    body: JSON.stringify({ email: QA_EMAILS[2], name: "QA Admin Two", role: "global_admin" }),
+  });
+  const admCreateBody = (await admCreate.json().catch(() => ({}))) as {
+    tempPassword?: string;
+    verificationToken?: string | null;
+  };
+  check(
+    "POST /api/admin/users (global_admin) -> 201 with temp password + token",
+    admCreate.status === 201 && typeof admCreateBody.tempPassword === "string" && !!admCreateBody.verificationToken,
+    `status=${admCreate.status} body=${JSON.stringify(admCreateBody).slice(0, 120)}`,
+  );
+
+  // Verify the second admin's token so it can sign in.
+  const admin2Jar = cookieJar();
+  const admin2Verify = await fetch(
+    `${origin}/api/auth/verify-email?token=${encodeURIComponent(admCreateBody.verificationToken ?? "")}`,
+  );
+  admin2Jar.capture(admin2Verify);
+  check("verify-email (second admin) -> 200", admin2Verify.status === 200, `got ${admin2Verify.status}`);
+
+  // Any global_admin can invite, regardless of org membership role.
+  const invite = await fetch(`${origin}/api/admin/invitations`, {
+    method: "POST",
+    headers: { "content-type": "application/json", cookie: admin2Jar.header() },
+    body: JSON.stringify({ email: QA_EMAILS[1] }),
+  });
+  const inviteBody = (await invite.json().catch(() => ({}))) as { invitation?: { status?: string } };
+  check(
+    "POST /api/admin/invitations as second (non-owner) global_admin -> 201",
+    invite.status === 201 && inviteBody.invitation?.status === "pending",
+    `status=${invite.status} body=${JSON.stringify(inviteBody).slice(0, 120)}`,
+  );
+
+  const inviteUnknown = await fetch(`${origin}/api/admin/invitations`, {
+    method: "POST",
+    headers: { "content-type": "application/json", cookie: admin2Jar.header() },
+    body: JSON.stringify({ email: "no-such-account@meridian.local" }),
+  });
+  check("invite for unknown email -> 400", inviteUnknown.status === 400, `got ${inviteUnknown.status}`);
+
+  // 17. Cleanup: remove disposable users (cascades accounts/sessions/members)
   //     and the disposable country row (with its activity trail).
   await db.delete(userTable).where(inArray(userTable.email, QA_EMAILS));
   if (typeof adminPostBody.id === "number") {

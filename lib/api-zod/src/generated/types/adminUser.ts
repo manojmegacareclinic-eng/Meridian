@@ -6,12 +6,12 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface Activity {
-  id: number;
-  kind: string;
-  title: string;
-  description: string;
-  occurredAt: Date;
+export interface AdminUser {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  emailVerified: boolean;
   /** @nullable */
-  countryName?: string | null;
+  memberId?: string | null;
 }

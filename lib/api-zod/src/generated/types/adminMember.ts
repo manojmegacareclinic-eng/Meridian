@@ -6,7 +6,11 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface PipelineStage {
-  stage: string;
-  count: number;
+export interface AdminMember {
+  id: string;
+  organizationId: string;
+  userId: string;
+  role: string;
+  name: string;
+  email: string;
 }

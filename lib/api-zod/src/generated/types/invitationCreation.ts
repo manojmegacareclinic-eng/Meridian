@@ -5,8 +5,8 @@
  * Global Diplomatic Relations platform API
  * OpenAPI spec version: 0.1.0
  */
+import type { AdminInvitation } from './adminInvitation';
 
-export interface PipelineStage {
-  stage: string;
-  count: number;
+export interface InvitationCreation {
+  invitation: AdminInvitation;
 }

@@ -6,7 +6,8 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface PipelineStage {
-  stage: string;
-  count: number;
+export interface CreateInvitationBody {
+  email: string;
+  /** @nullable */
+  role?: string | null;
 }

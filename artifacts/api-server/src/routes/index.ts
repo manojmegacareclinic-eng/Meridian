@@ -13,7 +13,7 @@ router.use(healthRouter);
 // needs the session guard first. It is mounted before the write-role guard so
 // its read endpoints are also admin-only.
 router.use(requireSession());
-router.use(adminRouter);
+router.use("/admin", adminRouter);
 router.use(requireWriteRole());
 router.use(platformRouter);
 
