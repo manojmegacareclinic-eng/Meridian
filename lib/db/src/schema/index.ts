@@ -23,3 +23,13 @@ export * from "./meetings";
 export * from "./agreements";
 export * from "./activity";
 export * from "./auth";
+export {
+  userTable as user,
+  sessionTable as session,
+  accountTable as account,
+  verificationTable as verification,
+  organizationTable as organization,
+  memberTable as member,
+  invitationTable as invitation,
+  rateLimitTable as rate_limit,
+} from "./auth";

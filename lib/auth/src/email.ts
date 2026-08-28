@@ -24,6 +24,17 @@ export const consoleMail: MailTransport = {
 
 let smtp: MailTransport | null = null;
 
+/**
+ * Send a bare verification token/URL to a user's inbox. The token is the
+ * 10-minute JWT the `/verify-email` endpoint reads (see account.ts).
+ */
+export async function sendVerificationMessage(email: string, token: string): Promise<void> {
+  await getMailTransport().send(email, {
+    subject: "Meridian — verify your email address",
+    text: `Your Meridian verification token is:\n\n${token}\n\nIt expires in 10 minutes.`,
+  });
+}
+
 export function getMailTransport(): MailTransport {
   if (process.env.SMTP_HOST) {
     if (!smtp) smtp = createSmtpTransport();

@@ -1,5 +1,5 @@
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { organization } from "better-auth/plugins";
+import { admin, organization } from "better-auth/plugins";
 import type { BetterAuthOptions } from "better-auth";
 import type { Db } from "@workspace/db";
 import { getMailTransport } from "./email";
@@ -14,7 +14,7 @@ export interface AuthOptionsInput {
   sendVerificationEmailOverride?: (params: { user: { email: string }; token: string }) => Promise<void>;
 }
 
-export function buildAuthOptions(input: AuthOptionsInput): BetterAuthOptions {
+export function buildAuthOptions(input: AuthOptionsInput) {
   const { db, secret } = input;
   const mail = getMailTransport();
   const secondaryStorage = createSecondaryStorage(db);
@@ -39,6 +39,8 @@ export function buildAuthOptions(input: AuthOptionsInput): BetterAuthOptions {
       sendOnSignUp: false,
       sendOnSignIn: true,
       autoSignInAfterVerification: true,
+      // 10-minute tokens, matching createAccount's own mint (account.ts).
+      expiresIn: 10 * 60,
       sendVerificationEmail: async ({ user, url, token }) => {
         if (input.sendVerificationEmailOverride) {
           await input.sendVerificationEmailOverride({ user, token });
@@ -61,7 +63,14 @@ export function buildAuthOptions(input: AuthOptionsInput): BetterAuthOptions {
         },
       },
     },
-    plugins: [organization()],
+    // The admin plugin backs `auth.api.createUser` (used by the create-user CLI
+    // and the admin API); server-side calls need no session. Its own HTTP
+    // /admin routes stay locked to the literal "admin" role (no such user) —
+    // the real admin surface is our Express /admin router with its guards.
+    plugins: [
+      organization(),
+      admin(),
+    ],
     rateLimit: {
       window: 60,
       max: 5,
@@ -69,8 +78,9 @@ export function buildAuthOptions(input: AuthOptionsInput): BetterAuthOptions {
       modelName: "rateLimit",
       customRules: {
         "/sign-in/email": { window: 60, max: 5 },
-        "/email-verification/verify-email": { window: 60, max: 3 },
+        "/verify-email": { window: 60, max: 3 },
+        "/send-verification-email": { window: 60, max: 3 },
       },
     },
-  };
+  } satisfies BetterAuthOptions;
 }
