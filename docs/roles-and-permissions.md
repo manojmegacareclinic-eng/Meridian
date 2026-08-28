@@ -1,101 +1,95 @@
 # Roles & permissions
 
-Access control is served by **Better Auth** (self-hosted authentication) plus a
-small Express enforcement layer. This document defines the workspace role model,
-how a user is assigned a role, and how the rules are enforced on the server.
+Everything below describes the Better Auth self-hosted implementation (see `auth` in
+`artifacts/api-server/src/lib/`, schema in `lib/db/src/schema/`).
 
 ## Sign-in requirement
 
-- **Web app:** the workspace UI (the Shell) is gated behind a sign-in screen.
-  Without a valid, loaded session you see only the branded sign-in screen plus
-  the route-level 404. No country, contact, meeting, agreement, or activity
-  data is rendered before sign-in.
-- **API:** every route except `GET /api/healthz` requires a valid signed-in
-  session. The `requireSession` guard (Better Auth session cookie) rejects
-  requests with `401`.
-
-`GET /api/healthz` is public on purpose: it returns a static `{ status: "ok" }`
-used by operational probes and leaks nothing.
+- Every route under `/api` (except `/api/healthz` and the Better Auth route) requires a
+  verified session. Unverified users get `403 EMAIL_NOT_VERIFIED` on sign-in and never
+  reach data routes.
+- An **application owner** (`global_admin`) can create accounts and invitations and picks
+  the role. Anyone signed in can see the app shell; data routes additionally enforce the
+  role checks below.
 
 ## Roles
 
-A user's global role lives on the user record (`user.role` in the database),
-assigned at account creation and changeable only by a `global_admin` (from the
-Administration page or `PATCH /api/admin/users/:id/role`). Org memberships in
-the `member` table are bookkeeping-only; access control keys off the global
-role.
+| Role | Can see | Can write |
+| --- | --- | --- |
+| `viewer` | All read routes, including the audit trail | Nothing |
+| `country_lead` | Everything | Everything |
+| `meeting_coordinator` | Everything | Everything |
+| `research_team` | Everything | Everything |
+| `global_admin` | Everything (incl. `/admin`) and the audit trail | Everything plus user/invitation administration |
 
-| Role | Capability summary |
-| --- | --- |
-| `global_admin` | Full access, including the `/admin` API group: create accounts, change roles, invite others into the workspace org. |
-| `regional_director` | Full access across the portfolio; owns regional strategy and scoring. |
-| `country_lead` | Full access within assigned country workspaces and portfolio records. |
-| `research` | Full access to records; contributes research, sources, and verification. |
-| `meeting_coordinator` | Full access to records; drives scheduling, briefings, and follow-up. |
-| `viewer` | Read-only access to the workspace. No create, update, or delete. |
+Site access is role-independent: an unverified non-member or a `viewer` still returns
+`401`/`403` rather than a rendered denial page, and role-specific nav appears only when
+the user's role allows it.
 
 ## Enforcement
 
-All enforcement happens server-side; the UI gate is a convenience, not the
-control.
-
-1. **Authenticated by default** — `requireSession()` runs on every `/api`
-   route (except `/api/healthz`). Unauthenticated → `401`.
-2. **Write-role guard** — `requireWriteRole()` runs on every mutating request
-   (`POST`, `PATCH`, `PUT`, `DELETE`). A `viewer` session (or a session whose
-   role cannot be determined) → `403`. Read requests always pass through.
-3. **Admin guard** — admin routes under `/admin` additionally require
-   `requireDataRole("global_admin")`; any other role (or a non-session) → `403`.
-4. **Legitimate role values** — only the six roles above are accepted; anything
-   else is treated as "role undetermined" and treated like `viewer` for writes.
-
-As features that genuinely need narrower permissions arrive (audit events,
-document workflows, admin actions), add per-route checks with the session actor
-and the role claim rather than weakening the default guards.
+- Admin API: `GET/POST /api/admin/users`, `GET /api/admin/members`,
+  `POST /api/admin/invitations`, `PATCH /api/admin/users/:id/role` require
+  `role === global_admin`. A `viewer` gets `403` on these.
+- Write routes (POST/PATCH on countries, contacts, meetings, agreements, invitations)
+  require `role !== viewer`.
+- Every request maps a verified session (or the dev `AUTH_PASSTHROUGH` session) to an
+  actor `{ id, name, role }`; the actor name and id are stamped onto audit rows.
 
 ## Email verification
 
-New accounts are created with a temporary password and an email-verification
-token. Sign-in with a temp password is rejected with `403 EMAIL_NOT_VERIFIED`
-until the user visits the verify link (token delivered by console or SMTP).
-Bootstrap admins created with `--verify` skip this step.
+- `createAccount` mints a verification token. Signing in before verifying is rejected.
+  `verify-email?token=…` verifies (and auto-signs-in).
+- In production the token is emailed via SMTP; in development the default console
+  transport prints it to logs, and `sendOnSignIn` re-issues one at each unverified sign-in.
+
+## Audit trail
+
+Every data change and every sensitive read writes an **append-only** `activity` row (via
+`writeAudit` in `artifacts/api-server/src/lib/audit.ts`, which never throws into the
+primary request path):
+
+- **Writes** — create/update on countries, contacts, meetings, agreements, admin
+  users, and invitations. Updates carry a compact `before`/`after` diff over an
+  allowlist of keys (e.g. `title`, `status`, `date`, `roles`), so sensitive full bodies
+  (emails, phone numbers) are never echoed.
+- **Sensitive reads** — dashboard summary, contact records, and the admin user/member
+  directory. These are `action: "read"` rows with the actor.
+- Each row has the actor id/name, action, entity type + id, and timestamp. The foreign
+  key to countries is preserved so a country's whole trail can be deleted with it.
+
+The trail is queryable in two ways:
+
+1. **Activity feed** — `GET /api/activity` (summary entries, used by the Overview page).
+2. **Audit endpoint** — `GET /api/audit` (`listAudit`) with filters for `action`,
+   `entityType`, `entityId`, and `actorId`, default limit 50, max 200.
+
+**Who can view it:** every signed-in user (roles `viewer` and up). Unauthenticated access
+returns `401`. The `/audit` page surfaces filterable, expandable before/after records.
+Records are not editable or deletable through the application.
 
 ## Development without a deployed instance
 
-Both layers degrade gracefully so the codebase stays runnable without an
-external auth provider:
-
-- API: without a valid `BETTER_AUTH_SECRET` the server refuses to start (fail
-  fast rather than silently open). With `AUTH_PASSTHROUGH=1`,
-  `requireSession`/`requireWriteRole` become pass-through — **all routes are
-  open**. Never enable pass-through in production.
-- Web app: without `VITE_AUTH_DEMO=1` the app boots to the sign-in screen and
-  stays hidden until a session loads. With `VITE_AUTH_DEMO=1` it renders a demo
-  global-admin session (sign-out hidden; admin nav suppressed) for frontend-only
-  work.
-
-See `artifacts/global-dr-platform/.env.example` and
-`artifacts/api-server/.env.example`.
+- `VITE_AUTH_DEMO=1` + `AUTH_PASSTHROUGH=true` puts the web/api in dev passthrough mode
+  (no login wall; the actor is `Demo`). Set `AUTH_PASSTHROUGH` to the literal `"true"`.
+- Otherwise run a real database (see `DATABASE_URL`), `db push` the schema, and bootstrap
+  an owner with `bun run create-user email name --role global_admin --verify`
+  (`--verify` returns a one-time console-link to verify instantly). Full SMTP setup:
+  `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM`.
+- In development, point `BETTER_AUTH_URL` at the web dev server
+  (`http://localhost:5173`) so browser sessions resolve correctly.
 
 ## Bootstrap
 
-```sh
-bun run --filter @workspace/db push
-bun run --filter @workspace/scripts create-user admin@meridian.gov "Ada Lovelace" --role global_admin --verify
-```
-
-The first `--verify` global admin is also made owner of the seeded "Meridian"
-workspace org; the temp password is printed once at creation.
+`db push` + `create-user` on a fresh database produce exactly one verified `global_admin`;
+no other rows are created, so a clean instance contains just that account.
 
 ## Verification checklist
 
-To confirm access control is wired correctly:
-
-1. Visit the app signed out → only the sign-in screen renders.
-2. Sign in → the workspace opens and the header shows your name, email, and role.
-3. `curl -i http://localhost:3000/api/countries` without a session → `401`.
-4. Sign in with a `viewer` account and attempt `POST /api/countries` → `403`.
-5. Sign in with a write-role account and `POST /api/countries` → `201`.
-6. Sign in as a non-`global_admin` and call `GET /api/admin/users` → `403`.
-7. Sign in as a `global_admin` → `GET /api/admin/users` → `200`, and the
-   Administration page (`/admin`) renders the user table.
+1. unauthenticated API → `401`; authed-but-unverified sign-in → `403 EMAIL_NOT_VERIFIED`.
+2. `viewer` can read everything (including `/api/audit`) but every write → `403`.
+3. `global_admin` can create users (gets temp password + token), invite, and change roles.
+4. Every create/update on countries/contacts/meetings/agreements/users/invitations
+   produces an audit row with the actor and before/after where relevant.
+5. `GET /api/audit` reflects those rows and honors `action`/`entityType`/`entityId`/
+   `actorId` filters; no user can create or edit audit rows through the API.

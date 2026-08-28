@@ -2,7 +2,7 @@
 
 **Status:** Foundation running; MVP implementation in progress  
 **Last updated:** 28 August 2026  
-**Current next task:** **Task #3 — Audit events for sensitive reads and all data changes**  
+**Current next task:** Task #4 — Expand the country, organization, institution, and person model as needed by the first verified workflows.  
 **Source brief:** `attached_assets/Pasted--Global-Diplomatic-Relations-Government-Engagement-Plat_1787756992171.txt`
 
 This is a living delivery plan for the Global Diplomatic Relations (GDP) platform. It translates the enterprise blueprint into an incremental plan that matches the current Replit project instead of requiring a wholesale rewrite.
@@ -34,7 +34,7 @@ When a task is completed, record the evidence briefly, mark the next task as `NE
 - **DONE** — Task #2 (access control): the workspace is gated behind a sign-in screen; accounts are self-hosted with Better Auth; every API route except `GET /api/healthz` requires a valid session; mutating routes enforce a write-role guard (viewers are read-only); `global_admin`s create accounts, change roles, and invite users from the `/admin` page. Verified by typecheck/build and by the QA suites on a clean database — `auth-qa` 19/19 PASS, SPA demo `route-qa` 16/16 PASS, real-auth `route-qa` 8/8 PASS (sign-in gate, admin nav, `/admin` page). See `docs/roles-and-permissions.md`.
 - **PARTIAL** — The current database is empty and the app is using a small operational schema; the blueprint's 195-country coverage and extended intelligence model are not populated yet.
 
-### NEXT — Task #3: audit events
+### DONE — Task #3: audit events
 
 **Record audit events for sensitive reads and all data changes** so there is a uniform, queryable trail of who changed what (and who read confidential records).
 
@@ -44,11 +44,21 @@ Done looks like:
 - Sensitive reads (e.g. dashboard summary, contact verification state) are logged with the actor.
 - The audit trail is visible and queryable (via the activity feed and an audit endpoint), and roles able to view it are documented.
 
+**Status: `DONE`.** `activity` gained `actor_id`, `actor_name`, `action`, `entity_type`,
+`entity_id`, `before`, `after`; `writeAudit` records every create/update on countries,
+contacts, meetings, agreements, admin users, and invitations plus sensitive reads
+(dashboard summary, contacts, admin directory), with compact before/after diffs over an
+allowlist of keys. `GET /api/audit` (`listAudit`) exposes the trail to any signed-in user
+with `action`/`entityType`/`entityId`/`actorId` filters; the `/audit` page renders
+filterable, expandable records. Auth-qa now asserts audit rows, 401 for anonymous access,
+and cleanup (`ALL PASS, 26`); demo and real-auth route-qa push the audit page (`ALL PASS,
+18` and `11`). See `docs/roles-and-permissions.md → Audit trail`.
+
 ## Product delivery roadmap
 
 ### Phase 1 — Secure operational foundation
 
-**Status: `PARTIAL` — Task #3 is `NEXT`.**
+**Status: `PARTIAL` — Task #4 (`NEXT`): expand the country/organization/institution/person model.**
 
 1. Complete authentication and server-side authorization.
 2. Add the initial RBAC roles from the brief:
