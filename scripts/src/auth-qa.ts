@@ -5,7 +5,7 @@ import http from "node:http";
 import { once } from "node:events";
 import { betterAuth } from "better-auth";
 import { eq, inArray } from "drizzle-orm";
-import { db, pool, activityTable, countriesTable, userTable } from "@workspace/db";
+import { db, pool, activityTable, countriesTable, documentsTable, newsTable, userTable } from "@workspace/db";
 import {
   buildAuthOptions,
   createAccount,
@@ -284,10 +284,95 @@ async function main() {
     `status=${auditInvite.status} rows=${auditInviteBody.length}`,
   );
 
-  // 25. Cleanup: remove disposable users (cascades accounts/sessions/members)
+  // 25-37. Country workspace foundation: detail, documents, news, and audit.
+  const countryId = adminPostBody.id as number;
+
+  // 25. GET /api/countries/:id
+  const getCountry = await fetch(`${origin}/api/countries/${countryId}`, { headers: { cookie: adminJar.header() } });
+  const getCountryBody = (await getCountry.json().catch(() => ({}))) as { contactsCount: number; meetingsCount: number };
+  check("GET /api/countries/:id -> 200 with counts", getCountry.status === 200 && typeof getCountryBody.contactsCount === "number" && typeof getCountryBody.meetingsCount === "number", `status=${getCountry.status}`);
+
+  // 26. PATCH /api/countries/:id (valid update)
+  const patchCountry = await fetch(`${origin}/api/countries/${countryId}`, { method: "PATCH", headers: { "content-type": "application/json", cookie: adminJar.header() }, body: JSON.stringify({ language: "English", governmentType: "presidential republic", electionYear: 2024, team: "QA desk", priority: "high", strategy: "Test strategy" }) });
+  const patchCountryBody = (await patchCountry.json().catch(() => ({}))) as { language?: string; priority?: string };
+  check("PATCH /api/countries/:id -> 200 echoes values", patchCountry.status === 200 && patchCountryBody.language === "English" && patchCountryBody.priority === "high", `status=${patchCountry.status}`);
+
+  // 27. PATCH with invalid enum -> 400
+  const patchBad = await fetch(`${origin}/api/countries/${countryId}`, { method: "PATCH", headers: { "content-type": "application/json", cookie: adminJar.header() }, body: JSON.stringify({ governmentType: "bogus" }) });
+  check("PATCH /api/countries/:id invalid enum -> 400", patchBad.status === 400, `got ${patchBad.status}`);
+
+  // 28. PATCH non-existent -> 404
+  const patch404 = await fetch(`${origin}/api/countries/999999`, { method: "PATCH", headers: { "content-type": "application/json", cookie: adminJar.header() }, body: JSON.stringify({ language: "English" }) });
+  check("PATCH /api/countries/999999 -> 404", patch404.status === 404, `got ${patch404.status}`);
+
+  // 29. POST /api/documents
+  const createDoc = await fetch(`${origin}/api/documents`, { method: "POST", headers: { "content-type": "application/json", cookie: adminJar.header() }, body: JSON.stringify({ countryId, title: "QA protocol review", type: "report" }) });
+  const createDocBody = (await createDoc.json().catch(() => ({}))) as { status?: string; agreementId?: number | null; agreementName?: string | null; id: number };
+  check("POST /api/documents -> 201 draft", createDoc.status === 201 && createDocBody.status === "draft" && createDocBody.agreementId === null && createDocBody.agreementName === null, `status=${createDoc.status}`);
+  const docId = createDocBody.id;
+
+  // 30. GET /api/documents?countryId
+  const listDocs = await fetch(`${origin}/api/documents?countryId=${countryId}`, { headers: { cookie: adminJar.header() } });
+  const listDocsBody = (await listDocs.json().catch(() => ([]))) as { id: number }[];
+  check("GET /api/documents?countryId -> exactly 1 row", listDocs.status === 200 && listDocsBody.length === 1, `status=${listDocs.status} count=${listDocsBody.length}`);
+
+  // 31. PATCH /api/documents/:id
+  const patchDoc = await fetch(`${origin}/api/documents/${docId}`, { method: "PATCH", headers: { "content-type": "application/json", cookie: adminJar.header() }, body: JSON.stringify({ status: "approved" }) });
+  const patchDocBody = (await patchDoc.json().catch(() => ({}))) as { status?: string };
+  check("PATCH /api/documents/:id -> 200 approved", patchDoc.status === 200 && patchDocBody.status === "approved", `status=${patchDoc.status}`);
+
+  // 32. PATCH document 404 + POST bad countryId
+  const patchDoc404 = await fetch(`${origin}/api/documents/999999`, { method: "PATCH", headers: { "content-type": "application/json", cookie: adminJar.header() }, body: JSON.stringify({ status: "approved" }) });
+  check("PATCH /api/documents/999999 -> 404", patchDoc404.status === 404, `got ${patchDoc404.status}`);
+  const createDocBad = await fetch(`${origin}/api/documents`, { method: "POST", headers: { "content-type": "application/json", cookie: adminJar.header() }, body: JSON.stringify({ countryId: 999999, title: "bad" }) });
+  check("POST /api/documents bad countryId -> 400", createDocBad.status === 400, `got ${createDocBad.status}`);
+
+  // 33. POST /api/news
+  const createNews = await fetch(`${origin}/api/news`, { method: "POST", headers: { "content-type": "application/json", cookie: adminJar.header() }, body: JSON.stringify({ countryId, title: "QA briefing", source: "Reuters", publishedAt: new Date().toISOString() }) });
+  const createNewsBody = (await createNews.json().catch(() => ({}))) as { publishedAt?: string; id: number };
+  check("POST /api/news -> 201 echoes publishedAt", createNews.status === 201 && typeof createNewsBody.publishedAt === "string", `status=${createNews.status}`);
+  const newsId = createNewsBody.id;
+
+  // 34. GET /api/news?countryId
+  const listNews = await fetch(`${origin}/api/news?countryId=${countryId}`, { headers: { cookie: adminJar.header() } });
+  const listNewsBody = (await listNews.json().catch(() => ([]))) as { id: number }[];
+  check("GET /api/news?countryId -> exactly 1 row", listNews.status === 200 && listNewsBody.length === 1, `status=${listNews.status} count=${listNewsBody.length}`);
+
+  // 35. PATCH /api/news/:id
+  const patchNews = await fetch(`${origin}/api/news/${newsId}`, { method: "PATCH", headers: { "content-type": "application/json", cookie: adminJar.header() }, body: JSON.stringify({ summary: "updated" }) });
+  const patchNewsBody = (await patchNews.json().catch(() => ({}))) as { summary?: string };
+  check("PATCH /api/news/:id -> 200", patchNews.status === 200 && patchNewsBody.summary === "updated", `status=${patchNews.status}`);
+
+  // 36. GET /api/activity?countryId includes our writes
+  const activityByCountry = await fetch(`${origin}/api/activity?countryId=${countryId}`, { headers: { cookie: adminJar.header() } });
+  const activityByCountryBody = (await activityByCountry.json().catch(() => ([]))) as { kind?: string; title?: string }[];
+  check("GET /api/activity?countryId includes country/doc/news writes", activityByCountry.status === 200 && activityByCountryBody.some((r) => r.kind === "country" && r.title === "Country workspace updated") && activityByCountryBody.some((r) => r.kind === "document" && r.title === "Document created") && activityByCountryBody.some((r) => r.kind === "news" && r.title === "News item created"), `status=${activityByCountry.status} rows=${activityByCountryBody.length}`);
+
+  // 37. Audit-specific assertions
+  const auditDocCreate = await fetch(`${origin}/api/audit?entityType=document&entityId=${docId}`, { headers: { cookie: adminJar.header() } });
+  const auditDocCreateBody = (await auditDocCreate.json().catch(() => ([]))) as { action?: string; after?: { status?: string } }[];
+  check("audit document create row with status draft", auditDocCreate.status === 200 && auditDocCreateBody.some((r) => r.action === "create" && r.after?.status === "draft"), `status=${auditDocCreate.status}`);
+
+  const auditDocUpdate = await fetch(`${origin}/api/audit?entityType=document&action=update&entityId=${docId}`, { headers: { cookie: adminJar.header() } });
+  const auditDocUpdateBody = (await auditDocUpdate.json().catch(() => ([]))) as { action?: string }[];
+  check("audit document update row", auditDocUpdate.status === 200 && auditDocUpdateBody.length >= 1, `status=${auditDocUpdate.status}`);
+
+  const auditNewsCreate = await fetch(`${origin}/api/audit?entityType=news&entityId=${newsId}`, { headers: { cookie: adminJar.header() } });
+  const auditNewsCreateBody = (await auditNewsCreate.json().catch(() => ([]))) as { action?: string }[];
+  check("audit news create row", auditNewsCreate.status === 200 && auditNewsCreateBody.some((r) => r.action === "create"), `status=${auditNewsCreate.status}`);
+
+  const auditCountryUpdate = await fetch(`${origin}/api/audit?entityType=country&action=update&entityId=${countryId}`, { headers: { cookie: adminJar.header() } });
+  const auditCountryUpdateBody = (await auditCountryUpdate.json().catch(() => ([]))) as { before?: { language?: string | null }; after?: { language?: string } }[];
+  check("audit country update with before/after language", auditCountryUpdate.status === 200 && auditCountryUpdateBody.some((r) => r.before?.language === null && r.after?.language === "English"), `status=${auditCountryUpdate.status}`);
+
+  // 25 (renumbered). Cleanup: remove disposable users (cascades accounts/sessions/members)
   //     and the disposable country row (with its activity trail).
   await db.delete(userTable).where(inArray(userTable.email, QA_EMAILS));
   if (typeof adminPostBody.id === "number") {
+    // Delete news and documents first (FK to countries, no cascade)
+    await db.delete(newsTable).where(eq(newsTable.countryId, adminPostBody.id));
+    await db.delete(documentsTable).where(eq(documentsTable.countryId, adminPostBody.id));
+    // Activity sweep removes every audit row referencing the disposable country
     await db.delete(activityTable).where(eq(activityTable.countryId, adminPostBody.id));
   }
   await db.delete(countriesTable).where(eq(countriesTable.code, QA_CODE));
