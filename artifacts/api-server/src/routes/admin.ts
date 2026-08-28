@@ -11,13 +11,14 @@ import {
   ListAdminUsersResponse,
   ListAdminMembersResponse,
 } from "@workspace/api-zod";
-import { requireDataRole } from "../middlewares/guards";
+import { requireDataRole, getActor } from "../middlewares/guards";
+import { diffFields, writeAudit } from "../lib/audit";
 
 const router: IRouter = Router();
 
 router.use(requireDataRole("global_admin"));
 
-router.get("/users", async (_req, res) => {
+router.get("/users", async (req, res) => {
   const rows = await db
     .select({
       id: userTable.id,
@@ -30,6 +31,15 @@ router.get("/users", async (_req, res) => {
     .from(userTable)
     .leftJoin(memberTable, eq(memberTable.userId, userTable.id))
     .orderBy(asc(userTable.email));
+  const actor = getActor(req);
+  await writeAudit({
+    actor,
+    action: "read",
+    entityType: "admin_user",
+    kind: "admin",
+    title: "User directory read",
+    description: `${actor.name} read the workspace user directory.`,
+  });
   res.json(ListAdminUsersResponse.parse(rows));
 });
 
@@ -51,6 +61,17 @@ router.post("/users", async (req, res) => {
     },
   });
   await ensureWorkspaceOrg(db, created.user.id, ORG_MEMBER_ROLE);
+  const actor = getActor(req);
+  await writeAudit({
+    actor,
+    action: "create",
+    entityType: "admin_user",
+    entityId: created.user.id,
+    kind: "admin",
+    title: "Account created",
+    description: `${actor.name} created an account for ${created.user.email}.`,
+    after: { id: created.user.id, name: created.user.name, email: created.user.email, role: created.user.role },
+  });
   res.status(201).json({
     user: created.user,
     tempPassword: created.tempPassword,
@@ -64,19 +85,35 @@ router.patch("/users/:id/role", async (req, res) => {
     res.status(400).json({ error: parsed.error.message });
     return;
   }
+  const [existing] = await db
+    .select({ id: userTable.id, role: userTable.role })
+    .from(userTable)
+    .where(eq(userTable.id, req.params.id));
+  if (!existing) {
+    res.status(404).json({ error: "User not found." });
+    return;
+  }
   const [row] = await db
     .update(userTable)
     .set({ role: parsed.data.role, updatedAt: new Date() })
     .where(eq(userTable.id, req.params.id))
     .returning({ id: userTable.id, role: userTable.role });
-  if (!row) {
-    res.status(404).json({ error: "User not found." });
-    return;
-  }
+  const diff = diffFields(existing as unknown as Record<string, unknown>, row as unknown as Record<string, unknown>, ["role"]);
+  await writeAudit({
+    actor: getActor(req),
+    action: "update",
+    entityType: "admin_user",
+    entityId: row.id,
+    kind: "admin",
+    title: "Role changed",
+    description: `${getActor(req).name} changed ${existing.id}'s role.`,
+    before: diff?.before ?? null,
+    after: diff?.after ?? null,
+  });
   res.json(row);
 });
 
-router.get("/members", async (_req, res) => {
+router.get("/members", async (req, res) => {
   const members = await db
     .select({
       id: memberTable.id,
@@ -101,6 +138,15 @@ router.get("/members", async (_req, res) => {
     })
     .from(invitationTable)
     .orderBy(desc(invitationTable.expiresAt));
+  const actor = getActor(req);
+  await writeAudit({
+    actor,
+    action: "read",
+    entityType: "admin_user",
+    kind: "admin",
+    title: "Membership directory read",
+    description: `${actor.name} read the workspace membership and invitations.`,
+  });
   res.json(ListAdminMembersResponse.parse({ members, invitations }));
 });
 
@@ -129,8 +175,8 @@ router.post("/invitations", async (req, res) => {
   // membership is administrative/bookkeeping only, never a data-access gate).
   // The global_admin guard on this router is the authorization; the invitation
   // row is pure bookkeeping the invitee's org-plugin surface sees.
-  const actor = (req as unknown as { actor: { id: string } }).actor;
-  if (actor?.id === "passthrough") {
+  const actor = getActor(req);
+  if (actor.id === "passthrough") {
     // Dev-only AUTH_PASSTHROUGH can't be an inviter: invitation.inviter_id is
     // an FK to user. Refuse instead of crashing with a constraint violation.
     res.status(503).json({ error: "Cannot create invitations while AUTH_PASSTHROUGH is enabled." });
@@ -145,9 +191,19 @@ router.post("/invitations", async (req, res) => {
       role: parsed.data.role ?? "member",
       status: "pending",
       expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-      inviterId: actor!.id,
+      inviterId: actor.id,
     })
     .returning();
+  await writeAudit({
+    actor,
+    action: "create",
+    entityType: "admin_invitation",
+    entityId: invitation.id,
+    kind: "admin",
+    title: "Invitation sent",
+    description: `${actor.name} invited ${invitation.email} to the workspace org.`,
+    after: { id: invitation.id, email: invitation.email, organizationId: invitation.organizationId },
+  });
   res.status(201).json({ invitation });
 });
 

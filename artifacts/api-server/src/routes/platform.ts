@@ -1,6 +1,8 @@
 import { Router, type IRouter } from "express";
 import { and, asc, desc, eq, ilike, inArray, or, sql } from "drizzle-orm";
 import { db, activityTable, agreementsTable, contactsTable, countriesTable, meetingsTable } from "@workspace/db";
+import { diffFields, writeAudit } from "../lib/audit";
+import { getActor } from "../middlewares/guards";
 import {
   CreateAgreementBody,
   CreateContactBody,
@@ -39,7 +41,7 @@ const countryFields = {
   riskLevel: countriesTable.riskLevel,
 };
 
-router.get("/dashboard/summary", async (_req, res): Promise<void> => {
+router.get("/dashboard/summary", async (req, res): Promise<void> => {
   const [countries, contacts, activeEngagements, meetingsThisMonth, agreements, pipeline] = await Promise.all([
     db.select({ count: sql<number>`count(*)` }).from(countriesTable),
     db.select({ count: sql<number>`count(*)` }).from(contactsTable),
@@ -48,6 +50,15 @@ router.get("/dashboard/summary", async (_req, res): Promise<void> => {
     db.select({ count: sql<number>`count(*)` }).from(agreementsTable),
     db.select({ stage: meetingsTable.status, count: sql<number>`count(*)` }).from(meetingsTable).groupBy(meetingsTable.status),
   ]);
+  const actor = getActor(req);
+  await writeAudit({
+    actor,
+    action: "read",
+    entityType: "dashboard_summary",
+    kind: "dashboard",
+    title: "Dashboard summary read",
+    description: `${actor.name} viewed the executive summary.`,
+  });
   const data = {
     countries: Number(countries[0]?.count ?? 0),
     contacts: Number(contacts[0]?.count ?? 0),
@@ -83,7 +94,17 @@ router.post("/countries", async (req, res): Promise<void> => {
   const parsed = CreateCountryBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
   const [row] = await db.insert(countriesTable).values({ ...parsed.data, status: parsed.data.status ?? "leads" }).returning();
-  await db.insert(activityTable).values({ kind: "country", title: "Country workspace created", description: `${row.name} was added to the diplomatic portfolio.`, countryId: row.id });
+  await writeAudit({
+    actor: getActor(req),
+    action: "create",
+    entityType: "country",
+    entityId: String(row.id),
+    kind: "country",
+    title: "Country workspace created",
+    description: `${row.name} was added to the diplomatic portfolio.`,
+    countryId: row.id,
+    after: { id: row.id, name: row.name, status: row.status },
+  });
   res.status(201).json(CreateCountryResponse.parse({ ...row, contactsCount: 0, meetingsCount: 0 }));
 });
 
@@ -100,6 +121,15 @@ router.get("/contacts", async (req, res): Promise<void> => {
     verificationStatus: contactsTable.verificationStatus, lastVerified: contactsTable.lastVerified, relationship: contactsTable.relationship,
   }).from(contactsTable).innerJoin(countriesTable, eq(contactsTable.countryId, countriesTable.id))
     .where(filters.length ? and(...filters) : undefined).orderBy(asc(contactsTable.name));
+  const actor = getActor(req);
+  await writeAudit({
+    actor,
+    action: "read",
+    entityType: "contact",
+    kind: "contact",
+    title: "Contact directory read",
+    description: `${actor.name} read the contact directory (including verification state).`,
+  });
   res.json(ListContactsResponse.parse(rows));
 });
 
@@ -108,7 +138,17 @@ router.post("/contacts", async (req, res): Promise<void> => {
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
   const [row] = await db.insert(contactsTable).values({ ...parsed.data, lastVerified: new Date().toISOString().slice(0, 10) }).returning();
   const [country] = await db.select({ name: countriesTable.name }).from(countriesTable).where(eq(countriesTable.id, row.countryId));
-  await db.insert(activityTable).values({ kind: "contact", title: "Contact added", description: `${row.name} was added to the counterpart directory.`, countryId: row.countryId });
+  await writeAudit({
+    actor: getActor(req),
+    action: "create",
+    entityType: "contact",
+    entityId: String(row.id),
+    kind: "contact",
+    title: "Contact added",
+    description: `${row.name} was added to the counterpart directory.`,
+    countryId: row.countryId,
+    after: { id: row.id, name: row.name, verificationStatus: row.verificationStatus },
+  });
   res.status(201).json(CreateContactResponse.parse({ ...row, countryName: country?.name ?? "Unknown" }));
 });
 
@@ -133,7 +173,17 @@ router.post("/meetings", async (req, res): Promise<void> => {
     ...parsed.data, date: new Date(parsed.data.date), status: "scheduled", participants: 1,
   }).returning();
   const [country] = await db.select({ name: countriesTable.name }).from(countriesTable).where(eq(countriesTable.id, row.countryId));
-  await db.insert(activityTable).values({ kind: "meeting", title: "Meeting scheduled", description: `${row.title} was added to the engagement calendar.`, countryId: row.countryId });
+  await writeAudit({
+    actor: getActor(req),
+    action: "create",
+    entityType: "meeting",
+    entityId: String(row.id),
+    kind: "meeting",
+    title: "Meeting scheduled",
+    description: `${row.title} was added to the engagement calendar.`,
+    countryId: row.countryId,
+    after: { id: row.id, title: row.title, status: row.status },
+  });
   res.status(201).json(CreateMeetingResponse.parse({ ...row, countryName: country?.name ?? "Unknown" }));
 });
 
@@ -145,10 +195,26 @@ router.patch("/meetings/:id", async (req, res): Promise<void> => {
     ...parsed.data,
     date: parsed.data.date ? new Date(parsed.data.date) : undefined,
   };
+  const [existing] = await db.select({
+    id: meetingsTable.id, title: meetingsTable.title, status: meetingsTable.status, date: meetingsTable.date,
+    actionArea: meetingsTable.actionArea, owner: meetingsTable.owner,
+  }).from(meetingsTable).where(eq(meetingsTable.id, params.data.id));
+  if (!existing) { res.status(404).json({ error: "Meeting not found." }); return; }
   const [row] = await db.update(meetingsTable).set(values).where(eq(meetingsTable.id, params.data.id)).returning();
-  if (!row) { res.status(404).json({ error: "Meeting not found." }); return; }
   const [country] = await db.select({ name: countriesTable.name }).from(countriesTable).where(eq(countriesTable.id, row.countryId));
-  await db.insert(activityTable).values({ kind: "meeting", title: "Meeting updated", description: `${row.title} was updated in the engagement calendar.`, countryId: row.countryId });
+  const diff = diffFields(existing as unknown as Record<string, unknown>, { ...row, date: row.date }, ["title", "status", "date", "actionArea", "owner"]);
+  await writeAudit({
+    actor: getActor(req),
+    action: "update",
+    entityType: "meeting",
+    entityId: String(row.id),
+    kind: "meeting",
+    title: "Meeting updated",
+    description: `${row.title} was updated in the engagement calendar.`,
+    countryId: row.countryId,
+    before: diff?.before ?? null,
+    after: diff?.after ?? null,
+  });
   res.json(UpdateMeetingResponse.parse({ ...row, countryName: country?.name ?? "Unknown" }));
 });
 
@@ -176,7 +242,17 @@ router.post("/agreements", async (req, res): Promise<void> => {
     updatedAt: new Date().toISOString().slice(0, 10),
   }).returning();
   const [country] = await db.select({ name: countriesTable.name }).from(countriesTable).where(eq(countriesTable.id, row.countryId));
-  await db.insert(activityTable).values({ kind: "agreement", title: "Agreement recorded", description: `${row.name} was added to the agreement register.`, countryId: row.countryId });
+  await writeAudit({
+    actor: getActor(req),
+    action: "create",
+    entityType: "agreement",
+    entityId: String(row.id),
+    kind: "agreement",
+    title: "Agreement recorded",
+    description: `${row.name} was added to the agreement register.`,
+    countryId: row.countryId,
+    after: { id: row.id, name: row.name, status: row.status },
+  });
   res.status(201).json(CreateAgreementResponse.parse({ ...row, countryName: country?.name ?? "Unknown" }));
 });
 
@@ -184,14 +260,30 @@ router.patch("/agreements/:id", async (req, res): Promise<void> => {
   const params = UpdateAgreementParams.safeParse(req.params);
   const parsed = UpdateAgreementBody.safeParse(req.body);
   if (!params.success || !parsed.success) { res.status(400).json({ error: "Invalid agreement update." }); return; }
+  const [existing] = await db.select({
+    id: agreementsTable.id, name: agreementsTable.name, type: agreementsTable.type,
+    status: agreementsTable.status, renewalDate: agreementsTable.renewalDate,
+  }).from(agreementsTable).where(eq(agreementsTable.id, params.data.id));
+  if (!existing) { res.status(404).json({ error: "Agreement not found." }); return; }
   const [row] = await db.update(agreementsTable).set({
     ...parsed.data,
     renewalDate: parsed.data.renewalDate === null ? null : parsed.data.renewalDate?.toISOString().slice(0, 10),
     updatedAt: new Date().toISOString().slice(0, 10),
   }).where(eq(agreementsTable.id, params.data.id)).returning();
-  if (!row) { res.status(404).json({ error: "Agreement not found." }); return; }
   const [country] = await db.select({ name: countriesTable.name }).from(countriesTable).where(eq(countriesTable.id, row.countryId));
-  await db.insert(activityTable).values({ kind: "agreement", title: "Agreement updated", description: `${row.name} was updated in the agreement register.`, countryId: row.countryId });
+  const diff = diffFields(existing as unknown as Record<string, unknown>, row as unknown as Record<string, unknown>, ["name", "type", "status", "renewalDate"]);
+  await writeAudit({
+    actor: getActor(req),
+    action: "update",
+    entityType: "agreement",
+    entityId: String(row.id),
+    kind: "agreement",
+    title: "Agreement updated",
+    description: `${row.name} was updated in the agreement register.`,
+    countryId: row.countryId,
+    before: diff?.before ?? null,
+    after: diff?.after ?? null,
+  });
   res.json(UpdateAgreementResponse.parse({ ...row, countryName: country?.name ?? "Unknown" }));
 });
 
@@ -199,6 +291,7 @@ router.get("/activity", async (_req, res): Promise<void> => {
   const rows = await db.select({
     id: activityTable.id, kind: activityTable.kind, title: activityTable.title, description: activityTable.description,
     occurredAt: activityTable.occurredAt, countryName: countriesTable.name,
+    actorId: activityTable.actorId, actorName: activityTable.actorName,
   }).from(activityTable).leftJoin(countriesTable, eq(activityTable.countryId, countriesTable.id))
     .orderBy(desc(activityTable.occurredAt)).limit(12);
   res.json(ListActivityResponse.parse(rows));

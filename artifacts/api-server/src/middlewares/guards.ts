@@ -14,6 +14,21 @@ interface AuthenticatedRequest extends Request {
   actor?: { id: string; name: string; role: WorkspaceRole | null };
 }
 
+export interface Actor {
+  id: string;
+  name: string;
+  role: WorkspaceRole | null;
+}
+
+/** Read the actor the session guard attached to this request. */
+export function getActor(req: Request): Actor {
+  return ((req as AuthenticatedRequest).actor as Actor) ?? {
+    id: "unknown",
+    name: "Unknown",
+    role: null,
+  };
+}
+
 /**
  * Session guard. Mounted after the public health route. Rejects requests with
  * no valid Better Auth session (401). On success attaches `req.actor` with the
