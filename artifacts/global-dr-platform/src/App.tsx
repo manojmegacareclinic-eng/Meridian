@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
   Activity as ActivityIcon,
+  ArrowLeft,
   Bell,
   CalendarDays,
   Check,
   ChevronRight,
   CircleAlert,
+  Compass,
   FileCheck2,
   Globe2,
   Landmark,
@@ -56,12 +57,15 @@ import type {
   Meeting,
   MeetingInput,
 } from '@workspace/api-client-react';
-import { ErrorBoundary } from '@/components/error-boundary';
-import NotFound from '@/pages/not-found';
-import { Route, Link, Switch, useLocation } from 'wouter';
+import { Link, useLocation } from '@tanstack/react-router';
+import { queryClient } from '@/lib/query';
+import { authDemoEnabled, useSessionInfo } from '@/lib/auth';
+import {
+  authClient,
+  sendVerificationEmail,
+  verifyEmailToken,
+} from '@/lib/auth-client';
 import './index.css';
-
-const queryClient = new QueryClient();
 
 const navItems = [
   { href: '/', label: 'Overview', icon: LayoutDashboard },
@@ -126,14 +130,15 @@ function EmptyState({ icon: Icon, title, description, action }: { icon: typeof G
   </div>;
 }
 
-function Shell({ children }: { children: React.ReactNode }) {
-  const [location] = useLocation();
+export function Shell({ children }: { children: React.ReactNode }) {
+  const pathname = useLocation().pathname;
+  const { user } = useSessionInfo();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const pageName = location === '/' ? 'Overview' : navItems.find((item) => item.href === location)?.label ?? 'Workspace';
+  const pageName = pathname === '/' ? 'Overview' : navItems.find((item) => item.href === pathname)?.label ?? 'Workspace';
   return <div className="min-h-[100dvh] bg-[hsl(var(--background))] text-[hsl(var(--foreground))]">
     <aside className={`fixed inset-y-0 left-0 z-40 flex w-[260px] flex-col bg-[hsl(var(--sidebar))] px-5 py-6 text-[hsl(var(--sidebar-foreground))] shadow-xl transition-transform duration-300 lg:translate-x-0 ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}`}>
       <div className="mb-10 flex items-center justify-between px-2">
-        <Link href="/" className="flex items-center gap-3" data-testid="link-brand">
+        <Link to="/" className="flex items-center gap-3" data-testid="link-brand">
           <span className="relative flex h-10 w-10 items-center justify-center rounded-[13px] bg-[hsl(var(--sidebar-primary))] text-[hsl(var(--sidebar-primary-foreground))]">
             <Landmark size={20} strokeWidth={2.2} /><span className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full bg-[hsl(157_50%_62%)] ring-2 ring-[hsl(var(--sidebar))]" />
           </span>
@@ -144,14 +149,14 @@ function Shell({ children }: { children: React.ReactNode }) {
       <div className="mb-3 px-3 text-[10px] font-bold uppercase tracking-[.2em] text-[hsl(190_19%_58%)]">Workspace</div>
       <nav className="space-y-1">
         {navItems.map(({ href, label, icon: Icon }) => {
-          const active = href === '/' ? location === '/' : location.startsWith(href);
-          return <Link key={href} href={href} onClick={() => setMobileOpen(false)} className={`group flex items-center gap-3 rounded-xl px-3 py-3 text-[13px] font-semibold ${active ? 'bg-[hsl(var(--sidebar-accent))] text-[hsl(var(--sidebar-accent-foreground))]' : 'text-[hsl(190_19%_72%)] hover:bg-[hsl(var(--sidebar-accent))] hover:text-[hsl(var(--sidebar-accent-foreground))]'}`} data-testid={`link-nav-${label.toLowerCase()}`}>
+          const active = href === '/' ? pathname === '/' : pathname.startsWith(href);
+          return <Link key={href} to={href} onClick={() => setMobileOpen(false)} className={`group flex items-center gap-3 rounded-xl px-3 py-3 text-[13px] font-semibold ${active ? 'bg-[hsl(var(--sidebar-accent))] text-[hsl(var(--sidebar-accent-foreground))]' : 'text-[hsl(190_19%_72%)] hover:bg-[hsl(var(--sidebar-accent))] hover:text-[hsl(var(--sidebar-accent-foreground))]'}`} data-testid={`link-nav-${label.toLowerCase()}`}>
             <Icon size={17} strokeWidth={active ? 2.3 : 1.8} /><span>{label}</span>{active && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-[hsl(var(--sidebar-primary))]" />}
           </Link>;
         })}
       </nav>
       <div className="mt-9 mb-3 px-3 text-[10px] font-bold uppercase tracking-[.2em] text-[hsl(190_19%_58%)]">Governance</div>
-      <Link href="/settings" className={`flex items-center gap-3 rounded-xl px-3 py-3 text-[13px] font-semibold ${location === '/settings' ? 'bg-[hsl(var(--sidebar-accent))]' : 'text-[hsl(190_19%_72%)] hover:bg-[hsl(var(--sidebar-accent))]'}`} data-testid="link-nav-settings"><Settings size={17} /><span>Settings</span></Link>
+      <Link to="/settings" className={`flex items-center gap-3 rounded-xl px-3 py-3 text-[13px] font-semibold ${pathname === '/settings' ? 'bg-[hsl(var(--sidebar-accent))]' : 'text-[hsl(190_19%_72%)] hover:bg-[hsl(var(--sidebar-accent))]'}`} data-testid="link-nav-settings"><Settings size={17} /><span>Settings</span></Link>
       <div className="mt-auto rounded-2xl border border-[hsl(var(--sidebar-border))] bg-[hsl(190_31%_19%)] p-4">
         <div className="mb-3 flex items-center gap-2 text-[hsl(42_30%_88%)]"><ShieldCheck size={15} className="text-[hsl(var(--sidebar-primary))]" /><span className="text-xs font-bold">Workspace secured</span></div>
         <p className="text-[11px] leading-5 text-[hsl(190_19%_66%)]">Data is encrypted at rest and in transit.</p>
@@ -162,7 +167,13 @@ function Shell({ children }: { children: React.ReactNode }) {
     <main className="lg:pl-[260px]">
       <header className="sticky top-0 z-20 flex h-[74px] items-center justify-between border-b border-[hsl(var(--border))] bg-[hsl(var(--background)/.9)] px-5 backdrop-blur-md sm:px-8 lg:px-10">
         <div className="flex items-center gap-3"><button className="rounded-lg p-2 hover:bg-[hsl(var(--muted))] lg:hidden" onClick={() => setMobileOpen(true)} aria-label="Open navigation" data-testid="button-open-navigation"><Menu size={20} /></button><div><p className="text-[10px] font-bold uppercase tracking-[.18em] text-[hsl(var(--muted-foreground))]">Meridian workspace</p><h1 className="mt-0.5 font-serif text-[21px]">{pageName}</h1></div></div>
-        <div className="flex items-center gap-2 sm:gap-4"><button className="relative rounded-xl p-2.5 text-[hsl(var(--muted-foreground))] hover:bg-[hsl(var(--muted))] hover:text-[hsl(var(--foreground))]" aria-label="Notifications" data-testid="button-notifications"><Bell size={18} /><span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-[hsl(4_64%_48%)] ring-2 ring-[hsl(var(--background))]" /></button><div className="hidden h-7 w-px bg-[hsl(var(--border))] sm:block" /><div className="flex items-center gap-2.5"><span className="flex h-9 w-9 items-center justify-center rounded-full bg-[hsl(190_37%_24%)] text-xs font-bold text-[hsl(42_76%_74%)]">AR</span><div className="hidden sm:block"><p className="text-xs font-bold">Amina Rahman</p><p className="text-[10px] text-[hsl(var(--muted-foreground))]">Director, Global Affairs</p></div></div></div>
+        <div className="flex items-center gap-2 sm:gap-4"><button className="relative rounded-xl p-2.5 text-[hsl(var(--muted-foreground))] hover:bg-[hsl(var(--muted))] hover:text-[hsl(var(--foreground))]" aria-label="Notifications" data-testid="button-notifications"><Bell size={18} /><span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-[hsl(4_64%_48%)] ring-2 ring-[hsl(var(--background))]" /></button><div className="hidden h-7 w-px bg-[hsl(var(--border))] sm:block" /><div className="flex items-center gap-2.5">
+          {user?.imageUrl ? <img src={user.imageUrl} alt="" className="flex h-9 w-9 items-center justify-center rounded-full object-cover" data-testid="current-user-avatar" /> : <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[hsl(190_37%_24%)] text-xs font-bold text-[hsl(42_76%_74%)]" data-testid="current-user-avatar">{user?.initials ?? '—'}</span>}
+          <div className="hidden sm:block">
+            <p className="text-xs font-bold" data-testid="current-user-name">{user?.name ?? '—'}</p>
+            <p className="text-[10px] text-[hsl(var(--muted-foreground))]" data-testid="current-user-role">{user?.roleLabel ?? ''}</p>
+          </div>
+        </div></div>
       </header>
       <div className="mx-auto max-w-[1500px] px-5 py-7 sm:px-8 sm:py-9 lg:px-10">{children}</div>
     </main>
@@ -181,7 +192,7 @@ function SearchField({ value, onChange, placeholder, testId }: { value: string; 
   return <label className="relative block min-w-0 flex-1"><Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[hsl(var(--muted-foreground))]" /><input type="search" value={value} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} className="h-11 w-full rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] pl-10 pr-4 text-sm outline-none placeholder:text-[hsl(var(--muted-foreground))] focus:border-[hsl(var(--accent-foreground))] focus:ring-2 focus:ring-[hsl(var(--accent)/.3)]" data-testid={testId} /></label>;
 }
 
-function Dashboard() {
+export function Dashboard() {
   const summaryQuery = useGetDashboardSummary();
   const activityQuery = useListActivity();
   const meetingsQuery = useListMeetings({ status: 'scheduled' });
@@ -211,8 +222,8 @@ function Dashboard() {
         <div className="px-5 pb-6 pt-7">{(summary?.pipeline ?? []).length ? <div className="flex h-[190px] items-end gap-3 sm:gap-6">{summary?.pipeline.map((item, index) => <div className="flex h-full flex-1 flex-col items-center justify-end gap-3" key={item.stage} data-testid={`pipeline-stage-${item.stage}`}><span className="font-mono text-xs text-[hsl(var(--muted-foreground))]">{item.count}</span><div className={`w-full max-w-[70px] rounded-t-lg ${index === 1 ? 'bg-[hsl(var(--accent))]' : 'bg-[hsl(var(--primary))]'} transition-all duration-500`} style={{ height: `${Math.max(item.count / maxPipeline * 130, 12)}px` }} /><span className="text-center text-[10px] font-bold uppercase tracking-[.04em] text-[hsl(var(--muted-foreground))]">{item.stage}</span></div>)}</div> : <EmptyState icon={ActivityIcon} title="No pipeline yet" description="As engagements are logged, their momentum will appear here." />}</div>
       </section>
       <section className="rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--card))]">
-        <div className="flex items-center justify-between border-b border-[hsl(var(--border))] px-5 py-4"><div><h3 className="font-serif text-[20px]">Next on the brief</h3><p className="mt-0.5 text-xs text-[hsl(var(--muted-foreground))]">Scheduled engagements</p></div><Link href="/meetings" className="text-[11px] font-bold text-[hsl(var(--accent-foreground))] hover:underline" data-testid="link-view-meetings">View all</Link></div>
-        <div className="divide-y divide-[hsl(var(--border))]">{meetingsQuery.isLoading ? <div className="p-5"><LoadingRows count={3} /></div> : meetings.length ? meetings.slice(0, 4).map((meeting) => <Link href="/meetings" key={meeting.id} className="flex items-center gap-3 px-5 py-4 hover:bg-[hsl(var(--muted)/.55)]" data-testid={`meeting-preview-${meeting.id}`}><div className="flex h-10 w-10 shrink-0 flex-col items-center justify-center rounded-xl bg-[hsl(var(--secondary))] text-[hsl(var(--primary))]"><span className="text-[9px] font-bold uppercase">{formatDate(meeting.date).split(' ')[1]}</span><span className="font-serif text-lg leading-4">{formatDate(meeting.date).split(' ')[0]}</span></div><div className="min-w-0 flex-1"><p className="truncate text-xs font-bold">{meeting.title}</p><p className="mt-1 truncate text-[11px] text-[hsl(var(--muted-foreground))]">{meeting.countryName} · {meeting.actionArea}</p></div><ChevronRight size={15} className="text-[hsl(var(--muted-foreground))]" /></Link>) : <div className="p-5"><EmptyState icon={CalendarDays} title="Room to breathe" description="No upcoming meetings are scheduled." /></div>}</div>
+        <div className="flex items-center justify-between border-b border-[hsl(var(--border))] px-5 py-4"><div><h3 className="font-serif text-[20px]">Next on the brief</h3><p className="mt-0.5 text-xs text-[hsl(var(--muted-foreground))]">Scheduled engagements</p></div><Link to="/meetings" className="text-[11px] font-bold text-[hsl(var(--accent-foreground))] hover:underline" data-testid="link-view-meetings">View all</Link></div>
+        <div className="divide-y divide-[hsl(var(--border))]">{meetingsQuery.isLoading ? <div className="p-5"><LoadingRows count={3} /></div> : meetings.length ? meetings.slice(0, 4).map((meeting) => <Link to="/meetings" key={meeting.id} className="flex items-center gap-3 px-5 py-4 hover:bg-[hsl(var(--muted)/.55)]" data-testid={`meeting-preview-${meeting.id}`}><div className="flex h-10 w-10 shrink-0 flex-col items-center justify-center rounded-xl bg-[hsl(var(--secondary))] text-[hsl(var(--primary))]"><span className="text-[9px] font-bold uppercase">{formatDate(meeting.date).split(' ')[1]}</span><span className="font-serif text-lg leading-4">{formatDate(meeting.date).split(' ')[0]}</span></div><div className="min-w-0 flex-1"><p className="truncate text-xs font-bold">{meeting.title}</p><p className="mt-1 truncate text-[11px] text-[hsl(var(--muted-foreground))]">{meeting.countryName} · {meeting.actionArea}</p></div><ChevronRight size={15} className="text-[hsl(var(--muted-foreground))]" /></Link>) : <div className="p-5"><EmptyState icon={CalendarDays} title="Room to breathe" description="No upcoming meetings are scheduled." /></div>}</div>
       </section>
     </div>
     <div className="mt-6 grid gap-6 xl:grid-cols-[.9fr_1.35fr]">
@@ -235,7 +246,7 @@ function FormField({ label, children }: { label: string; children: React.ReactNo
 const inputClass = 'h-11 w-full rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--background))] px-3.5 text-sm outline-none focus:border-[hsl(var(--accent-foreground))] focus:ring-2 focus:ring-[hsl(var(--accent)/.3)]';
 const selectClass = `${inputClass} appearance-none`;
 
-function CountryPage() {
+export function CountryPage() {
   const [search, setSearch] = useState('');
   const [open, setOpen] = useState(false);
   const countriesQuery = useListCountries({ search: search || undefined });
@@ -252,7 +263,7 @@ function CountryCard({ country, index }: { country: Country; index: number }) {
   return <article className={`animate-rise-in delay-${Math.min(index + 1, 4)} group rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-5 shadow-[0_4px_16px_hsl(190_20%_20%/.03)] hover:-translate-y-1 hover:border-[hsl(var(--accent-foreground)/.45)] hover:shadow-[0_12px_25px_hsl(190_20%_20%/.08)]`} data-testid={`card-country-${country.id}`}><div className="mb-5 flex items-start justify-between"><div className="flex items-center gap-3"><span className="flex h-11 w-11 items-center justify-center rounded-[14px] bg-[hsl(var(--primary))] font-mono text-[11px] font-bold text-[hsl(var(--accent))]">{country.code}</span><div><h3 className="font-serif text-[21px]">{country.name}</h3><p className="mt-0.5 text-[11px] text-[hsl(var(--muted-foreground))]">{country.region}</p></div></div><StatusPill tone={toneForStatus(country.status)}>{country.status.replace('_', ' ')}</StatusPill></div><div className="mb-5 flex items-center gap-2 text-[11px] text-[hsl(var(--muted-foreground))]"><span className={`h-2 w-2 rounded-full ${country.riskLevel === 'high' ? 'bg-[hsl(var(--destructive))]' : country.riskLevel === 'medium' ? 'bg-[hsl(var(--accent-foreground))]' : 'bg-[hsl(157_38%_39%)]'}`} /> {country.riskLevel} risk profile</div><div className="fine-rule mb-4" /><div className="grid grid-cols-2 gap-4"><div><p className="font-mono text-xl">{country.contactsCount}</p><p className="mt-1 text-[10px] font-bold uppercase tracking-[.08em] text-[hsl(var(--muted-foreground))]">Contacts</p></div><div><p className="font-mono text-xl">{country.meetingsCount}</p><p className="mt-1 text-[10px] font-bold uppercase tracking-[.08em] text-[hsl(var(--muted-foreground))]">Meetings</p></div></div></article>;
 }
 
-function ContactsPage() {
+export function ContactsPage() {
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('');
   const [open, setOpen] = useState(false);
@@ -271,7 +282,7 @@ function ContactRow({ contact }: { contact: Contact }) {
   return <div className="grid gap-3 border-b border-[hsl(var(--border))] px-5 py-4 last:border-0 hover:bg-[hsl(var(--muted)/.38)] md:grid-cols-[1.4fr_1.4fr_1fr_1fr_100px] md:items-center md:gap-4" data-testid={`row-contact-${contact.id}`}><div className="flex items-center gap-3"><span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[hsl(var(--secondary))] text-[10px] font-bold text-[hsl(var(--primary))]">{initials(contact.name)}</span><div className="min-w-0"><p className="truncate text-xs font-bold">{contact.name}</p><p className="truncate text-[11px] text-[hsl(var(--muted-foreground))]">{contact.title}</p></div></div><div className="hidden min-w-0 md:block"><p className="truncate text-xs">{contact.institution}</p><p className="mt-1 flex items-center gap-1 text-[10px] text-[hsl(var(--muted-foreground))]"><Mail size={11} /> {contact.email}</p></div><div className="hidden text-xs md:block">{contact.countryName}</div><div className="flex items-center justify-between md:block"><span className="text-[10px] uppercase tracking-[.08em] text-[hsl(var(--muted-foreground))] md:hidden">Relationship</span><span className="text-xs">{contact.relationship}</span></div><div className="flex items-center justify-between md:block"><span className="text-[10px] uppercase tracking-[.08em] text-[hsl(var(--muted-foreground))] md:hidden">Verification</span><StatusPill tone={toneForStatus(contact.verificationStatus)}>{contact.verificationStatus}</StatusPill></div></div>;
 }
 
-function MeetingsPage() {
+export function MeetingsPage() {
   const [status, setStatus] = useState('');
   const [open, setOpen] = useState(false);
   const meetingsQuery = useListMeetings({ status: (status || undefined) as 'scheduled' | 'completed' | 'follow_up' | undefined });
@@ -291,7 +302,7 @@ function MeetingCard({ meeting }: { meeting: Meeting }) {
   return <article className="group grid gap-4 rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-5 shadow-[0_4px_16px_hsl(190_20%_20%/.03)] hover:border-[hsl(var(--accent-foreground)/.45)] sm:grid-cols-[86px_1fr_auto] sm:items-center" data-testid={`card-meeting-${meeting.id}`}><div className="flex items-center gap-3 sm:block"><div className="font-mono text-[11px] font-bold uppercase tracking-[.08em] text-[hsl(var(--accent-foreground))]">{formatDate(meeting.date).split(' ')[1]}</div><div className="font-serif text-[29px] leading-none">{formatDate(meeting.date).split(' ')[0]}</div><div className="mt-1 text-[10px] text-[hsl(var(--muted-foreground))]">{formatTime(meeting.date)}</div></div><div className="border-l-0 sm:border-l sm:pl-5"><div className="mb-2 flex flex-wrap items-center gap-2"><StatusPill tone={toneForStatus(meeting.status)}>{meeting.status.replace('_', ' ')}</StatusPill><span className="text-[11px] text-[hsl(var(--muted-foreground))]">{meeting.countryName}</span></div><h3 className="font-serif text-[20px]">{meeting.title}</h3><div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-[hsl(var(--muted-foreground))]"><span>{meeting.actionArea}</span><span>{meeting.participants} participants</span>{meeting.owner && <span>Owner: {meeting.owner}</span>}</div></div><select value={meeting.status} onChange={(event) => updateStatus(event.target.value as 'scheduled' | 'completed' | 'follow_up')} disabled={updateMeeting.isPending} className="h-9 rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--background))] px-2 text-[11px] font-bold" aria-label={`Update status for ${meeting.title}`} data-testid={`select-meeting-status-${meeting.id}`}><option value="scheduled">Scheduled</option><option value="follow_up">Follow-up</option><option value="completed">Completed</option></select></article>;
 }
 
-function AgreementsPage() {
+export function AgreementsPage() {
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('');
   const [open, setOpen] = useState(false);
@@ -312,12 +323,13 @@ function AgreementRow({ agreement }: { agreement: Agreement }) {
   return <div className="grid gap-3 border-b border-[hsl(var(--border))] px-5 py-4 last:border-0 hover:bg-[hsl(var(--muted)/.38)] md:grid-cols-[1.4fr_.9fr_1fr_140px_110px] md:items-center md:gap-4" data-testid={`row-agreement-${agreement.id}`}><div><p className="text-xs font-bold">{agreement.name}</p><p className="mt-1 text-[11px] text-[hsl(var(--muted-foreground))]">Updated {formatDate(agreement.updatedAt)}</p></div><div className="hidden text-xs md:block">{agreement.type}</div><div className="flex justify-between text-xs md:block"><span className="text-[10px] uppercase tracking-[.08em] text-[hsl(var(--muted-foreground))] md:hidden">Country</span>{agreement.countryName}</div><div className="flex justify-between md:block"><span className="text-[10px] uppercase tracking-[.08em] text-[hsl(var(--muted-foreground))] md:hidden">Status</span><select value={agreement.status} onChange={(event) => updateStatus(event.target.value as 'draft' | 'review' | 'signed' | 'archived')} disabled={updateAgreement.isPending} className="h-8 rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--background))] px-2 text-[11px] font-bold" aria-label={`Update status for ${agreement.name}`} data-testid={`select-agreement-status-${agreement.id}`}><option value="draft">Draft</option><option value="review">In review</option><option value="signed">Signed</option><option value="archived">Archived</option></select></div><div className="flex justify-between text-xs md:block"><span className="text-[10px] uppercase tracking-[.08em] text-[hsl(var(--muted-foreground))] md:hidden">Renewal</span>{formatDate(agreement.renewalDate, true)}</div></div>;
 }
 
-function SettingsPage() {
+export function SettingsPage() {
   const [saved, setSaved] = useState(false);
   const healthQuery = useHealthCheck();
   const [digest, setDigest] = useState(true);
   const [compact, setCompact] = useState(false);
-  return <div className="animate-rise-in"><PageIntro eyebrow="Governance / 05" title="A workspace that knows its boundaries." description="Preferences and access context for a team handling sensitive diplomatic relationships." /><div className="grid max-w-5xl gap-6 xl:grid-cols-[1.25fr_.75fr]"><section className="rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--card))]"><div className="border-b border-[hsl(var(--border))] px-6 py-5"><h3 className="font-serif text-[22px]">Workspace preferences</h3><p className="mt-1 text-xs text-[hsl(var(--muted-foreground))]">Make Meridian fit the way your team works.</p></div><div className="divide-y divide-[hsl(var(--border))]"><SettingRow label="Weekly briefing digest" description="A Monday summary of changes across your portfolio" checked={digest} onChange={setDigest} testId="switch-weekly-digest" /><SettingRow label="Compact record density" description="Show more records per screen in directory views" checked={compact} onChange={setCompact} testId="switch-compact-density" /><div className="flex items-center justify-between gap-4 px-6 py-5"><div><p className="text-sm font-bold">Default region view</p><p className="mt-1 text-xs text-[hsl(var(--muted-foreground))]">The region shown first on country workspaces</p></div><select className="h-10 rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--background))] px-3 text-xs font-bold" defaultValue="all" data-testid="select-default-region"><option value="all">All regions</option><option>Europe & Central Asia</option><option>East Asia & Pacific</option><option>Americas</option></select></div></div><div className="flex items-center justify-between border-t border-[hsl(var(--border))] bg-[hsl(var(--secondary)/.35)] px-6 py-4"><span className={`text-xs ${saved ? 'text-[hsl(157_38%_30%)]' : 'text-[hsl(var(--muted-foreground))]'}`}>{saved ? 'Preferences saved locally' : 'Changes apply to this browser'}</span><PrimaryButton testId="button-save-preferences" onClick={() => { setSaved(true); window.setTimeout(() => setSaved(false), 2500); }}>{saved ? <><Check size={15} /> Saved</> : 'Save preferences'}</PrimaryButton></div></section><div className="space-y-6"><section className="rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--primary))] p-6 text-[hsl(var(--primary-foreground))]"><div className="mb-5 flex items-center gap-2 text-[hsl(var(--accent))]"><ShieldCheck size={18} /><span className="text-[10px] font-bold uppercase tracking-[.18em]">Access context</span></div><p className="font-serif text-[25px] leading-tight">Your access is intentionally narrow.</p><div className="mt-6 space-y-3 border-t border-[hsl(42_25%_70%/.2)] pt-4"><AccessLine label="Workspace role" value="Director" /><AccessLine label="Clearance" value="Tier 3 · Confidential" /><AccessLine label="Last sign-in" value="Today, 08:42" /></div></section><section className="rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-6"><div className="mb-4 flex items-center gap-2"><LifeBuoy size={17} className="text-[hsl(var(--accent-foreground))]" /><h3 className="font-serif text-[20px]">System status</h3></div><div className="flex items-center justify-between rounded-xl bg-[hsl(var(--secondary)/.5)] px-4 py-3"><span className="text-xs font-bold">Meridian API</span><span className="flex items-center gap-2 text-[11px] font-bold text-[hsl(157_38%_30%)]"><span className="h-2 w-2 rounded-full bg-[hsl(157_50%_49%)]" />{healthQuery.isLoading ? 'Checking' : healthQuery.isError ? 'Needs attention' : healthQuery.data?.status ?? 'Operational'}</span></div><p className="mt-4 text-[11px] leading-5 text-[hsl(var(--muted-foreground))]">For access changes or an incident report, contact the workspace administrator.</p></section></div></div></div>;
+  const { user, signOut } = useSessionInfo();
+  return <div className="animate-rise-in"><PageIntro eyebrow="Governance / 05" title="A workspace that knows its boundaries." description="Preferences and access context for a team handling sensitive diplomatic relationships." /><div className="grid max-w-5xl gap-6 xl:grid-cols-[1.25fr_.75fr]"><section className="rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--card))]"><div className="border-b border-[hsl(var(--border))] px-6 py-5"><h3 className="font-serif text-[22px]">Workspace preferences</h3><p className="mt-1 text-xs text-[hsl(var(--muted-foreground))]">Make Meridian fit the way your team works.</p></div><div className="divide-y divide-[hsl(var(--border))]"><SettingRow label="Weekly briefing digest" description="A Monday summary of changes across your portfolio" checked={digest} onChange={setDigest} testId="switch-weekly-digest" /><SettingRow label="Compact record density" description="Show more records per screen in directory views" checked={compact} onChange={setCompact} testId="switch-compact-density" /><div className="flex items-center justify-between gap-4 px-6 py-5"><div><p className="text-sm font-bold">Default region view</p><p className="mt-1 text-xs text-[hsl(var(--muted-foreground))]">The region shown first on country workspaces</p></div><select className="h-10 rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--background))] px-3 text-xs font-bold" defaultValue="all" data-testid="select-default-region"><option value="all">All regions</option><option>Europe & Central Asia</option><option>East Asia & Pacific</option><option>Americas</option></select></div></div><div className="flex items-center justify-between border-t border-[hsl(var(--border))] bg-[hsl(var(--secondary)/.35)] px-6 py-4"><span className={`text-xs ${saved ? 'text-[hsl(157_38%_30%)]' : 'text-[hsl(var(--muted-foreground))]'}`}>{saved ? 'Preferences saved locally' : 'Changes apply to this browser'}</span><PrimaryButton testId="button-save-preferences" onClick={() => { setSaved(true); window.setTimeout(() => setSaved(false), 2500); }}>{saved ? <><Check size={15} /> Saved</> : 'Save preferences'}</PrimaryButton></div></section><div className="space-y-6"><section className="rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--primary))] p-6 text-[hsl(var(--primary-foreground))]"><div className="mb-5 flex items-center gap-2 text-[hsl(var(--accent))]"><ShieldCheck size={18} /><span className="text-[10px] font-bold uppercase tracking-[.18em]">Access context</span></div><p className="font-serif text-[25px] leading-tight">Your access is intentionally narrow.</p><div className="mt-6 space-y-3 border-t border-[hsl(42_25%_70%/.2)] pt-4"><AccessLine label="Workspace role" value={user?.roleLabel ?? '—'} /><AccessLine label="Signed in as" value={user?.email || '—'} /><AccessLine label="Last sign-in" value={user?.lastSignInAt ? formatDate(user.lastSignInAt, true) : '—'} />{authDemoEnabled() ? null : <div className="pt-2"><button onClick={() => void signOut()} className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-[hsl(42_25%_70%/.4)] px-4 py-2.5 text-xs font-bold text-[hsl(var(--primary-foreground))] hover:bg-[hsl(42_25%_70%/.15)]" data-testid="button-sign-out"><X size={14} /> Sign out of Meridian</button></div>}</div></section><section className="rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-6"><div className="mb-4 flex items-center gap-2"><LifeBuoy size={17} className="text-[hsl(var(--accent-foreground))]" /><h3 className="font-serif text-[20px]">System status</h3></div><div className="flex items-center justify-between rounded-xl bg-[hsl(var(--secondary)/.5)] px-4 py-3"><span className="text-xs font-bold">Meridian API</span><span className="flex items-center gap-2 text-[11px] font-bold text-[hsl(157_38%_30%)]"><span className="h-2 w-2 rounded-full bg-[hsl(157_50%_49%)]" />{healthQuery.isLoading ? 'Checking' : healthQuery.isError ? 'Needs attention' : healthQuery.data?.status ?? 'Operational'}</span></div><p className="mt-4 text-[11px] leading-5 text-[hsl(var(--muted-foreground))]">For access changes or an incident report, contact the workspace administrator.</p></section></div></div></div>;
 }
 
 function SettingRow({ label, description, checked, onChange, testId }: { label: string; description: string; checked: boolean; onChange: (checked: boolean) => void; testId: string }) {
@@ -328,22 +340,154 @@ function AccessLine({ label, value }: { label: string; value: string }) {
   return <div className="flex justify-between gap-3 text-xs"><span className="text-[hsl(42_25%_69%)]">{label}</span><span className="text-right font-bold">{value}</span></div>;
 }
 
-function QuickAddListener() {
+export function QuickAddListener() {
   const [open, setOpen] = useState(false);
   useEffect(() => {
     const handler = () => setOpen(true);
     window.addEventListener('open-quick-add', handler);
     return () => window.removeEventListener('open-quick-add', handler);
   }, []);
-  return <AddDialog open={open} title="Log an engagement" onClose={() => setOpen(false)}><div className="space-y-2"><Link href="/meetings" onClick={() => setOpen(false)} className="flex items-center justify-between rounded-xl border border-[hsl(var(--border))] p-4 hover:bg-[hsl(var(--muted))]" data-testid="link-quick-add-meeting"><div><p className="text-sm font-bold">Schedule a meeting</p><p className="mt-1 text-xs text-[hsl(var(--muted-foreground))]">Put the next conversation on the calendar.</p></div><ChevronRight size={16} /></Link><Link href="/contacts" onClick={() => setOpen(false)} className="flex items-center justify-between rounded-xl border border-[hsl(var(--border))] p-4 hover:bg-[hsl(var(--muted))]" data-testid="link-quick-add-contact"><div><p className="text-sm font-bold">Add a contact</p><p className="mt-1 text-xs text-[hsl(var(--muted-foreground))]">Keep the relationship map current.</p></div><ChevronRight size={16} /></Link><Link href="/agreements" onClick={() => setOpen(false)} className="flex items-center justify-between rounded-xl border border-[hsl(var(--border))] p-4 hover:bg-[hsl(var(--muted))]" data-testid="link-quick-add-agreement"><div><p className="text-sm font-bold">Record an agreement</p><p className="mt-1 text-xs text-[hsl(var(--muted-foreground))]">Give the lifecycle a shared source of truth.</p></div><ChevronRight size={16} /></Link></div></AddDialog>;
+  return <AddDialog open={open} title="Log an engagement" onClose={() => setOpen(false)}><div className="space-y-2"><Link to="/meetings" onClick={() => setOpen(false)} className="flex items-center justify-between rounded-xl border border-[hsl(var(--border))] p-4 hover:bg-[hsl(var(--muted))]" data-testid="link-quick-add-meeting"><div><p className="text-sm font-bold">Schedule a meeting</p><p className="mt-1 text-xs text-[hsl(var(--muted-foreground))]">Put the next conversation on the calendar.</p></div><ChevronRight size={16} /></Link><Link to="/contacts" onClick={() => setOpen(false)} className="flex items-center justify-between rounded-xl border border-[hsl(var(--border))] p-4 hover:bg-[hsl(var(--muted))]" data-testid="link-quick-add-contact"><div><p className="text-sm font-bold">Add a contact</p><p className="mt-1 text-xs text-[hsl(var(--muted-foreground))]">Keep the relationship map current.</p></div><ChevronRight size={16} /></Link><Link to="/agreements" onClick={() => setOpen(false)} className="flex items-center justify-between rounded-xl border border-[hsl(var(--border))] p-4 hover:bg-[hsl(var(--muted))]" data-testid="link-quick-add-agreement"><div><p className="text-sm font-bold">Record an agreement</p><p className="mt-1 text-xs text-[hsl(var(--muted-foreground))]">Give the lifecycle a shared source of truth.</p></div><ChevronRight size={16} /></Link></div></AddDialog>;
 }
 
-function Router() {
-  return <ErrorBoundary><Shell><Switch><Route path="/" component={Dashboard} /><Route path="/countries" component={CountryPage} /><Route path="/contacts" component={ContactsPage} /><Route path="/meetings" component={MeetingsPage} /><Route path="/agreements" component={AgreementsPage} /><Route path="/settings" component={SettingsPage} /><Route component={NotFound} /></Switch><QuickAddListener /></Shell></ErrorBoundary>;
+export function SignInScreen() {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [mode, setMode] = useState<'signin' | 'verify'>('signin');
+  const [status, setStatus] = useState<'idle' | 'submitting' | 'error'>('idle');
+  const [error, setError] = useState<string | null>(null);
+  const [code, setCode] = useState('');
+
+  const submit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setStatus('submitting');
+    setError(null);
+    const res = await authClient.signIn.email({ email, password });
+    if (res.error) {
+      if (res.error.code === 'EMAIL_NOT_VERIFIED') {
+        setMode('verify');
+        setStatus('idle');
+        void sendVerificationEmail(email);
+        return;
+      }
+      setStatus('error');
+      setError(res.error.message ?? 'Sign-in failed. Check your credentials.');
+      return;
+    }
+    setStatus('idle');
+  };
+
+  const verify = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setStatus('submitting');
+    setError(null);
+    const result = await verifyEmailToken(code.trim());
+    if (!result.ok) {
+      setStatus('error');
+      setError(result.error);
+      return;
+    }
+    setStatus('idle');
+  };
+
+  return (
+    <div className="flex min-h-[100dvh] items-center justify-center bg-[hsl(var(--background))] px-5">
+      <div className="workspace-grid w-full max-w-md rounded-3xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] px-8 py-14 text-center shadow-xl">
+        <span className="relative mx-auto flex h-14 w-14 items-center justify-center rounded-[15px] bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))]">
+          <Landmark size={26} strokeWidth={2.2} />
+          <span className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full bg-[hsl(157_50%_62%)] ring-2 ring-[hsl(var(--card))]" />
+        </span>
+        <h1 className="mt-6 font-serif text-[30px] leading-tight">Meridian</h1>
+        {mode === 'verify' ? (
+          <>
+            <p className="mb-8 mt-2 text-sm leading-6 text-[hsl(var(--muted-foreground))]">
+              A verification token was sent to <span className="font-bold">{email}</span>. Open the link in the email, or paste the token below to finish signing in.
+            </p>
+            <form onSubmit={verify} className="space-y-4">
+              <input
+                value={code}
+                onChange={(event) => setCode(event.target.value)}
+                placeholder="Verification token"
+                autoComplete="one-time-code"
+                className="h-12 w-full rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--background))] px-4 text-center text-sm font-mono outline-none focus:border-[hsl(var(--accent-foreground))]"
+                data-testid="input-verification-code"
+              />
+              {error && <p className="text-xs font-bold text-[hsl(var(--destructive))]" data-testid="text-verification-error">{error}</p>}
+              <button
+                type="submit"
+                className="h-12 w-full cursor-pointer rounded-xl bg-[hsl(var(--primary))] px-4 text-xs font-bold text-[hsl(var(--primary-foreground))] transition-transform hover:-translate-y-0.5 disabled:opacity-60"
+                disabled={status === 'submitting'}
+                data-testid="button-verify-code"
+              >
+                {status === 'submitting' ? 'Verifying…' : 'Verify & continue'}
+              </button>
+              <button
+                type="button"
+                onClick={() => void sendVerificationEmail(email)}
+                className="cursor-pointer text-[11px] font-bold text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]"
+                data-testid="button-resend-verification"
+              >
+                Resend verification token
+              </button>
+            </form>
+          </>
+        ) : (
+          <>
+            <p className="mb-8 mt-2 text-sm leading-6 text-[hsl(var(--muted-foreground))]">Sign in to open the diplomatic workspace. Access is restricted to your diplomatic affairs team.</p>
+            <form onSubmit={submit} className="space-y-4">
+              <input
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                type="email"
+                required
+                placeholder="email@ministry.gov"
+                autoComplete="email"
+                className="h-12 w-full rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--background))] px-4 text-sm outline-none focus:border-[hsl(var(--accent-foreground))]"
+                data-testid="input-signin-email"
+              />
+              <input
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                type="password"
+                required
+                placeholder="Password"
+                autoComplete="current-password"
+                className="h-12 w-full rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--background))] px-4 text-sm outline-none focus:border-[hsl(var(--accent-foreground))]"
+                data-testid="input-signin-password"
+              />
+              {error && <p className="text-xs font-bold text-[hsl(var(--destructive))]" data-testid="text-signin-error">{error}</p>}
+              <button
+                type="submit"
+                className="h-12 w-full cursor-pointer rounded-xl bg-[hsl(var(--primary))] px-4 text-xs font-bold text-[hsl(var(--primary-foreground))] transition-transform hover:-translate-y-0.5 disabled:opacity-60"
+                disabled={status === 'submitting'}
+                data-testid="button-sign-in"
+              >
+                {status === 'submitting' ? 'Signing in…' : 'Sign in to Meridian'}
+              </button>
+            </form>
+            <div className="mt-6 flex items-center justify-center gap-2 rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--secondary)/.35)] px-4 py-3 text-[11px] text-[hsl(var(--muted-foreground))]">
+              <ShieldCheck size={14} className="text-[hsl(var(--primary))]" />
+              <span>Sign-in is required before confidential records are shown</span>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
 }
 
-function App() {
-  return <QueryClientProvider client={queryClient}><Router /></QueryClientProvider>;
+export function NotFound() {
+  return (
+    <div className="flex min-h-[70dvh] items-center justify-center py-10">
+      <div className="workspace-grid w-full max-w-xl rounded-3xl border border-[hsl(var(--border))] bg-[hsl(var(--secondary)/.25)] px-8 py-16 text-center">
+        <Compass className="mx-auto mb-5 text-[hsl(var(--accent-foreground))]" size={34} />
+        <p className="mb-2 font-mono text-[11px] uppercase tracking-[.2em] text-[hsl(var(--muted-foreground))]">Signal not found · 404</p>
+        <h1 className="font-serif text-4xl">This room does not exist.</h1>
+        <p className="mx-auto mt-3 max-w-sm text-sm leading-6 text-[hsl(var(--muted-foreground))]">The address may have changed, or this part of the workspace is outside your current access.</p>
+        <Link to="/" className="mt-7 inline-flex items-center gap-2 rounded-xl bg-[hsl(var(--primary))] px-4 py-2.5 text-xs font-bold text-[hsl(var(--primary-foreground))] hover:-translate-y-0.5" data-testid="link-return-overview">
+          <ArrowLeft size={15} /> Return to overview
+        </Link>
+      </div>
+    </div>
+  );
 }
-
-export default App;

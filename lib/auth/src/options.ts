@@ -31,11 +31,13 @@ export function buildAuthOptions(input: AuthOptionsInput): BetterAuthOptions {
       minPasswordLength: 12,
       maxPasswordLength: 128,
     },
-    // Email verification is a core option in better-auth >=1.6. `sendOnSignUp`
-    // is explicit false so verification is only sent via the account-creation
-    // path, which uses the same shared token in the email text + url.
+    // Email verification is a core option in better-auth >=1.6. It gates
+    // sign-in until the address is verified (requireEmailVerification above)
+    // and, since `sendOnSignIn` is true, re-sends a fresh token on every
+    // attempted sign-in with an unverified email.
     emailVerification: {
       sendOnSignUp: false,
+      sendOnSignIn: true,
       autoSignInAfterVerification: true,
       sendVerificationEmail: async ({ user, url, token }) => {
         if (input.sendVerificationEmailOverride) {
@@ -44,7 +46,7 @@ export function buildAuthOptions(input: AuthOptionsInput): BetterAuthOptions {
         }
         await mail.send(user.email, {
           subject: "Meridian — verify your email address",
-          text: `Welcome to Meridian. Verify your email address by opening:\n\n${url}\n\nYour verification code is ${token}; it expires in 10 minutes.\nIf you did not request this, ignore this email.`,
+          text: `Welcome to Meridian.\n\nYour email-verification token is:\n\n${token}\n\nPaste it into the verification field on the Meridian sign-in screen, or open:\n\n${url}\n\nThe token expires in 10 minutes. If you did not request this, ignore this email.`,
         });
       },
     },
