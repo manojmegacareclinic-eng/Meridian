@@ -1,33 +1,50 @@
 import { Router, type IRouter } from "express";
 import { and, asc, desc, eq, ilike, inArray, or, sql } from "drizzle-orm";
-import { db, activityTable, agreementsTable, contactsTable, countriesTable, meetingsTable } from "@workspace/db";
+import { db, activityTable, agreementsTable, contactsTable, countriesTable, documentsTable, meetingsTable, newsTable } from "@workspace/db";
 import { diffFields, writeAudit } from "../lib/audit";
 import { getActor } from "../middlewares/guards";
 import {
   CreateAgreementBody,
-  CreateContactBody,
-  CreateCountryBody,
-  CreateMeetingBody,
-  UpdateMeetingBody,
-  UpdateMeetingParams,
-  UpdateMeetingResponse,
   CreateAgreementResponse,
+  CreateContactBody,
   CreateContactResponse,
+  CreateCountryBody,
   CreateCountryResponse,
+  CreateDocumentBody,
+  CreateMeetingBody,
   CreateMeetingResponse,
-  UpdateAgreementBody,
-  UpdateAgreementParams,
-  UpdateAgreementResponse,
-  GetDashboardSummaryResponse,
-  ListActivityResponse,
+  DeleteDocumentResponse,
+  DeleteNewsResponse,
+  DocumentInput,
+  DocumentUpdate,
+  GetCountryParams,
+  GetCountryResponse,
+  ListActivityQueryParams,
   ListAgreementsQueryParams,
   ListAgreementsResponse,
   ListContactsQueryParams,
   ListContactsResponse,
   ListCountriesQueryParams,
   ListCountriesResponse,
+  ListDocumentsQueryParams,
   ListMeetingsQueryParams,
   ListMeetingsResponse,
+  NewsInput,
+  NewsUpdate,
+  UpdateAgreementBody,
+  UpdateAgreementParams,
+  UpdateAgreementResponse,
+  UpdateCountryBody,
+  UpdateCountryParams,
+  UpdateCountryResponse,
+  UpdateMeetingBody,
+  UpdateMeetingParams,
+  UpdateMeetingResponse,
+  CountryUpdate,
+  GetDashboardSummaryResponse,
+  ListActivityResponse,
+  ListDocumentsResponseItem,
+  ListNewsResponseItem,
 } from "@workspace/api-zod";
 
 const router: IRouter = Router();
@@ -39,6 +56,12 @@ const countryFields = {
   region: countriesTable.region,
   status: countriesTable.status,
   riskLevel: countriesTable.riskLevel,
+  language: countriesTable.language,
+  governmentType: countriesTable.governmentType,
+  electionYear: countriesTable.electionYear,
+  team: countriesTable.team,
+  priority: countriesTable.priority,
+  strategy: countriesTable.strategy,
 };
 
 router.get("/dashboard/summary", async (req, res): Promise<void> => {
@@ -106,6 +129,45 @@ router.post("/countries", async (req, res): Promise<void> => {
     after: { id: row.id, name: row.name, status: row.status },
   });
   res.status(201).json(CreateCountryResponse.parse({ ...row, contactsCount: 0, meetingsCount: 0 }));
+});
+
+router.get("/countries/:id", async (req, res): Promise<void> => {
+  const params = GetCountryParams.safeParse(req.params);
+  if (!params.success) { res.status(400).json({ error: "Invalid country id." }); return; }
+  const [row] = await db.select(countryFields).from(countriesTable).where(eq(countriesTable.id, params.data.id));
+  if (!row) { res.status(404).json({ error: "Country not found." }); return; }
+  const [contactCounts, meetingCounts] = await Promise.all([
+    db.select({ count: sql<number>`count(*)` }).from(contactsTable).where(eq(contactsTable.countryId, row.id)),
+    db.select({ count: sql<number>`count(*)` }).from(meetingsTable).where(eq(meetingsTable.countryId, row.id)),
+  ]);
+  res.json(GetCountryResponse.parse({ ...row, contactsCount: Number(contactCounts[0]?.count ?? 0), meetingsCount: Number(meetingCounts[0]?.count ?? 0) }));
+});
+
+router.patch("/countries/:id", async (req, res): Promise<void> => {
+  const params = GetCountryParams.safeParse(req.params);
+  const parsed = UpdateCountryBody.safeParse(req.body);
+  if (!params.success || !parsed.success) { res.status(400).json({ error: "Invalid country update." }); return; }
+  const [existing] = await db.select(countryFields).from(countriesTable).where(eq(countriesTable.id, params.data.id));
+  if (!existing) { res.status(404).json({ error: "Country not found." }); return; }
+  const [row] = await db.update(countriesTable).set(parsed.data).where(eq(countriesTable.id, params.data.id)).returning();
+  const diff = diffFields(existing as unknown as Record<string, unknown>, row as unknown as Record<string, unknown>, ["name", "region", "status", "riskLevel", "language", "governmentType", "electionYear", "team", "priority", "strategy"]);
+  await writeAudit({
+    actor: getActor(req),
+    action: "update",
+    entityType: "country",
+    entityId: String(row.id),
+    kind: "country",
+    title: "Country workspace updated",
+    description: `${row.name} was updated in the portfolio.`,
+    countryId: row.id,
+    before: diff?.before ?? null,
+    after: diff?.after ?? null,
+  });
+  const [contactCounts, meetingCounts] = await Promise.all([
+    db.select({ count: sql<number>`count(*)` }).from(contactsTable).where(eq(contactsTable.countryId, row.id)),
+    db.select({ count: sql<number>`count(*)` }).from(meetingsTable).where(eq(meetingsTable.countryId, row.id)),
+  ]);
+  res.json(UpdateCountryResponse.parse({ ...row, contactsCount: Number(contactCounts[0]?.count ?? 0), meetingsCount: Number(meetingCounts[0]?.count ?? 0) }));
 });
 
 router.get("/contacts", async (req, res): Promise<void> => {
@@ -224,6 +286,7 @@ router.get("/agreements", async (req, res): Promise<void> => {
   const filters = [];
   if (parsed.data.status) filters.push(eq(agreementsTable.status, parsed.data.status));
   if (parsed.data.search) filters.push(or(ilike(agreementsTable.name, `%${parsed.data.search}%`), ilike(agreementsTable.type, `%${parsed.data.search}%`)));
+  if (parsed.data.countryId) filters.push(eq(agreementsTable.countryId, parsed.data.countryId));
   const rows = await db.select({
     id: agreementsTable.id, name: agreementsTable.name, type: agreementsTable.type, countryName: countriesTable.name,
     status: agreementsTable.status, updatedAt: agreementsTable.updatedAt, renewalDate: agreementsTable.renewalDate,
@@ -287,12 +350,17 @@ router.patch("/agreements/:id", async (req, res): Promise<void> => {
   res.json(UpdateAgreementResponse.parse({ ...row, countryName: country?.name ?? "Unknown" }));
 });
 
-router.get("/activity", async (_req, res): Promise<void> => {
+router.get("/activity", async (req, res): Promise<void> => {
+  const parsed = ListActivityQueryParams.safeParse(req.query);
+  if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
+  const filters = [];
+  if (parsed.data.countryId) filters.push(eq(activityTable.countryId, parsed.data.countryId));
   const rows = await db.select({
     id: activityTable.id, kind: activityTable.kind, title: activityTable.title, description: activityTable.description,
     occurredAt: activityTable.occurredAt, countryName: countriesTable.name,
     actorId: activityTable.actorId, actorName: activityTable.actorName,
   }).from(activityTable).leftJoin(countriesTable, eq(activityTable.countryId, countriesTable.id))
+    .where(filters.length ? and(...filters) : undefined)
     .orderBy(desc(activityTable.occurredAt)).limit(12);
   res.json(ListActivityResponse.parse(rows));
 });

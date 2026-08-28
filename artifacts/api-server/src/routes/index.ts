@@ -3,6 +3,8 @@ import healthRouter from "./health";
 import platformRouter from "./platform";
 import adminRouter from "./admin";
 import auditRouter from "./audit";
+import documentsRouter from "./documents";
+import newsRouter from "./news";
 import { requireSession, requireWriteRole } from "../middlewares/guards";
 
 const router: IRouter = Router();
@@ -18,5 +20,7 @@ router.use("/admin", adminRouter);
 router.use("/audit", auditRouter);
 router.use(requireWriteRole());
 router.use(platformRouter);
+router.use("/documents", documentsRouter);
+router.use("/news", newsRouter);
 
 export default router;
