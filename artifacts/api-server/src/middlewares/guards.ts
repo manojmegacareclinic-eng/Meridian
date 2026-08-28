@@ -11,7 +11,7 @@ import { isWorkspaceRole, WRITE_ROLES, type WorkspaceRole } from "@workspace/aut
 export const authPassthrough = (): boolean => process.env.AUTH_PASSTHROUGH === "true";
 
 interface AuthenticatedRequest extends Request {
-  actor?: { id: string; role: WorkspaceRole | null };
+  actor?: { id: string; name: string; role: WorkspaceRole | null };
 }
 
 /**
@@ -24,6 +24,7 @@ export function requireSession(): RequestHandler {
     if (authPassthrough()) {
       (req as AuthenticatedRequest).actor = {
         id: "passthrough",
+        name: "Demo",
         role: "global_admin",
       };
       next();
@@ -43,7 +44,11 @@ export function requireSession(): RequestHandler {
       // statically-inferred Session user shape — read it defensively.
       const user = session.user as { role?: unknown };
       const role = isWorkspaceRole(user.role) ? user.role : null;
-      (req as AuthenticatedRequest).actor = { id: session.user.id, role };
+      (req as AuthenticatedRequest).actor = {
+        id: session.user.id,
+        name: session.user.name ?? "Unknown",
+        role,
+      };
       next();
     } catch (err) {
       next(err);
