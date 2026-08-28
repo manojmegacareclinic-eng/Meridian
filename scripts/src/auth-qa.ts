@@ -235,7 +235,56 @@ async function main() {
   });
   check("invite for unknown email -> 400", inviteUnknown.status === 400, `got ${inviteUnknown.status}`);
 
-  // 17. Cleanup: remove disposable users (cascades accounts/sessions/members)
+  // 17-24. Audit trail: every mutation and sensitive read leaves a row with the
+  //        actor; any signed-in session may query the trail; unauthenticated
+  //        queries are rejected.
+  const auditAnon = await fetch(`${origin}/api/audit`);
+  check("GET /api/audit unauthenticated -> 401", auditAnon.status === 401, `got ${auditAnon.status}`);
+
+  const auditViewer = await fetch(`${origin}/api/audit`, { headers: { cookie: viewerJar.header() } });
+  check("GET /api/audit as viewer -> 200", auditViewer.status === 200, `got ${auditViewer.status}`);
+
+  // Country create (from the admin write above) leaves a create row keyed to the
+  // disposable country, carrying the actor id and an `after` snapshot.
+  const auditCountry = await fetch(`${origin}/api/audit?entityType=country&entityId=${adminPostBody.id}`, { headers: { cookie: adminJar.header() } });
+  const auditCountryBody = (await auditCountry.json().catch(() => [])) as { action?: string; entityType?: string; actorId?: string; after?: unknown }[];
+  check(
+    "country create leaves a create audit row with actor and after",
+    auditCountry.status === 200 &&
+      auditCountryBody.length >= 1 &&
+      auditCountryBody.every((r) => r.action === "create" && r.entityType === "country" && r.actorId === qaUser.user.id) &&
+      Boolean(auditCountryBody[0]?.after),
+    `status=${auditCountry.status} rows=${auditCountryBody.length}`,
+  );
+
+  // Admin user create (second admin) leaves a create/audit row for the target.
+  const auditUser = await fetch(`${origin}/api/audit?entityType=admin_user&action=create&actorId=${qaUser.user.id}`, { headers: { cookie: adminJar.header() } });
+  const auditUserBody = (await auditUser.json().catch(() => [])) as { action?: string; after?: { email?: string } }[];
+  check(
+    "admin user create leaves a create audit row for the target email",
+    auditUser.status === 200 && auditUserBody.some((r) => r.after?.email === QA_EMAILS[2]),
+    `status=${auditUser.status} rows=${auditUserBody.length}`,
+  );
+
+  // Admin user read (the directory read above) leaves a read row with the actor.
+  const auditRead = await fetch(`${origin}/api/audit?entityType=admin_user&action=read&actorId=${qaUser.user.id}`, { headers: { cookie: adminJar.header() } });
+  const auditReadBody = (await auditRead.json().catch(() => [])) as unknown[];
+  check(
+    "admin user read leaves a read audit row with actor",
+    auditRead.status === 200 && auditReadBody.length >= 1,
+    `status=${auditRead.status} rows=${auditReadBody.length}`,
+  );
+
+  // Invitation create (from the second admin) leaves a row for the invitee.
+  const auditInvite = await fetch(`${origin}/api/audit?entityType=admin_invitation`, { headers: { cookie: adminJar.header() } });
+  const auditInviteBody = (await auditInvite.json().catch(() => [])) as { action?: string; after?: { email?: string } }[];
+  check(
+    "invitation create leaves a create audit row for the invitee",
+    auditInvite.status === 200 && auditInviteBody.some((r) => r.action === "create" && r.after?.email === QA_EMAILS[1]),
+    `status=${auditInvite.status} rows=${auditInviteBody.length}`,
+  );
+
+  // 25. Cleanup: remove disposable users (cascades accounts/sessions/members)
   //     and the disposable country row (with its activity trail).
   await db.delete(userTable).where(inArray(userTable.email, QA_EMAILS));
   if (typeof adminPostBody.id === "number") {
@@ -252,6 +301,13 @@ async function main() {
     .where(eq(countriesTable.code, QA_CODE));
   check("disposable users cleaned up", usersLeft.length === 0, JSON.stringify(usersLeft));
   check("disposable country cleaned up", countryLeft.length === 0, JSON.stringify(countryLeft));
+  if (typeof adminPostBody.id === "number") {
+    const auditLeft = await db
+      .select({ id: activityTable.id })
+      .from(activityTable)
+      .where(eq(activityTable.countryId, adminPostBody.id));
+    check("disposable audit rows cleaned up", auditLeft.length === 0, JSON.stringify(auditLeft));
+  }
 
   server.close();
   await pool.end();
