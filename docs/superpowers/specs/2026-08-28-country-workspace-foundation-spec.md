@@ -65,8 +65,11 @@ Add nullable columns to `countriesTable` — all nullable so existing rows stay 
 | `priority` | text | constrained: low, medium, high |
 | `strategy` | text | free text for now; becomes configurable in Phase 3 |
 
-`insertCountrySchema`/`updateCountrySchema` gain the fields. `countryFields` select in
-`platform.ts` includes them.
+`insertCountrySchema` gains the new fields and a new **`updateCountrySchema`** is created
+(both driven by the OpenAPI payload schemas). `countryFields` select in `platform.ts`
+includes the new fields. `governmentType` and `priority` are modeled as **OpenAPI enums** to
+server-generated zod, so invalid values fail with `400` (the codebase's normal constraint
+path).
 
 ### NEW documents
 
@@ -90,24 +93,35 @@ roles (consistent with current handlers).
 
 | route | op | notes |
 | --- | --- | --- |
-| `GET /api/countries/:id` | `getCountry` | 404 when missing; returns full Country incl. new fields |
-| `PATCH /api/countries/:id` | `updateCountry` | partial update of expanded fields; audit `update`/country, diff of changed keys |
-| `GET /api/documents` | `listDocuments` | query: `countryId` (required for list? optional; when absent lists all), `type`, `status`, `agreementId`, `limit` |
+| `GET /api/countries/:id` | `getCountry` | 404 when missing; returns full Country incl. new fields **and the `contactsCount`/`meetingsCount` the Country schema requires** (same computation as the list route) |
+| `PATCH /api/countries/:id` | `updateCountry` | 404 when missing; partial update of expanded fields; returns the updated full `Country` — **including `contactsCount`/`meetingsCount`, same computation as getCountry**; audit `update`/country, diff of changed keys |
+| `GET /api/activity` | `listActivity` | **gains optional `countryId` query** (currently no params, returns last 12 globally) — needed for the Overview tab's per-country recent activity; regenerated hook becomes `useListActivity({countryId})` |
+| `GET /api/documents` | `listDocuments` | query: `countryId` **optional — when absent lists all** (consistent with contacts/meetings), plus `type`, `status`, `agreementId`, `limit`; rows join agreement name for the "agreement link" label |
 | `POST /api/documents` | `createDocument` | validates agreementId exists (400 if unknown); audit `create`/document, after: {id, title, type, status} |
-| `PATCH /api/documents/:id` | `updateDocument` | diff allowlist {title, type, url, datedOn, notes, agreementId, status}; audit `update` |
-| `DELETE /api/documents/:id` | `deleteDocument` | audit `update`-style? — prefer `delete` action; row removed, activity keeps entityId/title |
-| `GET /api/news` | `listNews` | query: `countryId`, `limit` |
+| `PATCH /api/documents/:id` | `updateDocument` | 404 when missing; diff allowlist {title, type, url, datedOn, notes, agreementId, status}; audit `update` |
+| `DELETE /api/documents/:id` | `deleteDocument` | audit `action: "delete"` (entity rows are removed but the activity row keeps entityId/title); returns `200 { id }`, same shared `DeleteResponse` schema as news |
+| `GET /api/news` | `listNews` | query: `countryId` (optional), `limit` |
 | `POST /api/news` | `createNews` | audit `create`/news, after: {id, title, source} |
-| `PATCH /api/news/:id` | `updateNews` | diff allowlist {title, source, url, summary, publishedAt}; audit `update` |
-| `DELETE /api/news/:id` | `deleteNews` | audit delete |
+| `PATCH /api/news/:id` | `updateNews` | 404 when missing; diff allowlist {title, source, url, summary, publishedAt}; audit `update` |
+| `DELETE /api/news/:id` | `deleteNews` | audit `action: "delete"`; returns `200 { id }`, same shared `DeleteResponse` schema |
+
+All document/news **audit writes** pass **`countryId`** to `writeAudit` so the test sweep (and
+country-level audit filtering) can find them.
 
 - `GET /api/agreements` gains optional `countryId` query filter (mirrors contacts/meetings).
-- `AuditEntityType` gains `document`, `news`, `country` (already present). `AuditAction`
-  gains `delete`.
-- OpenAPI: extend `Country` component and its create/update payloads; add `Document`,
-  `DocumentInput`, `News`, `NewsInput`, `DocumentStatusList`, `DocumentTypeList`; add
+- `AuditEntityType` (in `artifacts/api-server/src/lib/audit.ts`) gains **`document`** and
+  **`news`**; `AuditAction` gains **`delete`** alongside the current `create | update | read`.
+  The `activity.action` column is free text and the generated `AuditEntry.action` is
+  `string`, so `delete` rows list/filter with no further changes
+  (`GET /api/audit?action=delete` works out of the box).
+- OpenAPI: extend `Country` component and its create/update payloads — **all six new
+  fields nullable/optional so existing `POST /api/countries` (name, code, region) still
+  parses**; model `governmentType`/`priority` as enums; add `Document`, `DocumentInput`,
+  `DocumentUpdate`, `News`, `NewsInput`, `NewsUpdate` schemas; add
   `listDocuments`/`createDocument`/`updateDocument`/`deleteDocument` and
-  `listNews`/`createNews`/`updateNews`/`deleteNews` tags/paths; `getCountry`/`updateCountry`.
+  `listNews`/`createNews`/`updateNews`/`deleteNews` tags/paths; `getCountry`/`updateCountry`;
+  extend `listActivity` params with `countryId`; add the `countryId` param to
+  `listAgreements`.
 - Regenerate `lib/api-zod` and `lib/api-client-react` (same codegen loop as Task #3/A.4).
 
 ## SPA (`artifacts/global-dr-platform/src/`)
@@ -118,10 +132,10 @@ roles (consistent with current handlers).
     election year · team · language · risk level; inline **"Edit details"** form (PATCH)
     for the six new fields (`button-country-edit`, `country-field-language` …).
   - **Top tabs** (`country-tab-overview` …), nine sections. Functional now:
-    - **Overview** — KPI cards (contacts, meetings, active agreements, next upcoming
-      meeting), recent country activity (filtered `useListActivity`), and quick links into
-      the other tabs (`kpi-contacts-count`, `kpi-meetings-count`,
-      `kpi-active-agreements`, `kpi-next-meeting`).
+    - **Overview** — KPI cards (contacts, meetings, **active agreements = status `!= archived`**,
+      next upcoming meeting), recent country activity (filtered `useListActivity` via the
+      new `countryId` param), and quick links into the other tabs (`kpi-contacts-count`,
+      `kpi-meetings-count`, `kpi-active-agreements`, `kpi-next-meeting`).
     - **Contacts / Meetings / Agreements** — existing lists filtered by `countryId`
       (`useListContacts({countryId})`, etc.), sharing the existing inline add/edit idiom.
     - **Documents** — list rows with type + status pills, agreement link, datedOn;
@@ -150,9 +164,15 @@ roles (consistent with current handlers).
 - `PATCH /api/countries/:id` (disposable country, e.g. set `priority: high`) → `200`;
   assert an `update`/`country` audit row whose `after.priority === "high"`.
 - Viewer `POST /api/documents` → `403`.
-- `GET /api/documents?countryId=` and `GET /api/news?countryId=` return the created rows.
-- Cleanup: delete documents + news rows for the disposable country; assert their audit
-  rows and the country rows are gone (residual = 0).
+- `GET /api/documents?countryId=` and `GET /api/news?countryId=` return exactly the
+  created rows (`length === 1`, asserting no cross-country contamination);
+  `GET /api/activity?countryId=` returns their rows.
+- Cleanup: **delete document + news rows for the disposable country first, then the
+  editable country row (their `countryId` FKs are non-null, no cascade, so order
+  matters)**; audit rows are append-only and never cascade — **the suite's existing
+  `DELETE FROM activity WHERE country_id = ?` sweep removes every audit row referencing
+  the disposable country (including document/news/country-update rows, since all carry
+  `countryId`)**; residual check expects 0.
 
 ### route-qa (`scripts/src/route-qa.ts`)
 - demo + real-auth: from the countries list, click a country row → detail page; assert
