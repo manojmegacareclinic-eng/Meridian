@@ -1,6 +1,8 @@
 import { createRoot } from 'react-dom/client';
+import { RouterProvider } from '@tanstack/react-router';
 
-import App from './App';
+import { router } from './router';
+import { SessionProvider } from '@/lib/auth';
 import { ErrorBoundary } from '@/components/error-boundary';
 
 import './index.css';
@@ -12,6 +14,8 @@ createRoot(document.getElementById('root')!, {
   },
 }).render(
   <ErrorBoundary>
-    <App />
+    <SessionProvider>
+      <RouterProvider router={router} />
+    </SessionProvider>
   </ErrorBoundary>,
 );

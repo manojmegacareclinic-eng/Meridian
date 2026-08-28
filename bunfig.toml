@@ -1,0 +1,3 @@
+[install]
+trustedDependencies = ["esbuild", "@swc/core", "msw", "unrs-resolver"]
+saveTextLockfile = true

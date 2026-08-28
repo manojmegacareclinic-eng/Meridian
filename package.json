@@ -2,18 +2,41 @@
   "name": "workspace",
   "version": "0.0.0",
   "license": "MIT",
-  "scripts": {
-    "preinstall": "sh -c 'rm -f package-lock.json yarn.lock; case \"$npm_config_user_agent\" in pnpm/*) ;; *) echo \"Use pnpm instead\" >&2; exit 1 ;; esac'",
-    "build": "pnpm run typecheck && pnpm -r --if-present run build",
-    "typecheck:libs": "tsc --build",
-    "typecheck": "pnpm run typecheck:libs && pnpm -r --filter \"./artifacts/**\" --filter \"./scripts\" --if-present run typecheck"
-  },
   "private": true,
-  "dependencies": {
-    "@replit/connectors-sdk": "^0.4.1"
+  "workspaces": ["artifacts/*", "lib/*", "lib/integrations/*", "scripts"],
+  "scripts": {
+    "build": "bun run typecheck && bun run build:workspaces",
+    "build:workspaces": "bun run --filter './artifacts/*' build",
+    "typecheck:libs": "tsc --build",
+    "typecheck:workspaces": "bun run --filter './artifacts/*' --filter './scripts' typecheck",
+    "typecheck": "bun run typecheck:libs && bun run typecheck:workspaces",
+    "audit": "bun audit"
   },
   "devDependencies": {
     "prettier": "^3.9.6",
     "typescript": "~5.9.3"
+  },
+  "catalog": {
+    "@tailwindcss/vite": "^4.1.14",
+    "@tanstack/react-query": "^5.90.21",
+    "@tanstack/react-router": "^1.0.0",
+    "@tanstack/router-cli": "^1.0.0",
+    "@tanstack/router-plugin": "^1.0.0",
+    "@types/node": "^25.3.3",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "@vitejs/plugin-react": "^5.0.4",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "drizzle-orm": "^0.45.2",
+    "framer-motion": "^12.23.24",
+    "lucide-react": "^0.545.0",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "tailwind-merge": "^3.3.1",
+    "tailwindcss": "^4.1.14",
+    "tsx": "^4.21.0",
+    "vite": "^7.3.2",
+    "zod": "^4.1.12"
   }
 }
