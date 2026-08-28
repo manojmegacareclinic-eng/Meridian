@@ -19,6 +19,7 @@ import {
   MoreHorizontal,
   Plus,
   Search,
+  ScrollText,
   Settings,
   ShieldCheck,
   SlidersHorizontal,
@@ -50,6 +51,7 @@ import {
   useHealthCheck,
   useListActivity,
   useListAgreements,
+  useListAudit,
   useListContacts,
   useListCountries,
   useListMeetings,
@@ -59,6 +61,7 @@ import type {
   AdminUserInput,
   Agreement,
   AgreementInput,
+  AuditEntry,
   Contact,
   ContactInput,
   Country,
@@ -82,6 +85,7 @@ const navItems = [
   { href: '/contacts', label: 'Contacts', icon: Users },
   { href: '/meetings', label: 'Meetings', icon: CalendarDays },
   { href: '/agreements', label: 'Agreements', icon: FileCheck2 },
+  { href: '/audit', label: 'Audit', icon: ScrollText },
 ];
 
 const adminItem = { href: '/admin', label: 'Administration', icon: SlidersHorizontal };
@@ -405,6 +409,52 @@ export function AdminPage() {
       </section>
       <section className="rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--card))]"><div className="border-b border-[hsl(var(--border))] px-6 py-5"><h3 className="font-serif text-[22px]">Invitations</h3><p className="mt-1 text-xs text-[hsl(var(--muted-foreground))]">Invite existing accounts into the workspace org.</p></div><form onSubmit={submitInvite} className="flex flex-col gap-3 border-b border-[hsl(var(--border))] p-6 sm:flex-row sm:items-end"><FormField label="Account email"><input value={inviteEmail} onChange={(event) => setInviteEmail(event.target.value)} type="email" required placeholder="name@ministry.gov" className={inputClass} data-testid="input-admin-invite-email" /></FormField><PrimaryButton type="submit" testId="button-admin-invite">{createInvite.isPending ? 'Sending…' : 'Send invitation'}</PrimaryButton></form><div className="divide-y divide-[hsl(var(--border))]">{invitations.length ? invitations.map((invitation) => <div key={invitation.id} className="flex items-center justify-between gap-4 px-6 py-4" data-testid={`admin-invitation-row-${invitation.id}`}><div className="min-w-0"><p className="truncate text-xs font-bold">{invitation.email}</p><p className="mt-1 text-[11px] text-[hsl(var(--muted-foreground))]">Invited · {formatDate(invitation.expiresAt, true)}</p></div><StatusPill tone={toneForStatus(invitation.status)}>{invitation.status.replace('_', ' ')}</StatusPill></div>) : <div className="px-6 py-8 text-center text-xs text-[hsl(var(--muted-foreground))]">No invitations yet.</div>}</div></section>
     </div>
+  </div>;
+}
+
+const AUDIT_ENTITY_LABELS: Record<string, string> = {
+  country: 'Country',
+  contact: 'Contact',
+  meeting: 'Meeting',
+  agreement: 'Agreement',
+  admin_user: 'User',
+  admin_invitation: 'Invitation',
+  dashboard_summary: 'Dashboard',
+};
+
+export function AuditPage() {
+  const [action, setAction] = useState('');
+  const [entityType, setEntityType] = useState('');
+  const [actorFilter, setActorFilter] = useState('');
+  const [limit, setLimit] = useState(50);
+  const [openId, setOpenId] = useState<string | null>(null);
+  const params = { action: action || undefined, entityType: entityType || undefined, limit };
+  const auditQuery = useListAudit(params);
+  const all = auditQuery.data ?? [];
+  const rows = actorFilter.trim()
+    ? all.filter((row) => (row.actorName ?? '').toLowerCase().includes(actorFilter.trim().toLowerCase()))
+    : all;
+  const actionTone: Record<string, 'green' | 'gold' | 'neutral'> = { create: 'green', update: 'gold', read: 'neutral' };
+  return <div className="animate-rise-in"><PageIntro eyebrow="Governance / Audit" title="Every action, accounted for." description="An append-only record of who changed what, and who read what, across the workspace." />
+    <section className="rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--card))]">
+      <div className="border-b border-[hsl(var(--border))] px-6 py-5"><h3 className="font-serif text-[22px]">Audit trail</h3><p className="mt-1 text-xs text-[hsl(var(--muted-foreground))]">Filters apply to the trail; tone reflects whether the entry records a create, update, or read.</p></div>
+      <div className="grid gap-3 border-b border-[hsl(var(--border))] p-6 sm:grid-cols-2 lg:grid-cols-4">
+        <FormField label="Action"><select value={action} onChange={(event) => setAction(event.target.value)} className={selectClass} data-testid="audit-filter-action"><option value="">All actions</option><option value="create">Create</option><option value="update">Update</option><option value="read">Read</option></select></FormField>
+        <FormField label="Entity"><select value={entityType} onChange={(event) => setEntityType(event.target.value)} className={selectClass} data-testid="audit-filter-entity"><option value="">All entities</option>{Object.entries(AUDIT_ENTITY_LABELS).map(([value, label]) => <option value={value} key={value}>{label}</option>)}</select></FormField>
+        <FormField label="Actor"><input value={actorFilter} onChange={(event) => setActorFilter(event.target.value)} type="search" placeholder="Filter by name…" className={inputClass} data-testid="audit-filter-actor" /></FormField>
+        <FormField label="Result limit"><select value={limit} onChange={(event) => setLimit(Number(event.target.value))} className={selectClass} data-testid="audit-filter-limit"><option value={25}>25</option><option value={50}>50</option><option value={100}>100</option><option value={200}>200</option></select></FormField>
+      </div>
+      {auditQuery.isLoading ? <div className="p-6"><LoadingRows count={5} /></div> : auditQuery.isError ? <div className="p-6"><ErrorState onRetry={() => void auditQuery.refetch()} /></div> : rows.length ? <div className="divide-y divide-[hsl(var(--border))]">{rows.map((row) => <AuditRow row={row} isOpen={openId === String(row.id)} onToggle={() => setOpenId(openId === String(row.id) ? null : String(row.id))} tone={actionTone[row.action] ?? 'neutral'} key={row.id} />)}</div> : <div className="p-6"><EmptyState icon={ScrollText} title="No entries here" description="Nothing matches those filters yet." /></div>}
+    </section>
+  </div>;
+}
+
+function AuditRow({ row, isOpen, onToggle, tone }: { row: AuditEntry; isOpen: boolean; onToggle: () => void; tone: 'green' | 'gold' | 'neutral' }) {
+  return <div className="px-6 py-4" data-testid={`audit-row-${row.id}`}>
+    <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2"><div className="flex min-w-0 items-center gap-3"><StatusPill tone={tone}>{row.action}</StatusPill><div className="min-w-0"><p className="truncate text-xs font-bold">{row.title}</p><p className="mt-0.5 truncate text-[11px] text-[hsl(var(--muted-foreground))]">{row.actorName ?? 'Unknown'} · {AUDIT_ENTITY_LABELS[row.entityType] ?? row.entityType}{row.entityId ? ` #${row.entityId}` : ''}{row.countryName ? ` · ${row.countryName}` : ''}</p></div></div><div className="flex items-center gap-3"><time className="font-mono text-[10px] text-[hsl(var(--muted-foreground))]">{formatDate(row.occurredAt, true)} {formatTime(row.occurredAt)}</time></div></div>
+    <p className="mt-2 text-xs leading-5 text-[hsl(var(--muted-foreground))]">{row.description}</p>
+    {(row.before || row.after) && <button onClick={onToggle} className="mt-2 inline-flex items-center gap-1 rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--secondary)/.55)] px-2.5 py-1 text-[11px] font-bold text-[hsl(var(--muted-foreground))] hover:bg-[hsl(var(--secondary))]" data-testid={`button-audit-toggle-${row.id}`}>{isOpen ? 'Hide' : 'Show'} before/after <ChevronRight size={12} className={`transition-transform ${isOpen ? 'rotate-90' : ''}`} /></button>}
+    {isOpen && <div className="mt-3 grid gap-3 sm:grid-cols-2">{row.before && <pre className="overflow-x-auto rounded-xl bg-[hsl(var(--secondary)/.55)] p-3 font-mono text-[11px] leading-5" data-testid={`audit-row-before-${row.id}`}>{JSON.stringify(row.before, null, 2)}</pre>}{row.after && <pre className="overflow-x-auto rounded-xl bg-[hsl(var(--secondary)/.55)] p-3 font-mono text-[11px] leading-5" data-testid={`audit-row-after-${row.id}`}>{JSON.stringify(row.after, null, 2)}</pre>}</div>}
   </div>;
 }
 

@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AgreementsRouteImport } from './routes/agreements'
+import { Route as AuditRouteImport } from './routes/audit'
 import { Route as ContactsRouteImport } from './routes/contacts'
 import { Route as CountriesRouteImport } from './routes/countries'
 import { Route as MeetingsRouteImport } from './routes/meetings'
@@ -30,6 +31,11 @@ const AdminRoute = AdminRouteImport.update({
 const AgreementsRoute = AgreementsRouteImport.update({
   id: '/agreements',
   path: '/agreements',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuditRoute = AuditRouteImport.update({
+  id: '/audit',
+  path: '/audit',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ContactsRoute = ContactsRouteImport.update({
@@ -57,6 +63,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/agreements': typeof AgreementsRoute
+  '/audit': typeof AuditRoute
   '/contacts': typeof ContactsRoute
   '/countries': typeof CountriesRoute
   '/meetings': typeof MeetingsRoute
@@ -66,6 +73,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/agreements': typeof AgreementsRoute
+  '/audit': typeof AuditRoute
   '/contacts': typeof ContactsRoute
   '/countries': typeof CountriesRoute
   '/meetings': typeof MeetingsRoute
@@ -76,6 +84,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/agreements': typeof AgreementsRoute
+  '/audit': typeof AuditRoute
   '/contacts': typeof ContactsRoute
   '/countries': typeof CountriesRoute
   '/meetings': typeof MeetingsRoute
@@ -87,6 +96,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/agreements'
+    | '/audit'
     | '/contacts'
     | '/countries'
     | '/meetings'
@@ -96,6 +106,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/agreements'
+    | '/audit'
     | '/contacts'
     | '/countries'
     | '/meetings'
@@ -105,6 +116,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/agreements'
+    | '/audit'
     | '/contacts'
     | '/countries'
     | '/meetings'
@@ -115,6 +127,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRoute
   AgreementsRoute: typeof AgreementsRoute
+  AuditRoute: typeof AuditRoute
   ContactsRoute: typeof ContactsRoute
   CountriesRoute: typeof CountriesRoute
   MeetingsRoute: typeof MeetingsRoute
@@ -142,6 +155,13 @@ declare module '@tanstack/react-router' {
       path: '/agreements'
       fullPath: '/agreements'
       preLoaderRoute: typeof AgreementsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/audit': {
+      id: '/audit'
+      path: '/audit'
+      fullPath: '/audit'
+      preLoaderRoute: typeof AuditRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/contacts': {
@@ -179,6 +199,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRoute,
   AgreementsRoute: AgreementsRoute,
+  AuditRoute: AuditRoute,
   ContactsRoute: ContactsRoute,
   CountriesRoute: CountriesRoute,
   MeetingsRoute: MeetingsRoute,
