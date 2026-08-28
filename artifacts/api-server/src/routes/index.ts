@@ -1,8 +1,9 @@
 import { Router, type IRouter } from "express";
 import healthRouter from "./health";
 import platformRouter from "./platform";
-import { requireSession, requireWriteRole } from "../middlewares/guards";
 import adminRouter from "./admin";
+import auditRouter from "./audit";
+import { requireSession, requireWriteRole } from "../middlewares/guards";
 
 const router: IRouter = Router();
 
@@ -14,6 +15,7 @@ router.use(healthRouter);
 // its read endpoints are also admin-only.
 router.use(requireSession());
 router.use("/admin", adminRouter);
+router.use("/audit", auditRouter);
 router.use(requireWriteRole());
 router.use(platformRouter);
 

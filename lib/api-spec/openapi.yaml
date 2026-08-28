@@ -15,6 +15,7 @@ tags:
   - name: meetings
   - name: agreements
   - name: activity
+  - name: audit
   - name: admin
 paths:
   /healthz:
@@ -263,6 +264,38 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/Activity"
+  /audit:
+    get:
+      operationId: listAudit
+      tags: [audit]
+      summary: List the queryable audit trail
+      parameters:
+        - name: action
+          in: query
+          schema:
+            type: string
+        - name: entityType
+          in: query
+          schema:
+            type: string
+        - name: entityId
+          in: query
+          schema:
+            type: string
+        - name: actorId
+          in: query
+          schema:
+            type: string
+        - $ref: "#/components/parameters/AuditLimit"
+      responses:
+        "200":
+          description: Audit trail
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AuditEntry"
   /admin/users:
     get:
       operationId: listAdminUsers
@@ -355,6 +388,13 @@ components:
       in: query
       schema:
         type: string
+    AuditLimit:
+      name: limit
+      in: query
+      schema:
+        type: integer
+        default: 50
+        maximum: 200
   schemas:
     HealthStatus:
       type: object
@@ -526,6 +566,24 @@ components:
         occurredAt: { type: string, format: date-time }
         countryName:
           type: ["string", "null"]
+        actorId:
+          type: ["string", "null"]
+        actorName:
+          type: ["string", "null"]
+    AuditEntry:
+      allOf:
+        - $ref: "#/components/schemas/Activity"
+        - type: object
+          required: [action, entityType]
+          properties:
+            action: { type: string }
+            entityType: { type: string }
+            entityId:
+              type: ["string", "null"]
+            before:
+              type: ["object", "null"]
+            after:
+              type: ["object", "null"]
     AdminUser:
       type: object
       required: [id, name, email, role, emailVerified]

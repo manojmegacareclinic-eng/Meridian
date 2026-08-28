@@ -14,4 +14,8 @@ export interface Activity {
   occurredAt: Date;
   /** @nullable */
   countryName?: string | null;
+  /** @nullable */
+  actorId?: string | null;
+  /** @nullable */
+  actorName?: string | null;
 }

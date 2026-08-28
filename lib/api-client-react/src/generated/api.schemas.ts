@@ -233,7 +233,32 @@ export interface Activity {
   occurredAt: string;
   /** @nullable */
   countryName?: string | null;
+  /** @nullable */
+  actorId?: string | null;
+  /** @nullable */
+  actorName?: string | null;
 }
+
+/**
+ * @nullable
+ */
+export type AuditEntryBefore = { [key: string]: unknown } | null;
+
+/**
+ * @nullable
+ */
+export type AuditEntryAfter = { [key: string]: unknown } | null;
+
+export type AuditEntry = Activity & ({
+  action: string;
+  entityType: string;
+  /** @nullable */
+  entityId?: string | null;
+  /** @nullable */
+  before?: AuditEntryBefore;
+  /** @nullable */
+  after?: AuditEntryAfter;
+});
 
 export interface AdminUser {
   id: string;
@@ -330,6 +355,8 @@ export interface InvitationCreation {
 
 export type SearchParameter = string;
 
+export type AuditLimitParameter = number;
+
 export type ListCountriesParams = {
 search?: SearchParameter;
 region?: string;
@@ -378,4 +405,15 @@ export const ListAgreementsStatus = {
   signed: 'signed',
   archived: 'archived',
 } as const;
+
+export type ListAuditParams = {
+action?: string;
+entityType?: string;
+entityId?: string;
+actorId?: string;
+/**
+ * @maximum 200
+ */
+limit?: AuditLimitParameter;
+};
 

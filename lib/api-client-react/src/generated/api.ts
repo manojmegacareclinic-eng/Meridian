@@ -28,6 +28,7 @@ import type {
   Agreement,
   AgreementInput,
   AgreementUpdate,
+  AuditEntry,
   Contact,
   ContactInput,
   Country,
@@ -37,6 +38,7 @@ import type {
   HealthStatus,
   InvitationCreation,
   ListAgreementsParams,
+  ListAuditParams,
   ListContactsParams,
   ListCountriesParams,
   ListMeetingsParams,
@@ -1135,6 +1137,90 @@ export function useListActivity<TData = Awaited<ReturnType<typeof listActivity>>
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getListActivityQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getListAuditUrl = (params?: ListAuditParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/audit?${stringifiedParams}` : `/api/audit`
+}
+
+/**
+ * @summary List the queryable audit trail
+ */
+export const listAudit = async (params?: ListAuditParams, options?: Parameters<typeof customFetch>[1]): Promise<AuditEntry[]> => {
+
+  return customFetch<AuditEntry[]>(getListAuditUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListAuditQueryKey = (params?: ListAuditParams,) => {
+    return [
+    `/api/audit`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getListAuditQueryOptions = <TData = Awaited<ReturnType<typeof listAudit>>, TError = ErrorType<unknown>>(params?: ListAuditParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAudit>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListAuditQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listAudit>>> = ({ signal }) => listAudit(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listAudit>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListAuditQueryResult = NonNullable<Awaited<ReturnType<typeof listAudit>>>
+export type ListAuditQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List the queryable audit trail
+ */
+
+export function useListAudit<TData = Awaited<ReturnType<typeof listAudit>>, TError = ErrorType<unknown>>(
+ params?: ListAuditParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAudit>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListAuditQueryOptions(params,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

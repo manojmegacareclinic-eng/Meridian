@@ -303,9 +303,50 @@ export const ListActivityResponseItem = zod.object({
   "title": zod.string(),
   "description": zod.string(),
   "occurredAt": zod.coerce.date(),
-  "countryName": zod.string().nullish()
+  "countryName": zod.string().nullish(),
+  "actorId": zod.string().nullish(),
+  "actorName": zod.string().nullish()
 })
 export const ListActivityResponse = zod.array(ListActivityResponseItem)
+
+
+/**
+ * @summary List the queryable audit trail
+ */
+export const listAuditQueryLimitDefault = 50;
+export const listAuditQueryLimitMax = 200;
+
+
+
+export const ListAuditQueryParams = zod.object({
+  "action": zod.coerce.string().optional(),
+  "entityType": zod.coerce.string().optional(),
+  "entityId": zod.coerce.string().optional(),
+  "actorId": zod.coerce.string().optional(),
+  "limit": zod.coerce.number().int().max(listAuditQueryLimitMax).default(listAuditQueryLimitDefault)
+})
+
+export const ListAuditResponseItem = zod.object({
+  "id": zod.int(),
+  "kind": zod.string(),
+  "title": zod.string(),
+  "description": zod.string(),
+  "occurredAt": zod.coerce.date(),
+  "countryName": zod.string().nullish(),
+  "actorId": zod.string().nullish(),
+  "actorName": zod.string().nullish()
+}).and(zod.object({
+  "action": zod.string(),
+  "entityType": zod.string(),
+  "entityId": zod.string().nullish(),
+  "before": zod.looseObject({
+
+}).nullish(),
+  "after": zod.looseObject({
+
+}).nullish()
+}))
+export const ListAuditResponse = zod.array(ListAuditResponseItem)
 
 
 /**
