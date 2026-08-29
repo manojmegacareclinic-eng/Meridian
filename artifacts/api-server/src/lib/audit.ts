@@ -11,7 +11,11 @@ export type AuditEntityType =
   | "news"
   | "admin_user"
   | "admin_invitation"
-  | "dashboard_summary";
+  | "dashboard_summary"
+  | "ministry"
+  | "position"
+  | "office_term"
+  | "organization";
 
 export interface AuditActor {
   id: string;

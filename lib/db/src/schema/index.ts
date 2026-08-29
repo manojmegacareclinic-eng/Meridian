@@ -25,6 +25,10 @@ export * from "./documents";
 export * from "./news";
 export * from "./activity";
 export * from "./auth";
+export * from "./ministries";
+export * from "./positions";
+export * from "./office_terms";
+export * from "./organizations";
 export {
   userTable as user,
   sessionTable as session,
