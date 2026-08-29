@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import {
   Activity as ActivityIcon,
   ArrowLeft,
+  BarChart2,
+  Building2,
   Bell,
   CalendarDays,
   Check,
@@ -9,6 +11,7 @@ import {
   CircleAlert,
   Compass,
   FileCheck2,
+  FileText,
   Globe2,
   Landmark,
   LayoutDashboard,
@@ -17,6 +20,7 @@ import {
   Mail,
   Menu,
   MoreHorizontal,
+  Newspaper,
   Plus,
   Search,
   ScrollText,
@@ -28,6 +32,7 @@ import {
   X,
 } from 'lucide-react';
 import {
+  getGetCountryQueryKey,
   getGetDashboardSummaryQueryKey,
   getListActivityQueryKey,
   getListAdminMembersQueryKey,
@@ -35,26 +40,36 @@ import {
   getListAgreementsQueryKey,
   getListContactsQueryKey,
   getListCountriesQueryKey,
+  getListDocumentsQueryKey,
   getListMeetingsQueryKey,
+  getListNewsQueryKey,
   useCreateAdminInvitation,
   useCreateAdminUser,
   useCreateAgreement,
   useCreateContact,
   useCreateCountry,
+  useCreateDocument,
   useCreateMeeting,
+  useCreateNews,
+  useDeleteDocument,
+  useDeleteNews,
+  useGetCountry,
   useListAdminMembers,
   useListAdminUsers,
-  useUpdateAdminUserRole,
-  useUpdateMeeting,
-  useUpdateAgreement,
-  useGetDashboardSummary,
-  useHealthCheck,
-  useListActivity,
   useListAgreements,
   useListAudit,
   useListContacts,
   useListCountries,
+  useListDocuments,
   useListMeetings,
+  useListNews,
+  useListActivity,
+  useUpdateAdminUserRole,
+  useUpdateAgreement,
+  useUpdateCountry,
+  useUpdateMeeting,
+  useGetDashboardSummary,
+  useHealthCheck,
 } from '@workspace/api-client-react';
 import type {
   AdminUser,
@@ -66,10 +81,15 @@ import type {
   ContactInput,
   Country,
   CountryInput,
+  CountryUpdate,
+  Document,
+  DocumentInput,
   Meeting,
   MeetingInput,
+  News,
+  NewsInput,
 } from '@workspace/api-client-react';
-import { Link, useLocation } from '@tanstack/react-router';
+import { Link, useLocation, useParams } from '@tanstack/react-router';
 import { queryClient } from '@/lib/query';
 import { authDemoEnabled, roleLabel, useSessionInfo } from '@/lib/auth';
 import {
@@ -278,7 +298,36 @@ export function CountryPage() {
 }
 
 function CountryCard({ country, index }: { country: Country; index: number }) {
-  return <article className={`animate-rise-in delay-${Math.min(index + 1, 4)} group rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-5 shadow-[0_4px_16px_hsl(190_20%_20%/.03)] hover:-translate-y-1 hover:border-[hsl(var(--accent-foreground)/.45)] hover:shadow-[0_12px_25px_hsl(190_20%_20%/.08)]`} data-testid={`card-country-${country.id}`}><div className="mb-5 flex items-start justify-between"><div className="flex items-center gap-3"><span className="flex h-11 w-11 items-center justify-center rounded-[14px] bg-[hsl(var(--primary))] font-mono text-[11px] font-bold text-[hsl(var(--accent))]">{country.code}</span><div><h3 className="font-serif text-[21px]">{country.name}</h3><p className="mt-0.5 text-[11px] text-[hsl(var(--muted-foreground))]">{country.region}</p></div></div><StatusPill tone={toneForStatus(country.status)}>{country.status.replace('_', ' ')}</StatusPill></div><div className="mb-5 flex items-center gap-2 text-[11px] text-[hsl(var(--muted-foreground))]"><span className={`h-2 w-2 rounded-full ${country.riskLevel === 'high' ? 'bg-[hsl(var(--destructive))]' : country.riskLevel === 'medium' ? 'bg-[hsl(var(--accent-foreground))]' : 'bg-[hsl(157_38%_39%)]'}`} /> {country.riskLevel} risk profile</div><div className="fine-rule mb-4" /><div className="grid grid-cols-2 gap-4"><div><p className="font-mono text-xl">{country.contactsCount}</p><p className="mt-1 text-[10px] font-bold uppercase tracking-[.08em] text-[hsl(var(--muted-foreground))]">Contacts</p></div><div><p className="font-mono text-xl">{country.meetingsCount}</p><p className="mt-1 text-[10px] font-bold uppercase tracking-[.08em] text-[hsl(var(--muted-foreground))]">Meetings</p></div></div></article>;
+  return (
+    <Link to="/countries/$countryId" params={{ countryId: String(country.id) }}>
+      <article className={`animate-rise-in delay-${Math.min(index + 1, 4)} group rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-5 shadow-[0_4px_16px_hsl(190_20%_20%/.03)] hover:-translate-y-1 hover:border-[hsl(var(--accent-foreground)/.45)] hover:shadow-[0_12px_25px_hsl(190_20%_20%/.08)]`} data-testid={`card-country-${country.id}`}>
+        <div className="mb-5 flex items-start justify-between">
+          <div className="flex items-center gap-3">
+            <span className="flex h-11 w-11 items-center justify-center rounded-[14px] bg-[hsl(var(--primary))] font-mono text-[11px] font-bold text-[hsl(var(--accent))]">{country.code}</span>
+            <div>
+              <h3 className="font-serif text-[21px]">{country.name}</h3>
+              <p className="mt-0.5 text-[11px] text-[hsl(var(--muted-foreground))]">{country.region}</p>
+            </div>
+          </div>
+          <StatusPill tone={toneForStatus(country.status)}>{country.status.replace('_', ' ')}</StatusPill>
+        </div>
+        <div className="mb-5 flex items-center gap-2 text-[11px] text-[hsl(var(--muted-foreground))]">
+          <span className={`h-2 w-2 rounded-full ${country.riskLevel === 'high' ? 'bg-[hsl(var(--destructive))]' : country.riskLevel === 'medium' ? 'bg-[hsl(var(--accent-foreground))]' : 'bg-[hsl(157_38%_39%)]'}`} /> {country.riskLevel} risk profile
+        </div>
+        <div className="fine-rule mb-4" />
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <p className="font-mono text-xl">{country.contactsCount}</p>
+            <p className="mt-1 text-[10px] font-bold uppercase tracking-[.08em] text-[hsl(var(--muted-foreground))]">Contacts</p>
+          </div>
+          <div>
+            <p className="font-mono text-xl">{country.meetingsCount}</p>
+            <p className="mt-1 text-[10px] font-bold uppercase tracking-[.08em] text-[hsl(var(--muted-foreground))]">Meetings</p>
+          </div>
+        </div>
+      </article>
+    </Link>
+  );
 }
 
 export function ContactsPage() {
@@ -356,6 +405,530 @@ function SettingRow({ label, description, checked, onChange, testId }: { label: 
 
 function AccessLine({ label, value }: { label: string; value: string }) {
   return <div className="flex justify-between gap-3 text-xs"><span className="text-[hsl(42_25%_69%)]">{label}</span><span className="text-right font-bold">{value}</span></div>;
+}
+
+const TABS = [
+  { id: 'overview', label: 'Overview' },
+  { id: 'contacts', label: 'Contacts' },
+  { id: 'meetings', label: 'Meetings' },
+  { id: 'agreements', label: 'Agreements' },
+  { id: 'documents', label: 'Documents' },
+  { id: 'news', label: 'News' },
+  { id: 'government', label: 'Government' },
+  { id: 'organizations', label: 'Organizations' },
+  { id: 'tasks', label: 'Tasks' },
+  { id: 'analytics', label: 'Analytics' },
+] as const;
+
+type TabId = (typeof TABS)[number]['id'];
+
+function TabButton({ id, label, active, onClick }: { id: TabId; label: string; active: boolean; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`whitespace-nowrap rounded-xl px-3.5 py-1.5 text-[11px] font-bold transition-colors ${
+        active
+          ? 'bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))]'
+          : 'bg-[hsl(var(--card))] hover:bg-[hsl(var(--muted))] text-[hsl(var(--foreground))]'
+      }`}
+      data-testid={`tab-${id}`}
+    >
+      {label}
+    </button>
+  );
+}
+
+function EmptyPlaceholder({ icon: Icon, title, description, action }: { icon: React.ComponentType<{ size?: number }>; title: string; description: string; action?: React.ReactNode }) {
+  return (
+    <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
+      <span className="mb-4 text-[hsl(var(--muted-foreground))]"><Icon size={48} /></span>
+      <p className="text-sm font-bold">{title}</p>
+      <p className="mt-1 text-xs text-[hsl(var(--muted-foreground))] max-w-xs">{description}</p>
+      {action && <div className="mt-4">{action}</div>}
+    </div>
+  );
+}
+
+function KpiCard({ label, value, icon: Icon }: { label: string; value: string | number; icon: React.ComponentType<{ size?: number }> }) {
+  return (
+    <div className="rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-5">
+      <div className="flex items-center justify-between">
+        <span className="text-[hsl(var(--muted-foreground))]"><Icon size={22} /></span>
+        <p className="text-2xl font-bold">{value}</p>
+      </div>
+      <p className="mt-2 text-xs text-[hsl(var(--muted-foreground))]">{label}</p>
+    </div>
+  );
+}
+
+function ContactsList({ countryId }: { countryId: number }) {
+  const contactsQuery = useListContacts({ countryId });
+  const contacts = contactsQuery.data ?? [];
+  return (
+    <div className="space-y-3">
+      {contactsQuery.isLoading ? (
+        <LoadingRows count={5} />
+      ) : contactsQuery.isError ? (
+        <ErrorState onRetry={() => void contactsQuery.refetch()} />
+      ) : contacts.length ? (
+        contacts.map((contact) => (
+          <div key={contact.id} className="rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-4 hover:bg-[hsl(var(--muted)/.38)]">
+            <p className="text-sm font-bold">{contact.name}</p>
+            <p className="mt-1 text-xs text-[hsl(var(--muted-foreground))]">{contact.title} · {contact.institution}</p>
+          </div>
+        ))
+      ) : (
+        <EmptyPlaceholder icon={Users} title="No contacts yet" description="Add your first contact in this country." />
+      )}
+    </div>
+  );
+}
+
+function MeetingsList({ countryId }: { countryId: number }) {
+  const meetingsQuery = useListMeetings({ countryId });
+  const meetings = meetingsQuery.data ?? [];
+  return (
+    <div className="space-y-3">
+      {meetingsQuery.isLoading ? (
+        <LoadingRows count={5} />
+      ) : meetingsQuery.isError ? (
+        <ErrorState onRetry={() => void meetingsQuery.refetch()} />
+      ) : meetings.length ? (
+        meetings.map((meeting) => (
+          <div key={meeting.id} className="rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-4 hover:bg-[hsl(var(--muted)/.38)]">
+            <p className="text-sm font-bold">{meeting.title}</p>
+            <p className="mt-1 text-xs text-[hsl(var(--muted-foreground))]">{formatDate(meeting.date)} · {meeting.status}</p>
+          </div>
+        ))
+      ) : (
+        <EmptyPlaceholder icon={CalendarDays} title="No meetings yet" description="Schedule your first meeting in this country." />
+      )}
+    </div>
+  );
+}
+
+function AgreementsList({ countryId }: { countryId: number }) {
+  const agreementsQuery = useListAgreements({ countryId });
+  const agreements = agreementsQuery.data ?? [];
+  return (
+    <div className="space-y-3">
+      {agreementsQuery.isLoading ? (
+        <LoadingRows count={5} />
+      ) : agreementsQuery.isError ? (
+        <ErrorState onRetry={() => void agreementsQuery.refetch()} />
+      ) : agreements.length ? (
+        agreements.map((agreement) => (
+          <div key={agreement.id} className="rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-4 hover:bg-[hsl(var(--muted)/.38)]">
+            <p className="text-sm font-bold">{agreement.name}</p>
+            <p className="mt-1 text-xs text-[hsl(var(--muted-foreground))]">{agreement.type} · {agreement.status} · Renewal: {formatDate(agreement.renewalDate, true)}</p>
+          </div>
+        ))
+      ) : (
+        <EmptyPlaceholder icon={FileCheck2} title="No agreements yet" description="Record your first agreement for this country." />
+      )}
+    </div>
+  );
+}
+
+function DocumentsList({ countryId }: { countryId: number }) {
+  const documentsQuery = useListDocuments({ countryId });
+  const createDoc = useCreateDocument();
+  const deleteDoc = useDeleteDocument();
+  const [open, setOpen] = useState(false);
+  const [title, setTitle] = useState('');
+  const [type, setType] = useState('report');
+  const documents = documentsQuery.data ?? [];
+
+  const handleCreate = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    createDoc.mutate(
+      { data: { countryId, title, type } },
+      {
+        onSuccess: () => {
+          setTitle('');
+          setType('report');
+          setOpen(false);
+          void queryClient.invalidateQueries({ queryKey: getListDocumentsQueryKey({ countryId }) });
+        },
+      }
+    );
+  };
+
+  return (
+    <div className="space-y-4">
+      <AddDialog open={open} title="Add document" onClose={() => setOpen(false)}>
+        <form onSubmit={handleCreate} className="space-y-4">
+          <FormField label="Title">
+            <input name="title" required value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Briefing notes" className={inputClass} data-testid="input-doc-title" />
+          </FormField>
+          <FormField label="Type">
+            <select name="type" value={type} onChange={(e) => setType(e.target.value)} className={selectClass} data-testid="select-doc-type">
+              <option value="report">Report</option>
+              <option value="memo">Memo</option>
+              <option value="briefing">Briefing</option>
+              <option value="correspondence">Correspondence</option>
+              <option value="legal">Legal</option>
+            </select>
+          </FormField>
+          <div className="flex justify-end gap-3 border-t border-[hsl(var(--border))] pt-5">
+            <button type="button" onClick={() => setOpen(false)} className="rounded-xl px-4 py-2.5 text-xs font-bold hover:bg-[hsl(var(--muted))]" data-testid="button-cancel-doc">Cancel</button>
+            <PrimaryButton type="submit" testId="button-submit-doc">{createDoc.isPending ? 'Saving…' : 'Create document'}</PrimaryButton>
+          </div>
+        </form>
+      </AddDialog>
+      <div className="flex justify-between items-center">
+        <PrimaryButton testId="button-add-doc" onClick={() => setOpen(true)}><Plus size={16} /> Add document</PrimaryButton>
+      </div>
+      {documentsQuery.isLoading ? (
+        <LoadingRows count={5} />
+      ) : documentsQuery.isError ? (
+        <ErrorState onRetry={() => void documentsQuery.refetch()} />
+      ) : documents.length ? (
+        <div className="space-y-2">
+          {documents.map((doc) => (
+            <DocumentRow key={doc.id} doc={doc} onDelete={() => deleteDoc.mutate({ id: doc.id }, { onSuccess: () => void queryClient.invalidateQueries({ queryKey: getListDocumentsQueryKey({ countryId }) }) })} />
+          ))}
+        </div>
+      ) : (
+        <EmptyPlaceholder icon={FileText} title="No documents yet" description="Upload your first document for this country." action={<PrimaryButton testId="button-empty-add-doc" onClick={() => setOpen(true)}><Plus size={15} /> Add document</PrimaryButton>} />
+      )}
+    </div>
+  );
+}
+
+function DocumentRow({ doc, onDelete }: { doc: Document; onDelete: () => void }) {
+  return (
+    <div className="flex items-center justify-between gap-4 rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-4 hover:bg-[hsl(var(--muted)/.38)]" data-testid={`row-doc-${doc.id}`}>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-bold truncate">{doc.title}</p>
+        <p className="mt-1 text-xs text-[hsl(var(--muted-foreground))]">{doc.type} · Updated {formatDate(doc.createdAt)}</p>
+      </div>
+      <button onClick={onDelete} className="h-8 w-8 rounded-lg hover:bg-[hsl(var(--destructive)/.15)] text-[hsl(var(--destructive))] transition-colors" aria-label={`Delete ${doc.title}`} data-testid={`button-delete-doc-${doc.id}`}>
+        <MoreHorizontal size={16} />
+      </button>
+    </div>
+  );
+}
+
+function NewsList({ countryId }: { countryId: number }) {
+  const newsQuery = useListNews({ countryId });
+  const createNews = useCreateNews();
+  const deleteNews = useDeleteNews();
+  const [open, setOpen] = useState(false);
+  const [title, setTitle] = useState('');
+  const [source, setSource] = useState('');
+  const [summary, setSummary] = useState('');
+  const [publishedAt, setPublishedAt] = useState('');
+  const news = newsQuery.data ?? [];
+
+  const handleCreate = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    createNews.mutate(
+      { data: { countryId, title, source, summary: summary || undefined, publishedAt } },
+      {
+        onSuccess: () => {
+          setTitle('');
+          setSource('');
+          setSummary('');
+          setPublishedAt('');
+          setOpen(false);
+          void queryClient.invalidateQueries({ queryKey: getListNewsQueryKey({ countryId }) });
+        },
+      }
+    );
+  };
+
+  return (
+    <div className="space-y-4">
+      <AddDialog open={open} title="Add news item" onClose={() => setOpen(false)}>
+        <form onSubmit={handleCreate} className="space-y-4">
+          <FormField label="Title">
+            <input name="title" required value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Election results announced" className={inputClass} data-testid="input-news-title" />
+          </FormField>
+          <FormField label="Source">
+            <input name="source" required value={source} onChange={(e) => setSource(e.target.value)} placeholder="Reuters, BBC, local outlet..." className={inputClass} data-testid="input-news-source" />
+          </FormField>
+          <FormField label="Published date">
+            <input name="publishedAt" type="date" required value={publishedAt} onChange={(e) => setPublishedAt(e.target.value)} className={inputClass} data-testid="input-news-published-at" />
+          </FormField>
+          <FormField label="Summary">
+            <textarea name="summary" value={summary} onChange={(e) => setSummary(e.target.value)} placeholder="Key developments and implications..." className="h-24 rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--background))] px-3 text-sm outline-none focus:border-[hsl(var(--accent-foreground))]" data-testid="textarea-news-summary" />
+          </FormField>
+          <div className="flex justify-end gap-3 border-t border-[hsl(var(--border))] pt-5">
+            <button type="button" onClick={() => setOpen(false)} className="rounded-xl px-4 py-2.5 text-xs font-bold hover:bg-[hsl(var(--muted))]" data-testid="button-cancel-news">Cancel</button>
+            <PrimaryButton type="submit" testId="button-submit-news">{createNews.isPending ? 'Saving…' : 'Create news item'}</PrimaryButton>
+          </div>
+        </form>
+      </AddDialog>
+      <div className="flex justify-between items-center">
+        <PrimaryButton testId="button-add-news" onClick={() => setOpen(true)}><Plus size={16} /> Add news</PrimaryButton>
+      </div>
+      {newsQuery.isLoading ? (
+        <LoadingRows count={5} />
+      ) : newsQuery.isError ? (
+        <ErrorState onRetry={() => void newsQuery.refetch()} />
+      ) : news.length ? (
+        <div className="space-y-2">
+          {news.map((item) => (
+            <NewsRow key={item.id} item={item} onDelete={() => deleteNews.mutate({ id: item.id }, { onSuccess: () => void queryClient.invalidateQueries({ queryKey: getListNewsQueryKey({ countryId }) }) })} />
+          ))}
+        </div>
+      ) : (
+        <EmptyPlaceholder icon={Newspaper} title="No news yet" description="Add your first news item for this country." action={<PrimaryButton testId="button-empty-add-news" onClick={() => setOpen(true)}><Plus size={15} /> Add news</PrimaryButton>} />
+      )}
+    </div>
+  );
+}
+
+function NewsRow({ item, onDelete }: { item: News; onDelete: () => void }) {
+  return (
+    <div className="flex items-start justify-between gap-4 rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-4 hover:bg-[hsl(var(--muted)/.38)]" data-testid={`row-news-${item.id}`}>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-bold truncate">{item.title}</p>
+        <p className="mt-1 text-xs text-[hsl(var(--muted-foreground))] line-clamp-2">{item.summary}</p>
+        <p className="mt-1 text-[11px] text-[hsl(var(--muted-foreground))]">Published {formatDate(item.publishedAt)}</p>
+      </div>
+      <button onClick={onDelete} className="h-8 w-8 rounded-lg hover:bg-[hsl(var(--destructive)/.15)] text-[hsl(var(--destructive))] transition-colors" aria-label={`Delete ${item.title}`} data-testid={`button-delete-news-${item.id}`}>
+        <MoreHorizontal size={16} />
+      </button>
+    </div>
+  );
+}
+
+function ActivityRow({ row }: { row: { id: number; kind: string; title: string; description: string; occurredAt: string; actorName?: string | null; countryName?: string | null } }) {
+  const kindColors: Record<string, 'green' | 'gold' | 'neutral'> = {
+    create: 'green',
+    update: 'gold',
+    read: 'neutral',
+    delete: 'gold',
+  };
+  const tone = kindColors[row.kind] ?? 'neutral';
+  return (
+    <div className="px-6 py-4 border-b border-[hsl(var(--border))] last:border-0" data-testid={`activity-row-${row.id}`}>
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+        <div className="flex min-w-0 items-center gap-3">
+          <StatusPill tone={tone}>{row.kind}</StatusPill>
+          <div className="min-w-0">
+            <p className="truncate text-xs font-bold">{row.title}</p>
+            <p className="mt-0.5 truncate text-[11px] text-[hsl(var(--muted-foreground))]">
+              {row.actorName ?? 'Unknown'}{row.countryName ? ` · ${row.countryName}` : ''}
+            </p>
+          </div>
+        </div>
+        <time className="font-mono text-[10px] text-[hsl(var(--muted-foreground))]">
+          {formatDate(row.occurredAt, true)} {formatTime(row.occurredAt)}
+        </time>
+      </div>
+      <p className="mt-2 text-xs leading-5 text-[hsl(var(--muted-foreground))]">{row.description}</p>
+    </div>
+  );
+}
+
+export function CountryDetailPage() {
+  const params = useParams({ from: '/countries/$countryId', strict: true });
+  const id = Number(params.countryId);
+  const countryQuery = useGetCountry(id);
+  const country = countryQuery.data;
+  const activityQuery = useListActivity({ countryId: id });
+  const [activeTab, setActiveTab] = useState<TabId>('overview');
+  const [editOpen, setEditOpen] = useState(false);
+  const [editValues, setEditValues] = useState({
+    language: '',
+    governmentType: '',
+    electionYear: 0,
+    team: '',
+    priority: 'medium',
+    strategy: '',
+  });
+  const updateCountry = useUpdateCountry();
+
+  useEffect(() => {
+    if (country) {
+      setEditValues({
+        language: country.language ?? '',
+        governmentType: country.governmentType ?? '',
+        electionYear: country.electionYear ?? 0,
+        team: country.team ?? '',
+        priority: country.priority ?? 'medium',
+        strategy: country.strategy ?? '',
+      });
+    }
+  }, [country]);
+
+  const handleEditSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    updateCountry.mutate(
+      { id, data: editValues as any },
+      {
+        onSuccess: () => {
+          setEditOpen(false);
+          void queryClient.invalidateQueries({ queryKey: getGetCountryQueryKey(id) });
+        },
+      }
+    );
+  };
+
+  if (countryQuery.isLoading) return <LoadingRows count={6} />;
+  if (countryQuery.isError) return <ErrorState onRetry={() => void countryQuery.refetch()} />;
+  if (!country) return <NotFound />;
+
+  const govTypes = [
+    'presidential republic',
+    'semi-presidential',
+    'parliamentary republic',
+    'parliamentary monarchy',
+    'constitutional monarchy',
+    'absolute monarchy',
+    'one-party state',
+    'transitional',
+  ] as const;
+
+  return (
+    <div className="animate-rise-in">
+      <PageIntro
+        eyebrow="Portfolio"
+        title={country.name}
+        description={`${country.region} · ${country.governmentType ?? 'Government type not set'} · Election: ${country.electionYear ?? '—'} · Team: ${country.team ?? '—'} · Language: ${country.language ?? '—'} · Risk: ${country.riskLevel}`}
+        action={
+          <>
+            <PrimaryButton testId="button-country-edit" onClick={() => setEditOpen(true)}>
+              <FileCheck2 size={14} /> Edit details
+            </PrimaryButton>
+            <AddDialog open={editOpen} title="Edit country details" onClose={() => setEditOpen(false)}>
+              <form onSubmit={handleEditSubmit} className="space-y-4">
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <FormField label="Language">
+                    <input
+                      name="language"
+                      value={editValues.language}
+                      onChange={(e) => setEditValues({ ...editValues, language: e.target.value })}
+                      placeholder="e.g. English"
+                      className={inputClass}
+                      data-testid="country-field-language"
+                    />
+                  </FormField>
+                  <FormField label="Government type">
+                    <select
+                      name="governmentType"
+                      value={editValues.governmentType}
+                      onChange={(e) => setEditValues({ ...editValues, governmentType: e.target.value })}
+                      className={selectClass}
+                      data-testid="country-field-government-type"
+                    >
+                      <option value="">Select type</option>
+                      {govTypes.map((t) => (
+                        <option key={t} value={t}>{t}</option>
+                      ))}
+                    </select>
+                  </FormField>
+                  <FormField label="Election year">
+                    <input
+                      name="electionYear"
+                      type="number"
+                      value={editValues.electionYear}
+                      onChange={(e) => setEditValues({ ...editValues, electionYear: Number(e.target.value) || 0 })}
+                      placeholder="2024"
+                      className={inputClass}
+                      data-testid="country-field-election-year"
+                    />
+                  </FormField>
+                  <FormField label="Team">
+                    <input
+                      name="team"
+                      value={editValues.team}
+                      onChange={(e) => setEditValues({ ...editValues, team: e.target.value })}
+                      placeholder="QA desk"
+                      className={inputClass}
+                      data-testid="country-field-team"
+                    />
+                  </FormField>
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <FormField label="Priority">
+                    <select
+                      name="priority"
+                      value={editValues.priority}
+                      onChange={(e) => setEditValues({ ...editValues, priority: e.target.value })}
+                      className={selectClass}
+                      data-testid="country-field-priority"
+                    >
+                      <option value="low">Low</option>
+                      <option value="medium">Medium</option>
+                      <option value="high">High</option>
+                    </select>
+                  </FormField>
+                  <FormField label="Strategy">
+                    <textarea
+                      name="strategy"
+                      value={editValues.strategy}
+                      onChange={(e) => setEditValues({ ...editValues, strategy: e.target.value })}
+                      placeholder="Engagement priorities..."
+                      className="h-24 rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--background))] px-3 text-sm outline-none focus:border-[hsl(var(--accent-foreground))]"
+                      data-testid="country-field-strategy"
+                    />
+                  </FormField>
+                </div>
+                <div className="flex justify-end gap-3 border-t border-[hsl(var(--border))] pt-5">
+                  <button type="button" onClick={() => setEditOpen(false)} className="rounded-xl px-4 py-2.5 text-xs font-bold hover:bg-[hsl(var(--muted))]" data-testid="button-cancel-edit">
+                    Cancel
+                  </button>
+                  <PrimaryButton type="submit" testId="button-submit-edit">{updateCountry.isPending ? 'Saving…' : 'Save changes'}</PrimaryButton>
+                </div>
+              </form>
+            </AddDialog>
+          </>
+        }
+      />
+      <div className="mb-5 flex flex-col gap-3 lg:flex-row overflow-x-auto">
+        {TABS.map((tab) => (
+          <TabButton key={tab.id} id={tab.id} label={tab.label} active={activeTab === tab.id} onClick={() => setActiveTab(tab.id)} />
+        ))}
+      </div>
+      <div className="space-y-5">
+        {activeTab === 'overview' && (
+          <>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <KpiCard label="Contacts" value={useListContacts({ countryId: id }).data?.length ?? 0} icon={Users} />
+              <KpiCard label="Meetings" value={useListMeetings({ countryId: id }).data?.length ?? 0} icon={CalendarDays} />
+              <KpiCard label="Agreements" value={useListAgreements({ countryId: id }).data?.length ?? 0} icon={FileCheck2} />
+              <KpiCard label="Documents" value={useListDocuments({ countryId: id }).data?.length ?? 0} icon={FileText} />
+            </div>
+            <section className="rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--card))]">
+              <div className="border-b border-[hsl(var(--border))] px-6 py-5">
+                <h3 className="font-serif text-[22px]">Recent activity</h3>
+                <p className="mt-1 text-xs text-[hsl(var(--muted-foreground))]">Latest engagements, changes, and updates.</p>
+              </div>
+              {activityQuery.isLoading ? (
+                <LoadingRows count={5} />
+              ) : activityQuery.isError ? (
+                <ErrorState onRetry={() => void activityQuery.refetch()} />
+              ) : (activityQuery.data ?? []).length ? (
+                <div className="divide-y divide-[hsl(var(--border))]">
+                  {(activityQuery.data ?? []).slice(0, 10).map((row) => (
+                    <ActivityRow key={row.id} row={row} />
+                  ))}
+                </div>
+              ) : (
+                <EmptyPlaceholder icon={ActivityIcon} title="No activity yet" description="Activity will appear here as you work." />
+              )}
+            </section>
+          </>
+        )}
+        {activeTab === 'contacts' && <ContactsList countryId={id} />}
+        {activeTab === 'meetings' && <MeetingsList countryId={id} />}
+        {activeTab === 'agreements' && <AgreementsList countryId={id} />}
+        {activeTab === 'documents' && <DocumentsList countryId={id} />}
+        {activeTab === 'news' && <NewsList countryId={id} />}
+        {['government', 'organizations', 'tasks', 'analytics'].includes(activeTab) && (
+          <EmptyPlaceholder
+            icon={BarChart2}
+            title="Coming soon"
+            description={`The ${TABS.find((t) => t.id === activeTab)?.label} tab is not yet implemented.`}
+          />
+        )}
+      </div>
+    </div>
+  );
 }
 
 export function AdminPage() {
