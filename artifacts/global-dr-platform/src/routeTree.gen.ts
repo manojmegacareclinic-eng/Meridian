@@ -17,7 +17,8 @@ import { Route as ContactsRouteImport } from './routes/contacts'
 import { Route as CountriesRouteImport } from './routes/countries'
 import { Route as MeetingsRouteImport } from './routes/meetings'
 import { Route as SettingsRouteImport } from './routes/settings'
-import { Route as CountriesCountryIdRouteImport } from './routes/countries.$countryId'
+import { Route as CountriesIndexRouteImport } from './routes/countries/index'
+import { Route as CountryCountryIdRouteImport } from './routes/country.$countryId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -59,10 +60,15 @@ const SettingsRoute = SettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => rootRouteImport,
 } as any)
-const CountriesCountryIdRoute = CountriesCountryIdRouteImport.update({
-  id: '/$countryId',
-  path: '/$countryId',
+const CountriesIndexRoute = CountriesIndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => CountriesRoute,
+} as any)
+const CountryCountryIdRoute = CountryCountryIdRouteImport.update({
+  id: '/country/$countryId',
+  path: '/country/$countryId',
+  getParentRoute: () => rootRouteImport,
 } as any)
 
 export interface FileRoutesByFullPath {
@@ -74,7 +80,8 @@ export interface FileRoutesByFullPath {
   '/countries': typeof CountriesRouteWithChildren
   '/meetings': typeof MeetingsRoute
   '/settings': typeof SettingsRoute
-  '/countries/$countryId': typeof CountriesCountryIdRoute
+  '/country/$countryId': typeof CountryCountryIdRoute
+  '/countries/': typeof CountriesIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -82,10 +89,10 @@ export interface FileRoutesByTo {
   '/agreements': typeof AgreementsRoute
   '/audit': typeof AuditRoute
   '/contacts': typeof ContactsRoute
-  '/countries': typeof CountriesRouteWithChildren
   '/meetings': typeof MeetingsRoute
   '/settings': typeof SettingsRoute
-  '/countries/$countryId': typeof CountriesCountryIdRoute
+  '/country/$countryId': typeof CountryCountryIdRoute
+  '/countries': typeof CountriesIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -97,7 +104,8 @@ export interface FileRoutesById {
   '/countries': typeof CountriesRouteWithChildren
   '/meetings': typeof MeetingsRoute
   '/settings': typeof SettingsRoute
-  '/countries/$countryId': typeof CountriesCountryIdRoute
+  '/country/$countryId': typeof CountryCountryIdRoute
+  '/countries/': typeof CountriesIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -110,7 +118,8 @@ export interface FileRouteTypes {
     | '/countries'
     | '/meetings'
     | '/settings'
-    | '/countries/$countryId'
+    | '/country/$countryId'
+    | '/countries/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -118,10 +127,10 @@ export interface FileRouteTypes {
     | '/agreements'
     | '/audit'
     | '/contacts'
-    | '/countries'
     | '/meetings'
     | '/settings'
-    | '/countries/$countryId'
+    | '/country/$countryId'
+    | '/countries'
   id:
     | '__root__'
     | '/'
@@ -132,7 +141,8 @@ export interface FileRouteTypes {
     | '/countries'
     | '/meetings'
     | '/settings'
-    | '/countries/$countryId'
+    | '/country/$countryId'
+    | '/countries/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -144,6 +154,7 @@ export interface RootRouteChildren {
   CountriesRoute: typeof CountriesRouteWithChildren
   MeetingsRoute: typeof MeetingsRoute
   SettingsRoute: typeof SettingsRoute
+  CountryCountryIdRoute: typeof CountryCountryIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -204,22 +215,29 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/countries/$countryId': {
-      id: '/countries/$countryId'
-      path: '/$countryId'
-      fullPath: '/countries/$countryId'
-      preLoaderRoute: typeof CountriesCountryIdRouteImport
+    '/countries/': {
+      id: '/countries/'
+      path: '/'
+      fullPath: '/countries/'
+      preLoaderRoute: typeof CountriesIndexRouteImport
       parentRoute: typeof CountriesRoute
+    }
+    '/country/$countryId': {
+      id: '/country/$countryId'
+      path: '/country/$countryId'
+      fullPath: '/country/$countryId'
+      preLoaderRoute: typeof CountryCountryIdRouteImport
+      parentRoute: typeof rootRouteImport
     }
   }
 }
 
 interface CountriesRouteChildren {
-  CountriesCountryIdRoute: typeof CountriesCountryIdRoute
+  CountriesIndexRoute: typeof CountriesIndexRoute
 }
 
 const CountriesRouteChildren: CountriesRouteChildren = {
-  CountriesCountryIdRoute: CountriesCountryIdRoute,
+  CountriesIndexRoute: CountriesIndexRoute,
 }
 
 const CountriesRouteWithChildren = CountriesRoute._addFileChildren(
@@ -235,6 +253,7 @@ const rootRouteChildren: RootRouteChildren = {
   CountriesRoute: CountriesRouteWithChildren,
   MeetingsRoute: MeetingsRoute,
   SettingsRoute: SettingsRoute,
+  CountryCountryIdRoute: CountryCountryIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -47,6 +47,19 @@ const NAV_ROUTES = [
   { path: "/settings", testid: "link-nav-settings", title: "Workspace" },
 ];
 
+const COUNTRY_TABS = [
+  { id: "overview", label: "Overview" },
+  { id: "contacts", label: "Contacts" },
+  { id: "meetings", label: "Meetings" },
+  { id: "agreements", label: "Agreements" },
+  { id: "documents", label: "Documents" },
+  { id: "news", label: "News" },
+  { id: "government", label: "Government" },
+  { id: "organizations", label: "Organizations" },
+  { id: "tasks", label: "Tasks" },
+  { id: "analytics", label: "Analytics" },
+] as const;
+
 async function main() {
   const browser = await chromium.launch();
   const page = await browser.newPage();
@@ -124,6 +137,79 @@ async function main() {
       const link = page.locator(`[data-testid="${testid}"]`);
       const className = (await link.getAttribute("class")) ?? "";
       check(`${path} nav item highlighted as active`, className.includes("bg-[hsl(var(--sidebar-accent))]"), "active class missing");
+    }
+
+    // Country workspace detail page (read-only tab checks)
+    await page.goto(`${baseURL}/countries`, { waitUntil: "load" });
+    await page.waitForSelector('[data-testid^="card-country-"]', { timeout: 15000 });
+    // Get the first country's ID from the card's testid
+    const firstCountryTestId = await page.locator('[data-testid^="card-country-"]').first().getAttribute("data-testid");
+    const countryId = firstCountryTestId?.replace("card-country-", "");
+    console.log("DEBUG: Navigating to country detail page for ID:", countryId);
+    // Check for console errors before navigation
+    const consoleErrors: string[] = [];
+    page.on("console", (msg) => {
+      if (msg.type() === "error") consoleErrors.push(msg.text());
+    });
+    page.on("pageerror", (err) => consoleErrors.push(String(err)));
+    // Navigate directly to the country detail URL instead of clicking
+    await page.goto(`${baseURL}/country/${countryId}`, { waitUntil: "load" });
+    // Wait for React to hydrate
+    await page.waitForTimeout(5000);
+    // Debug: dump page content to understand what's rendered
+    const pageContent = await page.content();
+    console.log("DEBUG: Country detail page content length:", pageContent.length);
+    if (pageContent.includes("tab-overview")) {
+      console.log("DEBUG: tab-overview found in page content");
+    }
+    if (pageContent.includes("loading-rows")) {
+      console.log("DEBUG: loading-rows found in page content");
+    }
+    if (pageContent.includes("loading-state")) {
+      console.log("DEBUG: loading-state found in page content");
+    }
+    if (pageContent.includes("ErrorState")) {
+      console.log("DEBUG: ErrorState found in page content");
+    }
+    if (pageContent.includes("NotFound")) {
+      console.log("DEBUG: NotFound found in page content");
+    }
+    if (pageContent.includes("button-add-country")) {
+      console.log("DEBUG: button-add-country found - still on countries list");
+    }
+    if (pageContent.includes("current-user-name")) {
+      console.log("DEBUG: current-user-name found - shell rendered");
+    }
+    // Check for common error patterns
+    const testIds = pageContent.match(/data-testid="([^"]*)"/g);
+    if (testIds) {
+      console.log("DEBUG: data-testid elements found:", [...new Set(testIds)].slice(0, 40));
+    }
+    // Wait a bit for any async errors
+    await page.waitForTimeout(2000);
+    if (consoleErrors.length > 0) {
+      console.log("DEBUG: Console errors:", consoleErrors);
+    }
+    // Now wait for the actual content
+    await page.waitForSelector('[data-testid="tab-overview"], [data-testid="loading-state"], [data-testid="button-add-country"]', { timeout: 20000 });
+
+    for (const tab of COUNTRY_TABS) {
+      await page.click(`[data-testid="tab-${tab.id}"]`);
+      await page.waitForTimeout(200); // allow tab panel to render
+      const panelVisible = await page.locator(`[data-testid="tab-${tab.id}"]`).isVisible();
+      check(`country detail tab "${tab.label}" clickable and visible`, panelVisible);
+      if (tab.id === "overview") {
+        await page.waitForSelector('[data-testid="button-country-edit"]', { timeout: 15000 });
+        check('overview tab shows "Edit details" button', true);
+      }
+      if (tab.id === "documents") {
+        await page.waitForSelector('[data-testid="button-add-doc"]', { timeout: 15000 });
+        check('documents tab shows "Add document" button', true);
+      }
+      if (tab.id === "news") {
+        await page.waitForSelector('[data-testid="button-add-news"]', { timeout: 15000 });
+        check('news tab shows "Add news" button', true);
+      }
     }
 
     await page.goto(`${baseURL}/definitely-not-a-route`, { waitUntil: "load" });

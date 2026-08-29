@@ -299,7 +299,7 @@ export function CountryPage() {
 
 function CountryCard({ country, index }: { country: Country; index: number }) {
   return (
-    <Link to="/countries/$countryId" params={{ countryId: String(country.id) }}>
+    <Link to="/country/$countryId" params={{ countryId: String(country.id) }}>
       <article className={`animate-rise-in delay-${Math.min(index + 1, 4)} group rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-5 shadow-[0_4px_16px_hsl(190_20%_20%/.03)] hover:-translate-y-1 hover:border-[hsl(var(--accent-foreground)/.45)] hover:shadow-[0_12px_25px_hsl(190_20%_20%/.08)]`} data-testid={`card-country-${country.id}`}>
         <div className="mb-5 flex items-start justify-between">
           <div className="flex items-center gap-3">
@@ -725,11 +725,15 @@ function ActivityRow({ row }: { row: { id: number; kind: string; title: string; 
 }
 
 export function CountryDetailPage() {
-  const params = useParams({ from: '/countries/$countryId', strict: true });
+  const params = useParams({ from: '/country/$countryId', strict: true });
   const id = Number(params.countryId);
   const countryQuery = useGetCountry(id);
   const country = countryQuery.data;
   const activityQuery = useListActivity({ countryId: id });
+  const contactsQuery = useListContacts({ countryId: id });
+  const meetingsQuery = useListMeetings({ countryId: id });
+  const agreementsQuery = useListAgreements({ countryId: id });
+  const documentsQuery = useListDocuments({ countryId: id });
   const [activeTab, setActiveTab] = useState<TabId>('overview');
   const [editOpen, setEditOpen] = useState(false);
   const [editValues, setEditValues] = useState({
@@ -888,10 +892,10 @@ export function CountryDetailPage() {
         {activeTab === 'overview' && (
           <>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <KpiCard label="Contacts" value={useListContacts({ countryId: id }).data?.length ?? 0} icon={Users} />
-              <KpiCard label="Meetings" value={useListMeetings({ countryId: id }).data?.length ?? 0} icon={CalendarDays} />
-              <KpiCard label="Agreements" value={useListAgreements({ countryId: id }).data?.length ?? 0} icon={FileCheck2} />
-              <KpiCard label="Documents" value={useListDocuments({ countryId: id }).data?.length ?? 0} icon={FileText} />
+              <KpiCard label="Contacts" value={contactsQuery.data?.length ?? 0} icon={Users} />
+              <KpiCard label="Meetings" value={meetingsQuery.data?.length ?? 0} icon={CalendarDays} />
+              <KpiCard label="Agreements" value={agreementsQuery.data?.length ?? 0} icon={FileCheck2} />
+              <KpiCard label="Documents" value={documentsQuery.data?.length ?? 0} icon={FileText} />
             </div>
             <section className="rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--card))]">
               <div className="border-b border-[hsl(var(--border))] px-6 py-5">
