@@ -695,3 +695,78 @@ cleanup block at "25. Cleanup").
 ---
 
 *End of Chunk 1 (Tasks 0–5). Chunk 2 (Tasks 6–8) continues below.*
+
+## Task 6 — SPA country detail page
+
+**Files:** `artifacts/global-dr-platform/src/App.tsx`, `artifacts/global-dr-platform/src/routes/countries/index.tsx`, `artifacts/global-dr-platform/src/routes/country.$countryId.tsx`, `artifacts/global-dr-platform/src/routeTree.gen.ts`
+
+- [ ] 6.1 Add imports to `App.tsx`:
+  - Icons: `BarChart2`, `Building2`, `FileText`, `Newspaper` from `lucide-react`
+  - Hooks: `useGetCountry`, `useUpdateCountry`, `useListDocuments`, `useListNews`, `useListContacts`, `useListMeetings`, `useListAgreements`, `useListActivity`, `useCreateDocument`, `useCreateNews`, `useDeleteDocument`, `useDeleteNews`, `getGetCountryQueryKey`, `getListDocumentsQueryKey`, `getListNewsQueryKey` from `@workspace/api-client-react`
+  - Types: `CountryUpdate`, `Document`, `DocumentInput`, `News`, `NewsInput` from `@workspace/api-client-react`
+  - Router: `useParams` from `@tanstack/react-router`
+
+- [ ] 6.2 Add `CountryDetailPage` component (exported) with:
+  - 10 tabs: Overview, Contacts, Meetings, Agreements, Documents, News (functional); Government, Organizations, Tasks, Analytics (placeholder "Coming soon")
+  - `useParams({ from: '/country/$countryId', strict: true })` to get `countryId`
+  - `useGetCountry(id)` for country data; `useListActivity({ countryId: id })` for activity feed
+  - All list queries at top level (not conditional): `useListContacts({ countryId: id })`, `useListMeetings({ countryId: id })`, `useListAgreements({ countryId: id })`, `useListDocuments({ countryId: id })`, `useListNews({ countryId: id })` — avoids hooks rule violations when tabs switch
+  - Mutations: `useUpdateCountry`, `useCreateDocument`, `useCreateNews`, `useDeleteDocument`, `useDeleteNews` with query-key invalidation
+  - Overview tab: KPI cards (contacts/meetings/agreements/documents counts), recent activity feed (`ActivityRow`), Edit details dialog (pre-fills from country, writes via `useUpdateCountry`)
+  - Contacts/Meetings/Agreements tabs: list components with `EmptyPlaceholder` fallback
+  - Documents tab: add form + list with delete; `useCreateDocument`/`useDeleteDocument`
+  - News tab: add form (title, source, publishedAt, summary) + list with delete; `useCreateNews`/`useDeleteNews`
+  - Placeholder tabs: `EmptyPlaceholder` with `BarChart2` icon
+
+- [ ] 6.3 Route structure:
+  - `artifacts/global-dr-platform/src/routes/countries.tsx` → layout with `<Outlet />`
+  - `artifacts/global-dr-platform/src/routes/countries/index.tsx` → `CountryPage` (index route)
+  - `artifacts/global-dr-platform/src/routes/country.$countryId.tsx` → `CountryDetailPage` at `/country/$countryId` (top-level, not nested under countries to avoid double-render/hooks issues)
+  - Run `bun run --filter @workspace/global-dr-platform routes` to regenerate `routeTree.gen.ts`
+
+- [ ] 6.4 Link country cards: `CountryCard` wraps article in `<Link to="/country/$countryId" params={{ countryId: String(country.id) }} />`
+
+- [ ] 6.5 Verify: `bun run typecheck` clean; `bun run build` clean
+
+- [ ] 6.6 Commit:
+  ```bash
+  git commit -m "feat(spa): country workspace detail page with tabs (overview, contacts, meetings, agreements, documents, news) and country list navigation" -- artifacts/global-dr-platform/src/App.tsx artifacts/global-dr-platform/src/routeTree.gen.ts artifacts/global-dr-platform/src/routes/countries.tsx artifacts/global-dr-platform/src/routes/countries/index.tsx artifacts/global-dr-platform/src/routes/country.$countryId.tsx
+  ```
+
+## Task 7 — route-qa read-only coverage
+
+**File:** `scripts/src/route-qa.ts`
+
+- [ ] 7.1 Extend `NAV_ROUTES` with `COUNTRY_TABS` constant listing all 10 tabs
+- [ ] 7.2 In demo mode, after nav routes loop:
+  - Navigate to `/countries`, click first country card (or navigate directly to `/country/{id}`)
+  - Wait for tab bar to render (`tab-overview` visible)
+  - Iterate all tabs: click each tab, verify it's visible
+  - Overview: verify "Edit details" button present
+  - Documents: verify "Add document" button present
+  - News: verify "Add news" button present
+- [ ] 7.3 Run both modes:
+  - `bun run --filter @workspace/scripts route-qa` (demo mode)
+  - `ROUTE_QA_MODE=real-auth bun run --filter @workspace/scripts route-qa` (requires `ROUTE_QA_PASSWORD`)
+- [ ] 7.4 Commit:
+  ```bash
+  git commit -m "test(spa): route-qa coverage for country detail tabs (read-only)" -- scripts/src/route-qa.ts
+  ```
+
+**Deviation from spec (surface to user):** route-qa stays read-only — no "save Edit details" mutation test, since write path is covered by auth-qa (Task 5). This avoids mutating seeded data in the QA run.
+
+## Task 8 — Docs updates & closeout
+
+**Files:** `docs/implementation-plan.md`, `docs/roles-and-permissions.md` (if they exist), this plan file
+
+- [ ] 8.1 Update `docs/implementation-plan.md` with summary of country workspace feature
+- [ ] 8.2 Update `docs/roles-and-permissions.md` if new permissions/roles are implied
+- [ ] 8.3 Mark this plan as complete (Status: Done)
+- [ ] 8.4 Commit docs:
+  ```bash
+  git commit -m "docs: update implementation plan and roles for country workspace" -- docs/implementation-plan.md docs/roles-and-permissions.md docs/superpowers/plans/2026-08-28-country-workspace-foundation.md
+  ```
+
+---
+
+*All tasks complete. Task #4 Country Workspace Foundation delivered.*

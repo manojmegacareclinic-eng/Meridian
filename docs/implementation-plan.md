@@ -1,8 +1,8 @@
 # Global Diplomatic Relations — Implementation Plan
 
 **Status:** Foundation running; MVP implementation in progress  
-**Last updated:** 28 August 2026  
-**Current next task:** Task #4 — Expand the country, organization, institution, and person model as needed by the first verified workflows.  
+**Last updated:** 29 August 2026  
+**Current next task:** Phase 2 — Add institutions, ministries, position history, and global map with filters.  
 **Source brief:** `attached_assets/Pasted--Global-Diplomatic-Relations-Government-Engagement-Plat_1787756992171.txt`
 
 This is a living delivery plan for the Global Diplomatic Relations (GDP) platform. It translates the enterprise blueprint into an incremental plan that matches the current Replit project instead of requiring a wholesale rewrite.
@@ -58,7 +58,7 @@ and cleanup (`ALL PASS, 26`); demo and real-auth route-qa push the audit page (`
 
 ### Phase 1 — Secure operational foundation
 
-**Status: `PARTIAL` — Task #4 (`NEXT`): expand the country/organization/institution/person model.**
+**Status: `DONE` — Task #4 complete: country workspace foundation delivered.**
 
 1. Complete authentication and server-side authorization.
 2. Add the initial RBAC roles from the brief:
@@ -75,7 +75,7 @@ and cleanup (`ALL PASS, 26`); demo and real-auth route-qa push the audit page (`
 
 ### Phase 2 — Country workspaces and government directory
 
-**Status: `PARTIAL` — the current app has country/contact lists and basic CRUD, but not full country workspaces.**
+**Status: `PARTIAL` — Country detail workspace delivered (overview, contacts, meetings, agreements, documents, news tabs); government, organizations, tasks, analytics tabs are placeholders. Institution/ministry directory, position history, global map, and filters remain.**
 
 1. Add a country detail workspace with overview, government, contacts, organizations, meetings, documents, news, tasks, and analytics sections.
 2. Add institutions, ministries, positions, office terms, and position history.
