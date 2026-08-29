@@ -18,6 +18,7 @@ import {
   LifeBuoy,
   LockKeyhole,
   Mail,
+  MapPin,
   Menu,
   MoreHorizontal,
   Newspaper,
@@ -43,6 +44,10 @@ import {
   getListDocumentsQueryKey,
   getListMeetingsQueryKey,
   getListNewsQueryKey,
+  getListMinistriesQueryKey,
+  getListPositionsQueryKey,
+  getListOfficeTermsQueryKey,
+  getListOrganizationsQueryKey,
   useCreateAdminInvitation,
   useCreateAdminUser,
   useCreateAgreement,
@@ -51,8 +56,16 @@ import {
   useCreateDocument,
   useCreateMeeting,
   useCreateNews,
+  useCreateMinistry,
+  useCreatePosition,
+  useCreateOfficeTerm,
+  useCreateOrganization,
   useDeleteDocument,
   useDeleteNews,
+  useDeleteMinistry,
+  useDeletePosition,
+  useDeleteOfficeTerm,
+  useDeleteOrganization,
   useGetCountry,
   useListAdminMembers,
   useListAdminUsers,
@@ -62,12 +75,20 @@ import {
   useListCountries,
   useListDocuments,
   useListMeetings,
+  useListMinistries,
   useListNews,
+  useListOfficeTerms,
+  useListOrganizations,
+  useListPositions,
   useListActivity,
   useUpdateAdminUserRole,
   useUpdateAgreement,
   useUpdateCountry,
   useUpdateMeeting,
+  useUpdateMinistry,
+  useUpdatePosition,
+  useUpdateOfficeTerm,
+  useUpdateOrganization,
   useGetDashboardSummary,
   useHealthCheck,
 } from '@workspace/api-client-react';
@@ -86,6 +107,15 @@ import type {
   DocumentInput,
   Meeting,
   MeetingInput,
+  Ministry,
+  MinistryInput,
+  OfficeTerm,
+  OfficeTermInput,
+  Organization,
+  OrganizationInput,
+  OrganizationType,
+  Position,
+  PositionInput,
   News,
   NewsInput,
 } from '@workspace/api-client-react';
@@ -97,11 +127,14 @@ import {
   sendVerificationEmail,
   verifyEmailToken,
 } from '@/lib/auth-client';
+import { OrganizationsTab } from '@/components/OrganizationsTab';
+import { GovernmentTab } from '@/components/GovernmentTab';
 import './index.css';
 
 const navItems = [
   { href: '/', label: 'Overview', icon: LayoutDashboard },
   { href: '/countries', label: 'Countries', icon: Globe2 },
+  { href: '/map', label: 'Global Map', icon: MapPin },
   { href: '/contacts', label: 'Contacts', icon: Users },
   { href: '/meetings', label: 'Meetings', icon: CalendarDays },
   { href: '/agreements', label: 'Agreements', icon: FileCheck2 },
@@ -125,7 +158,7 @@ const formatTime = (value?: string) => {
 
 const initials = (name: string) => name.split(' ').map((part) => part[0]).slice(0, 2).join('').toUpperCase();
 
-function StatusPill({ children, tone = 'neutral' }: { children: React.ReactNode; tone?: 'neutral' | 'gold' | 'green' | 'red' | 'blue' }) {
+export function StatusPill({ children, tone = 'neutral' }: { children: React.ReactNode; tone?: 'neutral' | 'gold' | 'green' | 'red' | 'blue' }) {
   const tones = {
     neutral: 'bg-[hsl(var(--muted))] text-[hsl(var(--muted-foreground))]',
     gold: 'bg-[hsl(42_76%_68%/.24)] text-[hsl(28_55%_28%)]',
@@ -143,11 +176,11 @@ function toneForStatus(status: string): 'neutral' | 'gold' | 'green' | 'red' | '
   return 'blue';
 }
 
-function LoadingRows({ count = 4 }: { count?: number }) {
+export function LoadingRows({ count = 4 }: { count?: number }) {
   return <div className="space-y-3" data-testid="loading-state">{Array.from({ length: count }).map((_, index) => <div className="h-14 animate-pulse rounded-xl bg-[hsl(var(--muted))]" key={index} />)}</div>;
 }
 
-function ErrorState({ onRetry }: { onRetry: () => void }) {
+export function ErrorState({ onRetry }: { onRetry: () => void }) {
   return <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-[hsl(var(--border))] bg-[hsl(var(--card))] px-6 py-16 text-center" data-testid="error-state">
     <CircleAlert className="mb-3 text-[hsl(var(--destructive))]" size={28} />
     <h3 className="font-semibold text-[hsl(var(--foreground))]">The brief is temporarily unavailable</h3>
@@ -156,13 +189,51 @@ function ErrorState({ onRetry }: { onRetry: () => void }) {
   </div>;
 }
 
-function EmptyState({ icon: Icon, title, description, action }: { icon: typeof Globe2; title: string; description: string; action?: React.ReactNode }) {
+export function EmptyState({ icon: Icon, title, description, action }: { icon: typeof Globe2; title: string; description: string; action?: React.ReactNode }) {
   return <div className="flex flex-col items-center justify-center border border-dashed border-[hsl(var(--border))] bg-[hsl(var(--card))] px-5 py-16 text-center" data-testid="empty-state">
     <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-[hsl(var(--secondary))] text-[hsl(var(--primary))]"><Icon size={22} /></div>
     <h3 className="font-semibold">{title}</h3>
     <p className="mt-1 max-w-xs text-sm leading-6 text-[hsl(var(--muted-foreground))]">{description}</p>
     {action && <div className="mt-5">{action}</div>}
   </div>;
+}
+
+function OverviewTab({ countryId }: { countryId: number }) {
+  const contactsQuery = useListContacts({ countryId });
+  const meetingsQuery = useListMeetings({ countryId });
+  const agreementsQuery = useListAgreements({ countryId });
+  const documentsQuery = useListDocuments({ countryId });
+  const activityQuery = useListActivity({ countryId });
+
+  return (
+    <>
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <KpiCard label="Contacts" value={contactsQuery.data?.length ?? 0} icon={Users} />
+        <KpiCard label="Meetings" value={meetingsQuery.data?.length ?? 0} icon={CalendarDays} />
+        <KpiCard label="Agreements" value={agreementsQuery.data?.length ?? 0} icon={FileCheck2} />
+        <KpiCard label="Documents" value={documentsQuery.data?.length ?? 0} icon={FileText} />
+      </div>
+      <section className="rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--card))]">
+        <div className="border-b border-[hsl(var(--border))] px-6 py-5">
+          <h3 className="font-serif text-[22px]">Recent activity</h3>
+          <p className="mt-1 text-xs text-[hsl(var(--muted-foreground))]">Latest engagements, changes, and updates.</p>
+        </div>
+        {activityQuery.isLoading ? (
+          <LoadingRows count={5} />
+        ) : activityQuery.isError ? (
+          <ErrorState onRetry={() => void activityQuery.refetch()} />
+        ) : (activityQuery.data ?? []).length ? (
+          <div className="divide-y divide-[hsl(var(--border))]">
+            {(activityQuery.data ?? []).slice(0, 10).map((row) => (
+              <ActivityRow key={row.id} row={row} />
+            ))}
+          </div>
+        ) : (
+          <EmptyPlaceholder icon={ActivityIcon} title="No activity yet" description="Activity will appear here as you work." />
+        )}
+      </section>
+    </>
+  );
 }
 
 export function Shell({ children }: { children: React.ReactNode }) {
@@ -222,11 +293,26 @@ function PageIntro({ eyebrow, title, description, action }: { eyebrow: string; t
   return <div className="mb-8 flex flex-col justify-between gap-5 md:flex-row md:items-end"><div><div className="mb-2 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[.22em] text-[hsl(var(--muted-foreground))]"><span className="h-1.5 w-1.5 rounded-full bg-[hsl(var(--accent-foreground))]" />{eyebrow}</div><h2 className="font-serif text-[32px] leading-tight tracking-[-.025em] sm:text-[40px]">{title}</h2><p className="mt-2 max-w-xl text-sm leading-6 text-[hsl(var(--muted-foreground))]">{description}</p></div>{action && <div className="shrink-0">{action}</div>}</div>;
 }
 
-function PrimaryButton({ children, onClick, type = 'button', testId }: { children: React.ReactNode; onClick?: () => void; type?: 'button' | 'submit'; testId: string }) {
+export function PrimaryButton({ children, onClick, type = 'button', testId }: { children: React.ReactNode; onClick?: () => void; type?: 'button' | 'submit'; testId: string }) {
   return <button type={type} onClick={onClick} className="inline-flex items-center justify-center gap-2 rounded-xl bg-[hsl(var(--primary))] px-4 py-2.5 text-xs font-bold text-[hsl(var(--primary-foreground))] shadow-[0_6px_14px_hsl(190_37%_15%/.12)] hover:-translate-y-0.5 hover:shadow-[0_9px_18px_hsl(190_37%_15%/.18)] disabled:cursor-not-allowed disabled:opacity-50" data-testid={testId}>{children}</button>;
 }
 
-function SearchField({ value, onChange, placeholder, testId }: { value: string; onChange: (value: string) => void; placeholder: string; testId: string }) {
+export function SecondaryButton({ children, onClick, type = 'button', testId, variant = 'default', size = 'default', className = '' }: { children: React.ReactNode; onClick?: () => void; type?: 'button' | 'submit'; testId: string; variant?: 'default' | 'destructive' | 'outline'; size?: 'default' | 'sm'; className?: string }) {
+  const baseClass = 'inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-xs font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-50';
+  const variantClass = variant === 'destructive' ? 'bg-[hsl(var(--destructive)/.15)] text-[hsl(var(--destructive))] hover:bg-[hsl(var(--destructive)/.25)]' : variant === 'outline' ? 'border border-[hsl(var(--border))] bg-[hsl(var(--card))] hover:bg-[hsl(var(--muted))]' : 'bg-[hsl(var(--card))] border border-[hsl(var(--border))] hover:bg-[hsl(var(--muted))]';
+  const sizeClass = size === 'sm' ? 'px-2.5 py-1.5 text-[11px]' : 'px-4 py-2.5 text-xs';
+  return <button type={type} onClick={onClick} className={`${baseClass} ${variantClass} ${sizeClass} ${className}`} data-testid={testId}>{children}</button>;
+}
+
+export function Select({ value, onChange, children, className = '', testId }: { value: string; onChange: (value: string) => void; children: React.ReactNode; className?: string; testId?: string }) {
+  return <select value={value} onChange={(e) => onChange(e.target.value)} className={`h-11 w-full rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--background))] px-3.5 text-sm outline-none focus:border-[hsl(var(--accent-foreground))] appearance-none ${className}`} data-testid={testId}>{children}</select>;
+}
+
+export function Textarea({ value, onChange, className = '', testId }: { value: string; onChange: (value: string) => void; className?: string; testId?: string }) {
+  return <textarea value={value} onChange={(e) => onChange(e.target.value)} className={`h-24 w-full rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--background))] px-3 text-sm outline-none focus:border-[hsl(var(--accent-foreground))] ${className}`} data-testid={testId} />;
+}
+
+export function SearchField({ value, onChange, placeholder, testId }: { value: string; onChange: (value: string) => void; placeholder: string; testId: string }) {
   return <label className="relative block min-w-0 flex-1"><Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[hsl(var(--muted-foreground))]" /><input type="search" value={value} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} className="h-11 w-full rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] pl-10 pr-4 text-sm outline-none placeholder:text-[hsl(var(--muted-foreground))] focus:border-[hsl(var(--accent-foreground))] focus:ring-2 focus:ring-[hsl(var(--accent)/.3)]" data-testid={testId} /></label>;
 }
 
@@ -272,17 +358,17 @@ export function Dashboard() {
   </div>;
 }
 
-function AddDialog({ open, title, onClose, children }: { open: boolean; title: string; onClose: () => void; children: React.ReactNode }) {
+export function AddDialog({ open, title, onClose, children }: { open: boolean; title: string; onClose: () => void; children: React.ReactNode }) {
   if (!open) return null;
   return <div className="fixed inset-0 z-50 flex items-end justify-center bg-[hsl(190_37%_15%/.45)] p-0 backdrop-blur-sm sm:items-center sm:p-5"><div className="max-h-[92vh] w-full max-w-lg overflow-y-auto rounded-t-3xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-6 shadow-2xl sm:rounded-3xl" role="dialog" aria-modal="true" data-testid="dialog-create"><div className="mb-6 flex items-start justify-between"><div><p className="mb-1 text-[10px] font-bold uppercase tracking-[.2em] text-[hsl(var(--muted-foreground))]">New record</p><h3 className="font-serif text-[26px]">{title}</h3></div><button onClick={onClose} className="rounded-lg p-2 text-[hsl(var(--muted-foreground))] hover:bg-[hsl(var(--muted))]" aria-label="Close dialog" data-testid="button-close-dialog"><X size={18} /></button></div>{children}</div></div>;
 }
 
-function FormField({ label, children }: { label: string; children: React.ReactNode }) {
+export function FormField({ label, children }: { label: string; children: React.ReactNode }) {
   return <label className="block"><span className="mb-1.5 block text-[11px] font-bold uppercase tracking-[.08em] text-[hsl(var(--muted-foreground))]">{label}</span>{children}</label>;
 }
 
-const inputClass = 'h-11 w-full rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--background))] px-3.5 text-sm outline-none focus:border-[hsl(var(--accent-foreground))] focus:ring-2 focus:ring-[hsl(var(--accent)/.3)]';
-const selectClass = `${inputClass} appearance-none`;
+export const inputClass = 'h-11 w-full rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--background))] px-3.5 text-sm outline-none focus:border-[hsl(var(--accent-foreground))] focus:ring-2 focus:ring-[hsl(var(--accent)/.3)]';
+export const selectClass = `${inputClass} appearance-none`;
 
 export function CountryPage() {
   const [search, setSearch] = useState('');
@@ -422,7 +508,7 @@ const TABS = [
 
 type TabId = (typeof TABS)[number]['id'];
 
-function TabButton({ id, label, active, onClick }: { id: TabId; label: string; active: boolean; onClick: () => void }) {
+export function TabButton({ id, label, active, onClick }: { id: TabId; label: string; active: boolean; onClick: () => void }) {
   return (
     <button
       onClick={onClick}
@@ -438,7 +524,7 @@ function TabButton({ id, label, active, onClick }: { id: TabId; label: string; a
   );
 }
 
-function EmptyPlaceholder({ icon: Icon, title, description, action }: { icon: React.ComponentType<{ size?: number }>; title: string; description: string; action?: React.ReactNode }) {
+export function EmptyPlaceholder({ icon: Icon, title, description, action }: { icon: React.ComponentType<{ size?: number }>; title: string; description: string; action?: React.ReactNode }) {
   return (
     <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
       <span className="mb-4 text-[hsl(var(--muted-foreground))]"><Icon size={48} /></span>
@@ -449,7 +535,7 @@ function EmptyPlaceholder({ icon: Icon, title, description, action }: { icon: Re
   );
 }
 
-function KpiCard({ label, value, icon: Icon }: { label: string; value: string | number; icon: React.ComponentType<{ size?: number }> }) {
+export function KpiCard({ label, value, icon: Icon }: { label: string; value: string | number; icon: React.ComponentType<{ size?: number }> }) {
   return (
     <div className="rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-5">
       <div className="flex items-center justify-between">
@@ -889,41 +975,15 @@ export function CountryDetailPage() {
         ))}
       </div>
       <div className="space-y-5">
-        {activeTab === 'overview' && (
-          <>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <KpiCard label="Contacts" value={contactsQuery.data?.length ?? 0} icon={Users} />
-              <KpiCard label="Meetings" value={meetingsQuery.data?.length ?? 0} icon={CalendarDays} />
-              <KpiCard label="Agreements" value={agreementsQuery.data?.length ?? 0} icon={FileCheck2} />
-              <KpiCard label="Documents" value={documentsQuery.data?.length ?? 0} icon={FileText} />
-            </div>
-            <section className="rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--card))]">
-              <div className="border-b border-[hsl(var(--border))] px-6 py-5">
-                <h3 className="font-serif text-[22px]">Recent activity</h3>
-                <p className="mt-1 text-xs text-[hsl(var(--muted-foreground))]">Latest engagements, changes, and updates.</p>
-              </div>
-              {activityQuery.isLoading ? (
-                <LoadingRows count={5} />
-              ) : activityQuery.isError ? (
-                <ErrorState onRetry={() => void activityQuery.refetch()} />
-              ) : (activityQuery.data ?? []).length ? (
-                <div className="divide-y divide-[hsl(var(--border))]">
-                  {(activityQuery.data ?? []).slice(0, 10).map((row) => (
-                    <ActivityRow key={row.id} row={row} />
-                  ))}
-                </div>
-              ) : (
-                <EmptyPlaceholder icon={ActivityIcon} title="No activity yet" description="Activity will appear here as you work." />
-              )}
-            </section>
-          </>
-        )}
+{activeTab === 'overview' && <OverviewTab countryId={id} />}
         {activeTab === 'contacts' && <ContactsList countryId={id} />}
         {activeTab === 'meetings' && <MeetingsList countryId={id} />}
         {activeTab === 'agreements' && <AgreementsList countryId={id} />}
         {activeTab === 'documents' && <DocumentsList countryId={id} />}
         {activeTab === 'news' && <NewsList countryId={id} />}
-        {['government', 'organizations', 'tasks', 'analytics'].includes(activeTab) && (
+        {activeTab === 'government' && <GovernmentTab countryId={id} />}
+        {activeTab === 'organizations' && <OrganizationsTab countryId={id} />}
+        {['tasks', 'analytics'].includes(activeTab) && (
           <EmptyPlaceholder
             icon={BarChart2}
             title="Coming soon"

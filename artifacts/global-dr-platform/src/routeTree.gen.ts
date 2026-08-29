@@ -15,6 +15,7 @@ import { Route as AgreementsRouteImport } from './routes/agreements'
 import { Route as AuditRouteImport } from './routes/audit'
 import { Route as ContactsRouteImport } from './routes/contacts'
 import { Route as CountriesRouteImport } from './routes/countries'
+import { Route as MapRouteImport } from './routes/map'
 import { Route as MeetingsRouteImport } from './routes/meetings'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as CountriesIndexRouteImport } from './routes/countries/index'
@@ -50,6 +51,11 @@ const CountriesRoute = CountriesRouteImport.update({
   path: '/countries',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MapRoute = MapRouteImport.update({
+  id: '/map',
+  path: '/map',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const MeetingsRoute = MeetingsRouteImport.update({
   id: '/meetings',
   path: '/meetings',
@@ -78,6 +84,7 @@ export interface FileRoutesByFullPath {
   '/audit': typeof AuditRoute
   '/contacts': typeof ContactsRoute
   '/countries': typeof CountriesRouteWithChildren
+  '/map': typeof MapRoute
   '/meetings': typeof MeetingsRoute
   '/settings': typeof SettingsRoute
   '/country/$countryId': typeof CountryCountryIdRoute
@@ -89,6 +96,7 @@ export interface FileRoutesByTo {
   '/agreements': typeof AgreementsRoute
   '/audit': typeof AuditRoute
   '/contacts': typeof ContactsRoute
+  '/map': typeof MapRoute
   '/meetings': typeof MeetingsRoute
   '/settings': typeof SettingsRoute
   '/country/$countryId': typeof CountryCountryIdRoute
@@ -102,6 +110,7 @@ export interface FileRoutesById {
   '/audit': typeof AuditRoute
   '/contacts': typeof ContactsRoute
   '/countries': typeof CountriesRouteWithChildren
+  '/map': typeof MapRoute
   '/meetings': typeof MeetingsRoute
   '/settings': typeof SettingsRoute
   '/country/$countryId': typeof CountryCountryIdRoute
@@ -116,6 +125,7 @@ export interface FileRouteTypes {
     | '/audit'
     | '/contacts'
     | '/countries'
+    | '/map'
     | '/meetings'
     | '/settings'
     | '/country/$countryId'
@@ -127,6 +137,7 @@ export interface FileRouteTypes {
     | '/agreements'
     | '/audit'
     | '/contacts'
+    | '/map'
     | '/meetings'
     | '/settings'
     | '/country/$countryId'
@@ -139,6 +150,7 @@ export interface FileRouteTypes {
     | '/audit'
     | '/contacts'
     | '/countries'
+    | '/map'
     | '/meetings'
     | '/settings'
     | '/country/$countryId'
@@ -152,6 +164,7 @@ export interface RootRouteChildren {
   AuditRoute: typeof AuditRoute
   ContactsRoute: typeof ContactsRoute
   CountriesRoute: typeof CountriesRouteWithChildren
+  MapRoute: typeof MapRoute
   MeetingsRoute: typeof MeetingsRoute
   SettingsRoute: typeof SettingsRoute
   CountryCountryIdRoute: typeof CountryCountryIdRoute
@@ -199,6 +212,13 @@ declare module '@tanstack/react-router' {
       path: '/countries'
       fullPath: '/countries'
       preLoaderRoute: typeof CountriesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/map': {
+      id: '/map'
+      path: '/map'
+      fullPath: '/map'
+      preLoaderRoute: typeof MapRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/meetings': {
@@ -251,6 +271,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuditRoute: AuditRoute,
   ContactsRoute: ContactsRoute,
   CountriesRoute: CountriesRouteWithChildren,
+  MapRoute: MapRoute,
   MeetingsRoute: MeetingsRoute,
   SettingsRoute: SettingsRoute,
   CountryCountryIdRoute: CountryCountryIdRoute,

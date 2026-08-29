@@ -116,7 +116,13 @@ router.get("/countries", async (req, res): Promise<void> => {
 router.post("/countries", async (req, res): Promise<void> => {
   const parsed = CreateCountryBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
-  const [row] = await db.insert(countriesTable).values({ ...parsed.data, status: parsed.data.status ?? "leads" }).returning();
+  const insertData = {
+    name: parsed.data.name,
+    code: parsed.data.code,
+    region: parsed.data.region,
+    status: parsed.data.status ?? "leads",
+  };
+  const [row] = await db.insert(countriesTable).values(insertData).returning();
   await writeAudit({
     actor: getActor(req),
     action: "create",
