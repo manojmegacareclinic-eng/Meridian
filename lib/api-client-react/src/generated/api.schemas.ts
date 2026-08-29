@@ -576,6 +576,174 @@ export interface DeleteResponse {
   id: number;
 }
 
+export interface Ministry {
+  id: number;
+  countryId: number;
+  name: string;
+  type: string;
+  createdAt?: string;
+}
+
+export interface MinistryInput {
+  countryId: number;
+  /** @minLength 1 */
+  name: string;
+  /** @minLength 1 */
+  type: string;
+}
+
+export interface MinistryUpdate {
+  /** @minLength 1 */
+  name?: string;
+  /** @minLength 1 */
+  type?: string;
+}
+
+export interface Position {
+  id: number;
+  ministryId: number;
+  title: string;
+  /** @nullable */
+  description?: string | null;
+  sortOrder?: number;
+  createdAt?: string;
+}
+
+export interface PositionInput {
+  ministryId: number;
+  /** @minLength 1 */
+  title: string;
+  description?: string;
+  sortOrder?: number;
+}
+
+export interface PositionUpdate {
+  /** @minLength 1 */
+  title?: string;
+  description?: string;
+  sortOrder?: number;
+}
+
+export interface OfficeTerm {
+  id: number;
+  positionId: number;
+  personName: string;
+  /** @nullable */
+  personEmail?: string | null;
+  /** @nullable */
+  personPhone?: string | null;
+  startDate: string;
+  /** @nullable */
+  endDate?: string | null;
+  isCurrent: boolean;
+  createdAt?: string;
+}
+
+export interface OfficeTermInput {
+  positionId: number;
+  /** @minLength 1 */
+  personName: string;
+  personEmail?: string;
+  personPhone?: string;
+  startDate: string;
+  endDate?: string;
+}
+
+export interface OfficeTermUpdate {
+  /** @minLength 1 */
+  personName?: string;
+  personEmail?: string;
+  personPhone?: string;
+  startDate?: string;
+  /** @nullable */
+  endDate?: string | null;
+}
+
+export type OrganizationType = typeof OrganizationType[keyof typeof OrganizationType];
+
+
+export const OrganizationType = {
+  ministry: 'ministry',
+  embassy: 'embassy',
+  city: 'city',
+  university: 'university',
+  ngo: 'ngo',
+  party: 'party',
+  religious: 'religious',
+} as const;
+
+/**
+ * @nullable
+ */
+export type OrganizationMetadata = { [key: string]: unknown } | null;
+
+export interface Organization {
+  id: number;
+  countryId: number;
+  name: string;
+  type: OrganizationType;
+  /** @nullable */
+  address?: string | null;
+  /** @nullable */
+  website?: string | null;
+  /** @nullable */
+  notes?: string | null;
+  /** @nullable */
+  metadata?: OrganizationMetadata;
+  createdAt?: string;
+}
+
+export type OrganizationInputType = typeof OrganizationInputType[keyof typeof OrganizationInputType];
+
+
+export const OrganizationInputType = {
+  ministry: 'ministry',
+  embassy: 'embassy',
+  city: 'city',
+  university: 'university',
+  ngo: 'ngo',
+  party: 'party',
+  religious: 'religious',
+} as const;
+
+export type OrganizationInputMetadata = { [key: string]: unknown };
+
+export interface OrganizationInput {
+  countryId: number;
+  /** @minLength 1 */
+  name: string;
+  type: OrganizationInputType;
+  address?: string;
+  website?: string;
+  notes?: string;
+  metadata?: OrganizationInputMetadata;
+}
+
+export type OrganizationUpdateType = typeof OrganizationUpdateType[keyof typeof OrganizationUpdateType];
+
+
+export const OrganizationUpdateType = {
+  ministry: 'ministry',
+  embassy: 'embassy',
+  city: 'city',
+  university: 'university',
+  ngo: 'ngo',
+  party: 'party',
+  religious: 'religious',
+} as const;
+
+export type OrganizationUpdateMetadata = { [key: string]: unknown };
+
+export interface OrganizationUpdate {
+  /** @minLength 1 */
+  name?: string;
+  type?: OrganizationUpdateType;
+  address?: string;
+  website?: string;
+  notes?: string;
+  metadata?: OrganizationUpdateMetadata;
+}
+
 export type SearchParameter = string;
 
 export type AuditLimitParameter = number;
@@ -668,4 +836,26 @@ export type ListNewsParams = {
 countryId?: number;
 limit?: number;
 };
+
+export type ListMinistriesParams = {
+countryId: number;
+};
+
+export type ListOrganizationsParams = {
+countryId: number;
+type?: ListOrganizationsType;
+};
+
+export type ListOrganizationsType = typeof ListOrganizationsType[keyof typeof ListOrganizationsType];
+
+
+export const ListOrganizationsType = {
+  ministry: 'ministry',
+  embassy: 'embassy',
+  city: 'city',
+  university: 'university',
+  ngo: 'ngo',
+  party: 'party',
+  religious: 'religious',
+} as const;
 

@@ -737,3 +737,385 @@ export const CreateAdminInvitationResponse = zod.object({
 })
 
 
+/**
+ * @summary List ministries for a country
+ */
+export const ListMinistriesQueryParams = zod.object({
+  "countryId": zod.coerce.number().int()
+})
+
+export const ListMinistriesResponseItem = zod.object({
+  "id": zod.int(),
+  "countryId": zod.int(),
+  "name": zod.string(),
+  "type": zod.string(),
+  "createdAt": zod.coerce.date().optional()
+})
+export const ListMinistriesResponse = zod.array(ListMinistriesResponseItem)
+
+
+/**
+ * @summary Create a ministry
+ */
+
+
+
+
+export const CreateMinistryBody = zod.object({
+  "countryId": zod.int(),
+  "name": zod.string().min(1),
+  "type": zod.string().min(1)
+})
+
+export const CreateMinistryResponse = zod.object({
+  "id": zod.int(),
+  "countryId": zod.int(),
+  "name": zod.string(),
+  "type": zod.string(),
+  "createdAt": zod.coerce.date().optional()
+})
+
+
+/**
+ * @summary Update a ministry
+ */
+export const UpdateMinistryParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+
+
+
+
+export const UpdateMinistryBody = zod.object({
+  "name": zod.string().min(1).optional(),
+  "type": zod.string().min(1).optional()
+})
+
+export const UpdateMinistryResponse = zod.object({
+  "id": zod.int(),
+  "countryId": zod.int(),
+  "name": zod.string(),
+  "type": zod.string(),
+  "createdAt": zod.coerce.date().optional()
+})
+
+
+/**
+ * @summary Delete a ministry
+ */
+export const DeleteMinistryParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+export const DeleteMinistryResponse = zod.object({
+  "id": zod.int()
+})
+
+
+/**
+ * @summary List positions for a ministry
+ */
+export const ListPositionsParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+export const ListPositionsResponseItem = zod.object({
+  "id": zod.int(),
+  "ministryId": zod.int(),
+  "title": zod.string(),
+  "description": zod.string().nullish(),
+  "sortOrder": zod.int().optional(),
+  "createdAt": zod.coerce.date().optional()
+})
+export const ListPositionsResponse = zod.array(ListPositionsResponseItem)
+
+
+/**
+ * @summary Create a position
+ */
+export const CreatePositionParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+
+
+
+export const CreatePositionBody = zod.object({
+  "ministryId": zod.int(),
+  "title": zod.string().min(1),
+  "description": zod.string().optional(),
+  "sortOrder": zod.int().optional()
+})
+
+export const CreatePositionResponse = zod.object({
+  "id": zod.int(),
+  "ministryId": zod.int(),
+  "title": zod.string(),
+  "description": zod.string().nullish(),
+  "sortOrder": zod.int().optional(),
+  "createdAt": zod.coerce.date().optional()
+})
+
+
+/**
+ * @summary Update a position
+ */
+export const UpdatePositionParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+
+
+
+export const UpdatePositionBody = zod.object({
+  "title": zod.string().min(1).optional(),
+  "description": zod.string().optional(),
+  "sortOrder": zod.int().optional()
+})
+
+export const UpdatePositionResponse = zod.object({
+  "id": zod.int(),
+  "ministryId": zod.int(),
+  "title": zod.string(),
+  "description": zod.string().nullish(),
+  "sortOrder": zod.int().optional(),
+  "createdAt": zod.coerce.date().optional()
+})
+
+
+/**
+ * @summary Delete a position
+ */
+export const DeletePositionParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+export const DeletePositionResponse = zod.object({
+  "id": zod.int()
+})
+
+
+/**
+ * @summary List office terms for a position
+ */
+export const ListOfficeTermsParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+export const ListOfficeTermsResponseItem = zod.object({
+  "id": zod.int(),
+  "positionId": zod.int(),
+  "personName": zod.string(),
+  "personEmail": zod.string().nullish(),
+  "personPhone": zod.string().nullish(),
+  "startDate": zod.coerce.date(),
+  "endDate": zod.coerce.date().nullish(),
+  "isCurrent": zod.boolean(),
+  "createdAt": zod.coerce.date().optional()
+})
+export const ListOfficeTermsResponse = zod.array(ListOfficeTermsResponseItem)
+
+
+/**
+ * @summary Create an office term
+ */
+export const CreateOfficeTermParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+
+
+
+export const CreateOfficeTermBody = zod.object({
+  "positionId": zod.int(),
+  "personName": zod.string().min(1),
+  "personEmail": zod.string().optional(),
+  "personPhone": zod.string().optional(),
+  "startDate": zod.coerce.date(),
+  "endDate": zod.coerce.date().optional()
+})
+
+export const CreateOfficeTermResponse = zod.object({
+  "id": zod.int(),
+  "positionId": zod.int(),
+  "personName": zod.string(),
+  "personEmail": zod.string().nullish(),
+  "personPhone": zod.string().nullish(),
+  "startDate": zod.coerce.date(),
+  "endDate": zod.coerce.date().nullish(),
+  "isCurrent": zod.boolean(),
+  "createdAt": zod.coerce.date().optional()
+})
+
+
+/**
+ * @summary Update an office term
+ */
+export const UpdateOfficeTermParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+
+
+
+export const UpdateOfficeTermBody = zod.object({
+  "personName": zod.string().min(1).optional(),
+  "personEmail": zod.string().optional(),
+  "personPhone": zod.string().optional(),
+  "startDate": zod.coerce.date().optional(),
+  "endDate": zod.coerce.date().nullish()
+})
+
+export const UpdateOfficeTermResponse = zod.object({
+  "id": zod.int(),
+  "positionId": zod.int(),
+  "personName": zod.string(),
+  "personEmail": zod.string().nullish(),
+  "personPhone": zod.string().nullish(),
+  "startDate": zod.coerce.date(),
+  "endDate": zod.coerce.date().nullish(),
+  "isCurrent": zod.boolean(),
+  "createdAt": zod.coerce.date().optional()
+})
+
+
+/**
+ * @summary Delete an office term
+ */
+export const DeleteOfficeTermParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+export const DeleteOfficeTermResponse = zod.object({
+  "id": zod.int()
+})
+
+
+/**
+ * @summary List organizations for a country
+ */
+export const ListOrganizationsQueryParams = zod.object({
+  "countryId": zod.coerce.number().int(),
+  "type": zod.enum(['ministry', 'embassy', 'city', 'university', 'ngo', 'party', 'religious']).optional()
+})
+
+export const ListOrganizationsResponseItem = zod.object({
+  "id": zod.int(),
+  "countryId": zod.int(),
+  "name": zod.string(),
+  "type": zod.enum(['ministry', 'embassy', 'city', 'university', 'ngo', 'party', 'religious']),
+  "address": zod.string().nullish(),
+  "website": zod.string().nullish(),
+  "notes": zod.string().nullish(),
+  "metadata": zod.looseObject({
+
+}).nullish(),
+  "createdAt": zod.coerce.date().optional()
+})
+export const ListOrganizationsResponse = zod.array(ListOrganizationsResponseItem)
+
+
+/**
+ * @summary Create an organization
+ */
+
+
+
+export const CreateOrganizationBody = zod.object({
+  "countryId": zod.int(),
+  "name": zod.string().min(1),
+  "type": zod.enum(['ministry', 'embassy', 'city', 'university', 'ngo', 'party', 'religious']),
+  "address": zod.string().optional(),
+  "website": zod.string().optional(),
+  "notes": zod.string().optional(),
+  "metadata": zod.looseObject({
+
+}).optional()
+})
+
+export const CreateOrganizationResponse = zod.object({
+  "id": zod.int(),
+  "countryId": zod.int(),
+  "name": zod.string(),
+  "type": zod.enum(['ministry', 'embassy', 'city', 'university', 'ngo', 'party', 'religious']),
+  "address": zod.string().nullish(),
+  "website": zod.string().nullish(),
+  "notes": zod.string().nullish(),
+  "metadata": zod.looseObject({
+
+}).nullish(),
+  "createdAt": zod.coerce.date().optional()
+})
+
+
+/**
+ * @summary Get an organization
+ */
+export const GetOrganizationParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+export const GetOrganizationResponse = zod.object({
+  "id": zod.int(),
+  "countryId": zod.int(),
+  "name": zod.string(),
+  "type": zod.enum(['ministry', 'embassy', 'city', 'university', 'ngo', 'party', 'religious']),
+  "address": zod.string().nullish(),
+  "website": zod.string().nullish(),
+  "notes": zod.string().nullish(),
+  "metadata": zod.looseObject({
+
+}).nullish(),
+  "createdAt": zod.coerce.date().optional()
+})
+
+
+/**
+ * @summary Update an organization
+ */
+export const UpdateOrganizationParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+
+
+
+export const UpdateOrganizationBody = zod.object({
+  "name": zod.string().min(1).optional(),
+  "type": zod.enum(['ministry', 'embassy', 'city', 'university', 'ngo', 'party', 'religious']).optional(),
+  "address": zod.string().optional(),
+  "website": zod.string().optional(),
+  "notes": zod.string().optional(),
+  "metadata": zod.looseObject({
+
+}).optional()
+})
+
+export const UpdateOrganizationResponse = zod.object({
+  "id": zod.int(),
+  "countryId": zod.int(),
+  "name": zod.string(),
+  "type": zod.enum(['ministry', 'embassy', 'city', 'university', 'ngo', 'party', 'religious']),
+  "address": zod.string().nullish(),
+  "website": zod.string().nullish(),
+  "notes": zod.string().nullish(),
+  "metadata": zod.looseObject({
+
+}).nullish(),
+  "createdAt": zod.coerce.date().optional()
+})
+
+
+/**
+ * @summary Delete an organization
+ */
+export const DeleteOrganizationParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+export const DeleteOrganizationResponse = zod.object({
+  "id": zod.int()
+})
+
+

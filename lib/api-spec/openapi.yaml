@@ -19,6 +19,10 @@ tags:
   - name: admin
   - name: documents
   - name: news
+  - name: ministries
+  - name: positions
+  - name: office_terms
+  - name: organizations
 paths:
   /healthz:
     get:
@@ -614,6 +618,318 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/InvitationCreation"
+  /ministries:
+    get:
+      operationId: listMinistries
+      tags: [ministries]
+      summary: List ministries for a country
+      parameters:
+        - name: countryId
+          in: query
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Ministries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Ministry"
+    post:
+      operationId: createMinistry
+      tags: [ministries]
+      summary: Create a ministry
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MinistryInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Ministry"
+  /ministries/{id}:
+    patch:
+      operationId: updateMinistry
+      tags: [ministries]
+      summary: Update a ministry
+      parameters:
+        - $ref: "#/components/parameters/MinistryId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MinistryUpdate"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Ministry"
+        "404":
+          description: Ministry not found
+    delete:
+      operationId: deleteMinistry
+      tags: [ministries]
+      summary: Delete a ministry
+      parameters:
+        - $ref: "#/components/parameters/MinistryId"
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeleteResponse"
+        "404":
+          description: Ministry not found
+  /ministries/{id}/positions:
+    get:
+      operationId: listPositions
+      tags: [positions]
+      summary: List positions for a ministry
+      parameters:
+        - $ref: "#/components/parameters/MinistryId"
+      responses:
+        "200":
+          description: Positions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Position"
+    post:
+      operationId: createPosition
+      tags: [positions]
+      summary: Create a position
+      parameters:
+        - $ref: "#/components/parameters/MinistryId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PositionInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Position"
+  /positions/{id}:
+    patch:
+      operationId: updatePosition
+      tags: [positions]
+      summary: Update a position
+      parameters:
+        - $ref: "#/components/parameters/PositionId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PositionUpdate"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Position"
+        "404":
+          description: Position not found
+    delete:
+      operationId: deletePosition
+      tags: [positions]
+      summary: Delete a position
+      parameters:
+        - $ref: "#/components/parameters/PositionId"
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeleteResponse"
+        "404":
+          description: Position not found
+  /positions/{id}/terms:
+    get:
+      operationId: listOfficeTerms
+      tags: [office_terms]
+      summary: List office terms for a position
+      parameters:
+        - $ref: "#/components/parameters/PositionId"
+      responses:
+        "200":
+          description: Office terms
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/OfficeTerm"
+    post:
+      operationId: createOfficeTerm
+      tags: [office_terms]
+      summary: Create an office term
+      parameters:
+        - $ref: "#/components/parameters/PositionId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OfficeTermInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OfficeTerm"
+  /terms/{id}:
+    patch:
+      operationId: updateOfficeTerm
+      tags: [office_terms]
+      summary: Update an office term
+      parameters:
+        - $ref: "#/components/parameters/TermId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OfficeTermUpdate"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OfficeTerm"
+        "404":
+          description: Office term not found
+    delete:
+      operationId: deleteOfficeTerm
+      tags: [office_terms]
+      summary: Delete an office term
+      parameters:
+        - $ref: "#/components/parameters/TermId"
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeleteResponse"
+        "404":
+          description: Office term not found
+  /organizations:
+    get:
+      operationId: listOrganizations
+      tags: [organizations]
+      summary: List organizations for a country
+      parameters:
+        - name: countryId
+          in: query
+          required: true
+          schema:
+            type: integer
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [ministry, embassy, city, university, ngo, party, religious]
+      responses:
+        "200":
+          description: Organizations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Organization"
+    post:
+      operationId: createOrganization
+      tags: [organizations]
+      summary: Create an organization
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OrganizationInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Organization"
+  /organizations/{id}:
+    get:
+      operationId: getOrganization
+      tags: [organizations]
+      summary: Get an organization
+      parameters:
+        - $ref: "#/components/parameters/OrganizationId"
+      responses:
+        "200":
+          description: Organization
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Organization"
+        "404":
+          description: Organization not found
+    patch:
+      operationId: updateOrganization
+      tags: [organizations]
+      summary: Update an organization
+      parameters:
+        - $ref: "#/components/parameters/OrganizationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OrganizationUpdate"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Organization"
+        "404":
+          description: Organization not found
+    delete:
+      operationId: deleteOrganization
+      tags: [organizations]
+      summary: Delete an organization
+      parameters:
+        - $ref: "#/components/parameters/OrganizationId"
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeleteResponse"
+        "404":
+          description: Organization not found
 components:
   parameters:
     Search:
@@ -628,6 +944,26 @@ components:
         type: integer
         default: 50
         maximum: 200
+    MinistryId:
+      name: id
+      in: path
+      required: true
+      schema: { type: integer }
+    PositionId:
+      name: id
+      in: path
+      required: true
+      schema: { type: integer }
+    TermId:
+      name: id
+      in: path
+      required: true
+      schema: { type: integer }
+    OrganizationId:
+      name: id
+      in: path
+      required: true
+      schema: { type: integer }
   schemas:
     HealthStatus:
       type: object
@@ -1037,3 +1373,129 @@ components:
       required: [id]
       properties:
         id: { type: integer }
+    Ministry:
+      type: object
+      required: [id, countryId, name, type]
+      properties:
+        id: { type: integer }
+        countryId: { type: integer }
+        name: { type: string }
+        type: { type: string }
+        createdAt: { type: string, format: date-time }
+    MinistryInput:
+      type: object
+      required: [countryId, name, type]
+      properties:
+        countryId: { type: integer }
+        name: { type: string, minLength: 1 }
+        type: { type: string, minLength: 1 }
+    MinistryUpdate:
+      type: object
+      properties:
+        name: { type: string, minLength: 1 }
+        type: { type: string, minLength: 1 }
+    Position:
+      type: object
+      required: [id, ministryId, title]
+      properties:
+        id: { type: integer }
+        ministryId: { type: integer }
+        title: { type: string }
+        description:
+          type: ["string", "null"]
+        sortOrder: { type: integer }
+        createdAt: { type: string, format: date-time }
+    PositionInput:
+      type: object
+      required: [ministryId, title]
+      properties:
+        ministryId: { type: integer }
+        title: { type: string, minLength: 1 }
+        description: { type: string }
+        sortOrder: { type: integer }
+    PositionUpdate:
+      type: object
+      properties:
+        title: { type: string, minLength: 1 }
+        description: { type: string }
+        sortOrder: { type: integer }
+    OfficeTerm:
+      type: object
+      required: [id, positionId, personName, startDate, isCurrent]
+      properties:
+        id: { type: integer }
+        positionId: { type: integer }
+        personName: { type: string }
+        personEmail:
+          type: ["string", "null"]
+        personPhone:
+          type: ["string", "null"]
+        startDate: { type: string, format: date }
+        endDate:
+          type: ["string", "null"]
+          format: date
+        isCurrent: { type: boolean }
+        createdAt: { type: string, format: date-time }
+    OfficeTermInput:
+      type: object
+      required: [positionId, personName, startDate]
+      properties:
+        positionId: { type: integer }
+        personName: { type: string, minLength: 1 }
+        personEmail: { type: string }
+        personPhone: { type: string }
+        startDate: { type: string, format: date }
+        endDate: { type: string, format: date }
+    OfficeTermUpdate:
+      type: object
+      properties:
+        personName: { type: string, minLength: 1 }
+        personEmail: { type: string }
+        personPhone: { type: string }
+        startDate: { type: string, format: date }
+        endDate:
+          type: ["string", "null"]
+          format: date
+    Organization:
+      type: object
+      required: [id, countryId, name, type]
+      properties:
+        id: { type: integer }
+        countryId: { type: integer }
+        name: { type: string }
+        type:
+          type: string
+          enum: [ministry, embassy, city, university, ngo, party, religious]
+        address:
+          type: ["string", "null"]
+        website:
+          type: ["string", "null"]
+        notes:
+          type: ["string", "null"]
+        metadata:
+          type: ["object", "null"]
+        createdAt: { type: string, format: date-time }
+    OrganizationInput:
+      type: object
+      required: [countryId, name, type]
+      properties:
+        countryId: { type: integer }
+        name: { type: string, minLength: 1 }
+        type:
+          type: string
+          enum: [ministry, embassy, city, university, ngo, party, religious]
+        address: { type: string }
+        website: { type: string }
+        notes: { type: string }
+        metadata: { type: object }
+    OrganizationUpdate:
+      type: object
+      properties:
+        name: { type: string, minLength: 1 }
+        type:
+          type: string
+          enum: [ministry, embassy, city, university, ngo, party, religious]
+        address: { type: string }
+        website: { type: string }
+        notes: { type: string }
+        metadata: { type: object }
