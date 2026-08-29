@@ -5,6 +5,10 @@ import adminRouter from "./admin";
 import auditRouter from "./audit";
 import documentsRouter from "./documents";
 import newsRouter from "./news";
+import ministriesRouter from "./ministries";
+import positionsRouter from "./positions";
+import officeTermsRouter from "./office_terms";
+import organizationsRouter from "./organizations";
 import { requireSession, requireWriteRole } from "../middlewares/guards";
 
 const router: IRouter = Router();
@@ -22,5 +26,9 @@ router.use(requireWriteRole());
 router.use(platformRouter);
 router.use("/documents", documentsRouter);
 router.use("/news", newsRouter);
+router.use("/ministries", ministriesRouter);
+router.use("/positions", positionsRouter);
+router.use("/terms", officeTermsRouter);
+router.use("/organizations", organizationsRouter);
 
 export default router;
