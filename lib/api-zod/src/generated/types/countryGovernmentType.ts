@@ -6,7 +6,10 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export type CountryGovernmentType = typeof CountryGovernmentType[keyof typeof CountryGovernmentType];
+/**
+ * @nullable
+ */
+export type CountryGovernmentType = typeof CountryGovernmentType[keyof typeof CountryGovernmentType] | null;
 
 
 export const CountryGovernmentType = {

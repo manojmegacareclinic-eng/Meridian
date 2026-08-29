@@ -677,16 +677,20 @@ components:
         riskLevel:
           type: string
           enum: [low, medium, high]
-        language: { type: string }
+        language:
+          type: ["string", "null"]
         governmentType:
-          type: string
+          type: ["string", "null"]
           enum: [presidential republic, semi-presidential, parliamentary republic, parliamentary monarchy, constitutional monarchy, absolute monarchy, one-party state, transitional]
-        electionYear: { type: integer }
-        team: { type: string }
+        electionYear:
+          type: ["integer", "null"]
+        team:
+          type: ["string", "null"]
         priority:
-          type: string
+          type: ["string", "null"]
           enum: [low, medium, high]
-        strategy: { type: string }
+        strategy:
+          type: ["string", "null"]
     CountryUpdate:
       type: object
       properties:

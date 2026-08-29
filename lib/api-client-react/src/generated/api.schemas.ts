@@ -43,7 +43,10 @@ export const CountryRiskLevel = {
   high: 'high',
 } as const;
 
-export type CountryGovernmentType = typeof CountryGovernmentType[keyof typeof CountryGovernmentType];
+/**
+ * @nullable
+ */
+export type CountryGovernmentType = typeof CountryGovernmentType[keyof typeof CountryGovernmentType] | null;
 
 
 export const CountryGovernmentType = {
@@ -57,7 +60,10 @@ export const CountryGovernmentType = {
   transitional: 'transitional',
 } as const;
 
-export type CountryPriority = typeof CountryPriority[keyof typeof CountryPriority];
+/**
+ * @nullable
+ */
+export type CountryPriority = typeof CountryPriority[keyof typeof CountryPriority] | null;
 
 
 export const CountryPriority = {
@@ -75,12 +81,18 @@ export interface Country {
   contactsCount: number;
   meetingsCount: number;
   riskLevel: CountryRiskLevel;
-  language?: string;
+  /** @nullable */
+  language?: string | null;
+  /** @nullable */
   governmentType?: CountryGovernmentType;
-  electionYear?: number;
-  team?: string;
+  /** @nullable */
+  electionYear?: number | null;
+  /** @nullable */
+  team?: string | null;
+  /** @nullable */
   priority?: CountryPriority;
-  strategy?: string;
+  /** @nullable */
+  strategy?: string | null;
 }
 
 export type CountryUpdateStatus = typeof CountryUpdateStatus[keyof typeof CountryUpdateStatus];

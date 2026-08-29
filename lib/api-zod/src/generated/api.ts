@@ -49,12 +49,12 @@ export const ListCountriesResponseItem = zod.object({
   "contactsCount": zod.int(),
   "meetingsCount": zod.int(),
   "riskLevel": zod.enum(['low', 'medium', 'high']),
-  "language": zod.string().optional(),
-  "governmentType": zod.enum(['presidential republic', 'semi-presidential', 'parliamentary republic', 'parliamentary monarchy', 'constitutional monarchy', 'absolute monarchy', 'one-party state', 'transitional']).optional(),
-  "electionYear": zod.int().optional(),
-  "team": zod.string().optional(),
-  "priority": zod.enum(['low', 'medium', 'high']).optional(),
-  "strategy": zod.string().optional()
+  "language": zod.string().nullish(),
+  "governmentType": zod.enum(['presidential republic', 'semi-presidential', 'parliamentary republic', 'parliamentary monarchy', 'constitutional monarchy', 'absolute monarchy', 'one-party state', 'transitional']).nullish(),
+  "electionYear": zod.int().nullish(),
+  "team": zod.string().nullish(),
+  "priority": zod.enum(['low', 'medium', 'high']).nullish(),
+  "strategy": zod.string().nullish()
 })
 export const ListCountriesResponse = zod.array(ListCountriesResponseItem)
 
@@ -85,12 +85,12 @@ export const CreateCountryResponse = zod.object({
   "contactsCount": zod.int(),
   "meetingsCount": zod.int(),
   "riskLevel": zod.enum(['low', 'medium', 'high']),
-  "language": zod.string().optional(),
-  "governmentType": zod.enum(['presidential republic', 'semi-presidential', 'parliamentary republic', 'parliamentary monarchy', 'constitutional monarchy', 'absolute monarchy', 'one-party state', 'transitional']).optional(),
-  "electionYear": zod.int().optional(),
-  "team": zod.string().optional(),
-  "priority": zod.enum(['low', 'medium', 'high']).optional(),
-  "strategy": zod.string().optional()
+  "language": zod.string().nullish(),
+  "governmentType": zod.enum(['presidential republic', 'semi-presidential', 'parliamentary republic', 'parliamentary monarchy', 'constitutional monarchy', 'absolute monarchy', 'one-party state', 'transitional']).nullish(),
+  "electionYear": zod.int().nullish(),
+  "team": zod.string().nullish(),
+  "priority": zod.enum(['low', 'medium', 'high']).nullish(),
+  "strategy": zod.string().nullish()
 })
 
 
@@ -110,12 +110,12 @@ export const GetCountryResponse = zod.object({
   "contactsCount": zod.int(),
   "meetingsCount": zod.int(),
   "riskLevel": zod.enum(['low', 'medium', 'high']),
-  "language": zod.string().optional(),
-  "governmentType": zod.enum(['presidential republic', 'semi-presidential', 'parliamentary republic', 'parliamentary monarchy', 'constitutional monarchy', 'absolute monarchy', 'one-party state', 'transitional']).optional(),
-  "electionYear": zod.int().optional(),
-  "team": zod.string().optional(),
-  "priority": zod.enum(['low', 'medium', 'high']).optional(),
-  "strategy": zod.string().optional()
+  "language": zod.string().nullish(),
+  "governmentType": zod.enum(['presidential republic', 'semi-presidential', 'parliamentary republic', 'parliamentary monarchy', 'constitutional monarchy', 'absolute monarchy', 'one-party state', 'transitional']).nullish(),
+  "electionYear": zod.int().nullish(),
+  "team": zod.string().nullish(),
+  "priority": zod.enum(['low', 'medium', 'high']).nullish(),
+  "strategy": zod.string().nullish()
 })
 
 
@@ -156,12 +156,12 @@ export const UpdateCountryResponse = zod.object({
   "contactsCount": zod.int(),
   "meetingsCount": zod.int(),
   "riskLevel": zod.enum(['low', 'medium', 'high']),
-  "language": zod.string().optional(),
-  "governmentType": zod.enum(['presidential republic', 'semi-presidential', 'parliamentary republic', 'parliamentary monarchy', 'constitutional monarchy', 'absolute monarchy', 'one-party state', 'transitional']).optional(),
-  "electionYear": zod.int().optional(),
-  "team": zod.string().optional(),
-  "priority": zod.enum(['low', 'medium', 'high']).optional(),
-  "strategy": zod.string().optional()
+  "language": zod.string().nullish(),
+  "governmentType": zod.enum(['presidential republic', 'semi-presidential', 'parliamentary republic', 'parliamentary monarchy', 'constitutional monarchy', 'absolute monarchy', 'one-party state', 'transitional']).nullish(),
+  "electionYear": zod.int().nullish(),
+  "team": zod.string().nullish(),
+  "priority": zod.enum(['low', 'medium', 'high']).nullish(),
+  "strategy": zod.string().nullish()
 })
 
 

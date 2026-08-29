@@ -6,7 +6,10 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export type CountryPriority = typeof CountryPriority[keyof typeof CountryPriority];
+/**
+ * @nullable
+ */
+export type CountryPriority = typeof CountryPriority[keyof typeof CountryPriority] | null;
 
 
 export const CountryPriority = {

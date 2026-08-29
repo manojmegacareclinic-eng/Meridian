@@ -19,10 +19,16 @@ export interface Country {
   contactsCount: number;
   meetingsCount: number;
   riskLevel: CountryRiskLevel;
-  language?: string;
+  /** @nullable */
+  language?: string | null;
+  /** @nullable */
   governmentType?: CountryGovernmentType;
-  electionYear?: number;
-  team?: string;
+  /** @nullable */
+  electionYear?: number | null;
+  /** @nullable */
+  team?: string | null;
+  /** @nullable */
   priority?: CountryPriority;
-  strategy?: string;
+  /** @nullable */
+  strategy?: string | null;
 }
