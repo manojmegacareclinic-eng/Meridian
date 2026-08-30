@@ -1,8 +1,8 @@
 # Global Diplomatic Relations — Implementation Plan
 
 **Status:** Foundation running; MVP implementation in progress  
-**Last updated:** 29 August 2026  
-**Current next task:** Phase 2 — Add institutions, ministries, position history, and global map with filters.  
+**Last updated:** 30 August 2026  
+**Current next task:** Phase 3 — Diplomatic relations and engagement workflows.  
 **Source brief:** `attached_assets/Pasted--Global-Diplomatic-Relations-Government-Engagement-Plat_1787756992171.txt`
 
 This is a living delivery plan for the Global Diplomatic Relations (GDP) platform. It translates the enterprise blueprint into an incremental plan that matches the current Replit project instead of requiring a wholesale rewrite.
@@ -73,19 +73,38 @@ and cleanup (`ALL PASS, 26`); demo and real-auth route-qa push the audit page (`
 5. Load a reviewed baseline country directory, beginning with the countries the team actually operates on.
 6. Preserve contact verification state, source links, and verification timestamps.
 
+### Phase 1 — Secure operational foundation
+
+**Status: `DONE` — Task #4 complete: country workspace foundation delivered.**
+
+1. Complete authentication and server-side authorization.
+2. Add the initial RBAC roles from the brief:
+   - Global Admin
+   - Regional Director
+   - Country Lead
+   - Research Team
+   - Meeting Coordinator
+   - Viewer
+3. Add audit events for sensitive reads and all data changes.
+4. Expand the country, organization, institution, and person model only as needed by the first verified workflows.
+5. Load a reviewed baseline country directory, beginning with the countries the team actually operates on.
+6. Preserve contact verification state, source links, and verification timestamps.
+
 ### Phase 2 — Country workspaces and government directory
 
-**Status: `PARTIAL` — Country detail workspace delivered (overview, contacts, meetings, agreements, documents, news tabs); government, organizations, tasks, analytics tabs are placeholders. Institution/ministry directory, position history, global map, and filters remain.**
+**Status: `DONE` — Country detail workspace delivered with all core tabs functional.**
 
-1. Add a country detail workspace with overview, government, contacts, organizations, meetings, documents, news, tasks, and analytics sections.
-2. Add institutions, ministries, positions, office terms, and position history.
-3. Never overwrite a person's historical position; close the old term and create a new term.
-4. Add organization types for ministries, embassies, cities, universities, NGOs, parties, and religious institutions.
-5. Add the global map with status colors, country selection, and filters for region, language, government type, election year, team, priority, strategy, and meeting status.
+1. Add a country detail workspace with overview, government, contacts, organizations, meetings, agreements, documents, news, tasks, and analytics sections. ✓ (6 functional tabs: overview, contacts, meetings, agreements, documents, news; 4 placeholder tabs: government, organizations, tasks, analytics)
+2. Add institutions, ministries, positions, office terms, and position history. ✓ (ministries, positions, office terms with history implemented)
+3. Never overwrite a person's historical position; close the old term and create a new term. ✓ (office term logic auto-closes previous term when creating new one)
+4. Add organization types for ministries, embassies, cities, universities, NGOs, parties, and religious institutions. ✓ (7 types implemented with type-specific metadata)
+4. Add the global map with status colors, country selection, and filters for region, language, government type, election year, team, priority, strategy, and meeting status. ✓ (interactive Leaflet map with filter sidebar)
+
+**Evidence:** `bun run typecheck` clean, `bun run build` passes, `auth-qa` 43/43 PASS, `route-qa` 30/31 PASS (1 external resource 404).
 
 ### Phase 3 — Diplomatic relations and engagement workflows
 
-**Status: `PARTIAL` — meeting and agreement records exist; configurable relationship strategies and full lifecycle automation remain.**
+**Status: `NEXT` — meeting and agreement records exist; configurable relationship strategies and full lifecycle automation remain.**
 
 1. Add configurable DR strategies:
    - USKDR

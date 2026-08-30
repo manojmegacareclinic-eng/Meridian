@@ -50,7 +50,8 @@ Every data change and every sensitive read writes an **append-only** `activity` 
 primary request path):
 
 - **Writes** — create/update on countries, contacts, meetings, agreements, admin
-  users, and invitations. Updates carry a compact `before`/`after` diff over an
+  users, invitations, ministries, positions, office terms, organizations, documents,
+  and news. Updates carry a compact `before`/`after` diff over an
   allowlist of keys (e.g. `title`, `status`, `date`, `roles`), so sensitive full bodies
   (emails, phone numbers) are never echoed.
 - **Sensitive reads** — dashboard summary, contact records, and the admin user/member
@@ -67,6 +68,8 @@ The trail is queryable in two ways:
 **Who can view it:** every signed-in user (roles `viewer` and up). Unauthenticated access
 returns `401`. The `/audit` page surfaces filterable, expandable before/after records.
 Records are not editable or deletable through the application.
+
+**New entity types** (Phase 2): ministries, positions, office_terms, organizations, documents, news — all audited with `action` ∈ {create, update, delete} and `entityType` matching the entity name.
 
 ## Development without a deployed instance
 
