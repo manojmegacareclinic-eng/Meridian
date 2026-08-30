@@ -9,6 +9,12 @@ import ministriesRouter from "./ministries";
 import positionsRouter from "./positions";
 import officeTermsRouter from "./office_terms";
 import organizationsRouter from "./organizations";
+import drStrategiesRouter from "./drStrategies";
+import meetingAgendaRouter from "./meetingAgenda";
+import meetingParticipantsRouter from "./meetingParticipants";
+import meetingTranscriptsRouter from "./meetingTranscripts";
+import actionItemsRouter from "./actionItems";
+import agreementLifecycleRouter from "./agreementLifecycle";
 import { requireSession, requireWriteRole } from "../middlewares/guards";
 
 const router: IRouter = Router();
@@ -30,5 +36,11 @@ router.use("/ministries", ministriesRouter);
 router.use("/positions", positionsRouter);
 router.use("/terms", officeTermsRouter);
 router.use("/organizations", organizationsRouter);
+router.use("/dr-strategies", drStrategiesRouter);
+router.use("/meetings", meetingAgendaRouter);
+router.use("/meetings", meetingParticipantsRouter);
+router.use("/meetings", meetingTranscriptsRouter);
+router.use("/action-items", actionItemsRouter);
+router.use("/agreements", agreementLifecycleRouter);
 
 export default router;

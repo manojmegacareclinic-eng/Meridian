@@ -1119,3 +1119,694 @@ export const DeleteOrganizationResponse = zod.object({
 })
 
 
+/**
+ * @summary List DR strategies for a country
+ */
+export const ListDrStrategiesQueryParams = zod.object({
+  "countryId": zod.coerce.number().int(),
+  "isActive": zod.coerce.boolean().optional()
+})
+
+export const ListDrStrategiesResponseItem = zod.object({
+  "id": zod.int(),
+  "countryId": zod.int(),
+  "name": zod.string(),
+  "type": zod.enum(['uskdr', 'hq_agreement', 'host_country', 'sister_city', 'proclamation', 'ngo_partnership', 'refugee_partnership', 'university_partnership', 'custom']),
+  "customStages": zod.looseObject({
+
+}).nullish(),
+  "isActive": zod.boolean(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+export const ListDrStrategiesResponse = zod.array(ListDrStrategiesResponseItem)
+
+
+/**
+ * @summary Create a DR strategy
+ */
+
+
+
+export const CreateDrStrategyBody = zod.object({
+  "countryId": zod.int(),
+  "name": zod.string().min(1),
+  "type": zod.enum(['uskdr', 'hq_agreement', 'host_country', 'sister_city', 'proclamation', 'ngo_partnership', 'refugee_partnership', 'university_partnership', 'custom']),
+  "customStages": zod.looseObject({
+
+}).nullish(),
+  "isActive": zod.boolean().optional()
+})
+
+export const CreateDrStrategyResponse = zod.object({
+  "id": zod.int(),
+  "countryId": zod.int(),
+  "name": zod.string(),
+  "type": zod.enum(['uskdr', 'hq_agreement', 'host_country', 'sister_city', 'proclamation', 'ngo_partnership', 'refugee_partnership', 'university_partnership', 'custom']),
+  "customStages": zod.looseObject({
+
+}).nullish(),
+  "isActive": zod.boolean(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Get a DR strategy
+ */
+export const GetDrStrategyParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+export const GetDrStrategyResponse = zod.object({
+  "id": zod.int(),
+  "countryId": zod.int(),
+  "name": zod.string(),
+  "type": zod.enum(['uskdr', 'hq_agreement', 'host_country', 'sister_city', 'proclamation', 'ngo_partnership', 'refugee_partnership', 'university_partnership', 'custom']),
+  "customStages": zod.looseObject({
+
+}).nullish(),
+  "isActive": zod.boolean(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Update a DR strategy
+ */
+export const UpdateDrStrategyParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+
+
+
+export const UpdateDrStrategyBody = zod.object({
+  "name": zod.string().min(1).optional(),
+  "type": zod.enum(['uskdr', 'hq_agreement', 'host_country', 'sister_city', 'proclamation', 'ngo_partnership', 'refugee_partnership', 'university_partnership', 'custom']).optional(),
+  "customStages": zod.looseObject({
+
+}).nullish(),
+  "isActive": zod.boolean().optional()
+})
+
+export const UpdateDrStrategyResponse = zod.object({
+  "id": zod.int(),
+  "countryId": zod.int(),
+  "name": zod.string(),
+  "type": zod.enum(['uskdr', 'hq_agreement', 'host_country', 'sister_city', 'proclamation', 'ngo_partnership', 'refugee_partnership', 'university_partnership', 'custom']),
+  "customStages": zod.looseObject({
+
+}).nullish(),
+  "isActive": zod.boolean(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Delete a DR strategy
+ */
+export const DeleteDrStrategyParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+export const DeleteDrStrategyResponse = zod.object({
+  "id": zod.int()
+})
+
+
+/**
+ * @summary List stages for a DR strategy
+ */
+export const ListDrStrategyStagesParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+export const ListDrStrategyStagesResponseItem = zod.object({
+  "id": zod.int(),
+  "strategyId": zod.int(),
+  "position": zod.int(),
+  "label": zod.string(),
+  "description": zod.string().nullish(),
+  "slaDays": zod.int().nullish(),
+  "requiredFields": zod.looseObject({
+
+}).nullish(),
+  "createdAt": zod.coerce.date().optional()
+})
+export const ListDrStrategyStagesResponse = zod.array(ListDrStrategyStagesResponseItem)
+
+
+/**
+ * @summary List agenda items for a meeting
+ */
+export const ListMeetingAgendaParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+export const ListMeetingAgendaResponseItem = zod.object({
+  "id": zod.int(),
+  "meetingId": zod.int(),
+  "order": zod.int(),
+  "title": zod.string(),
+  "description": zod.string().nullish(),
+  "durationMinutes": zod.int().nullish(),
+  "presenter": zod.string().nullish(),
+  "status": zod.enum(['pending', 'in_progress', 'completed']),
+  "createdAt": zod.coerce.date().optional(),
+  "updatedAt": zod.coerce.date().optional()
+})
+export const ListMeetingAgendaResponse = zod.array(ListMeetingAgendaResponseItem)
+
+
+/**
+ * @summary Create an agenda item
+ */
+export const CreateMeetingAgendaParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+
+
+
+export const CreateMeetingAgendaBody = zod.object({
+  "meetingId": zod.int(),
+  "title": zod.string().min(1),
+  "description": zod.string().optional(),
+  "durationMinutes": zod.int().optional(),
+  "presenter": zod.string().optional(),
+  "status": zod.enum(['pending', 'in_progress', 'completed']).optional(),
+  "order": zod.int().optional()
+})
+
+export const CreateMeetingAgendaResponse = zod.object({
+  "id": zod.int(),
+  "meetingId": zod.int(),
+  "order": zod.int(),
+  "title": zod.string(),
+  "description": zod.string().nullish(),
+  "durationMinutes": zod.int().nullish(),
+  "presenter": zod.string().nullish(),
+  "status": zod.enum(['pending', 'in_progress', 'completed']),
+  "createdAt": zod.coerce.date().optional(),
+  "updatedAt": zod.coerce.date().optional()
+})
+
+
+/**
+ * @summary Update an agenda item
+ */
+export const UpdateMeetingAgendaParams = zod.object({
+  "id": zod.coerce.number().int(),
+  "itemId": zod.coerce.number().int()
+})
+
+
+
+
+export const UpdateMeetingAgendaBody = zod.object({
+  "title": zod.string().min(1).optional(),
+  "description": zod.string().optional(),
+  "durationMinutes": zod.int().optional(),
+  "presenter": zod.string().optional(),
+  "status": zod.enum(['pending', 'in_progress', 'completed']).optional(),
+  "order": zod.int().optional()
+})
+
+export const UpdateMeetingAgendaResponse = zod.object({
+  "id": zod.int(),
+  "meetingId": zod.int(),
+  "order": zod.int(),
+  "title": zod.string(),
+  "description": zod.string().nullish(),
+  "durationMinutes": zod.int().nullish(),
+  "presenter": zod.string().nullish(),
+  "status": zod.enum(['pending', 'in_progress', 'completed']),
+  "createdAt": zod.coerce.date().optional(),
+  "updatedAt": zod.coerce.date().optional()
+})
+
+
+/**
+ * @summary Delete an agenda item
+ */
+export const DeleteMeetingAgendaParams = zod.object({
+  "id": zod.coerce.number().int(),
+  "itemId": zod.coerce.number().int()
+})
+
+export const DeleteMeetingAgendaResponse = zod.object({
+  "id": zod.int()
+})
+
+
+/**
+ * @summary List participants for a meeting
+ */
+export const ListMeetingParticipantsParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+export const ListMeetingParticipantsResponseItem = zod.object({
+  "id": zod.int(),
+  "meetingId": zod.int(),
+  "contactId": zod.int().nullish(),
+  "name": zod.string(),
+  "role": zod.string().nullish(),
+  "organization": zod.string().nullish(),
+  "attended": zod.boolean().optional(),
+  "createdAt": zod.coerce.date().optional()
+})
+export const ListMeetingParticipantsResponse = zod.array(ListMeetingParticipantsResponseItem)
+
+
+/**
+ * @summary Add a participant to a meeting
+ */
+export const CreateMeetingParticipantParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+
+
+
+export const CreateMeetingParticipantBody = zod.object({
+  "meetingId": zod.int(),
+  "contactId": zod.int().optional(),
+  "name": zod.string().min(1),
+  "role": zod.string().optional(),
+  "organization": zod.string().optional()
+})
+
+export const CreateMeetingParticipantResponse = zod.object({
+  "id": zod.int(),
+  "meetingId": zod.int(),
+  "contactId": zod.int().nullish(),
+  "name": zod.string(),
+  "role": zod.string().nullish(),
+  "organization": zod.string().nullish(),
+  "attended": zod.boolean().optional(),
+  "createdAt": zod.coerce.date().optional()
+})
+
+
+/**
+ * @summary Update a meeting participant
+ */
+export const UpdateMeetingParticipantParams = zod.object({
+  "id": zod.coerce.number().int(),
+  "pid": zod.coerce.number().int()
+})
+
+
+
+
+export const UpdateMeetingParticipantBody = zod.object({
+  "name": zod.string().min(1).optional(),
+  "role": zod.string().optional(),
+  "organization": zod.string().optional(),
+  "attended": zod.boolean().optional(),
+  "contactId": zod.int().nullish()
+})
+
+export const UpdateMeetingParticipantResponse = zod.object({
+  "id": zod.int(),
+  "meetingId": zod.int(),
+  "contactId": zod.int().nullish(),
+  "name": zod.string(),
+  "role": zod.string().nullish(),
+  "organization": zod.string().nullish(),
+  "attended": zod.boolean().optional(),
+  "createdAt": zod.coerce.date().optional()
+})
+
+
+/**
+ * @summary Remove a meeting participant
+ */
+export const DeleteMeetingParticipantParams = zod.object({
+  "id": zod.coerce.number().int(),
+  "pid": zod.coerce.number().int()
+})
+
+export const DeleteMeetingParticipantResponse = zod.object({
+  "id": zod.int()
+})
+
+
+/**
+ * @summary List transcripts for a meeting
+ */
+export const ListMeetingTranscriptsParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+export const ListMeetingTranscriptsResponseItem = zod.object({
+  "id": zod.int(),
+  "meetingId": zod.int(),
+  "authorId": zod.string(),
+  "authorName": zod.string(),
+  "content": zod.string(),
+  "type": zod.enum(['transcript', 'notes', 'summary']),
+  "createdAt": zod.coerce.date()
+})
+export const ListMeetingTranscriptsResponse = zod.array(ListMeetingTranscriptsResponseItem)
+
+
+/**
+ * @summary Add a transcript to a meeting
+ */
+export const CreateMeetingTranscriptParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+
+
+
+
+
+export const CreateMeetingTranscriptBody = zod.object({
+  "meetingId": zod.int(),
+  "authorId": zod.string().min(1),
+  "authorName": zod.string().min(1),
+  "content": zod.string().min(1),
+  "type": zod.enum(['transcript', 'notes', 'summary'])
+})
+
+export const CreateMeetingTranscriptResponse = zod.object({
+  "id": zod.int(),
+  "meetingId": zod.int(),
+  "authorId": zod.string(),
+  "authorName": zod.string(),
+  "content": zod.string(),
+  "type": zod.enum(['transcript', 'notes', 'summary']),
+  "createdAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Update a meeting transcript
+ */
+export const UpdateMeetingTranscriptParams = zod.object({
+  "id": zod.coerce.number().int(),
+  "tid": zod.coerce.number().int()
+})
+
+export const UpdateMeetingTranscriptBody = zod.object({
+  "content": zod.string().optional(),
+  "type": zod.enum(['transcript', 'notes', 'summary']).optional()
+})
+
+export const UpdateMeetingTranscriptResponse = zod.object({
+  "id": zod.int(),
+  "meetingId": zod.int(),
+  "authorId": zod.string(),
+  "authorName": zod.string(),
+  "content": zod.string(),
+  "type": zod.enum(['transcript', 'notes', 'summary']),
+  "createdAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Delete a meeting transcript
+ */
+export const DeleteMeetingTranscriptParams = zod.object({
+  "id": zod.coerce.number().int(),
+  "tid": zod.coerce.number().int()
+})
+
+export const DeleteMeetingTranscriptResponse = zod.object({
+  "id": zod.int()
+})
+
+
+/**
+ * @summary List action items
+ */
+export const ListActionItemsParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+export const ListActionItemsQueryParams = zod.object({
+  "status": zod.enum(['pending', 'in_progress', 'completed', 'cancelled']).optional()
+})
+
+export const ListActionItemsResponseItem = zod.object({
+  "id": zod.int(),
+  "meetingId": zod.int(),
+  "description": zod.string(),
+  "assignee": zod.string(),
+  "assigneeContactId": zod.int().nullish(),
+  "dueDate": zod.coerce.date().nullish(),
+  "status": zod.enum(['pending', 'in_progress', 'completed', 'cancelled']),
+  "deliverableId": zod.int().nullish(),
+  "createdAt": zod.coerce.date().optional(),
+  "updatedAt": zod.coerce.date().optional()
+})
+export const ListActionItemsResponse = zod.array(ListActionItemsResponseItem)
+
+
+/**
+ * @summary Create an action item
+ */
+export const CreateActionItemParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+
+
+
+
+export const CreateActionItemBody = zod.object({
+  "meetingId": zod.int(),
+  "description": zod.string().min(1),
+  "assignee": zod.string().min(1),
+  "assigneeContactId": zod.int().optional(),
+  "dueDate": zod.coerce.date().nullish(),
+  "status": zod.enum(['pending', 'in_progress', 'completed', 'cancelled']).optional(),
+  "deliverableId": zod.int().optional()
+})
+
+export const CreateActionItemResponse = zod.object({
+  "id": zod.int(),
+  "meetingId": zod.int(),
+  "description": zod.string(),
+  "assignee": zod.string(),
+  "assigneeContactId": zod.int().nullish(),
+  "dueDate": zod.coerce.date().nullish(),
+  "status": zod.enum(['pending', 'in_progress', 'completed', 'cancelled']),
+  "deliverableId": zod.int().nullish(),
+  "createdAt": zod.coerce.date().optional(),
+  "updatedAt": zod.coerce.date().optional()
+})
+
+
+/**
+ * @summary Get an action item
+ */
+export const GetActionItemParams = zod.object({
+  "meetingId": zod.coerce.number().int(),
+  "actionItemId": zod.coerce.number().int()
+})
+
+export const GetActionItemResponse = zod.object({
+  "id": zod.int(),
+  "meetingId": zod.int(),
+  "description": zod.string(),
+  "assignee": zod.string(),
+  "assigneeContactId": zod.int().nullish(),
+  "dueDate": zod.coerce.date().nullish(),
+  "status": zod.enum(['pending', 'in_progress', 'completed', 'cancelled']),
+  "deliverableId": zod.int().nullish(),
+  "createdAt": zod.coerce.date().optional(),
+  "updatedAt": zod.coerce.date().optional()
+})
+
+
+/**
+ * @summary Update an action item
+ */
+export const UpdateActionItemParams = zod.object({
+  "meetingId": zod.coerce.number().int(),
+  "actionItemId": zod.coerce.number().int()
+})
+
+
+
+
+
+export const UpdateActionItemBody = zod.object({
+  "description": zod.string().min(1).optional(),
+  "assignee": zod.string().min(1).optional(),
+  "assigneeContactId": zod.int().optional(),
+  "dueDate": zod.coerce.date().nullish(),
+  "status": zod.enum(['pending', 'in_progress', 'completed', 'cancelled']).optional(),
+  "deliverableId": zod.int().optional()
+})
+
+export const UpdateActionItemResponse = zod.object({
+  "id": zod.int(),
+  "meetingId": zod.int(),
+  "description": zod.string(),
+  "assignee": zod.string(),
+  "assigneeContactId": zod.int().nullish(),
+  "dueDate": zod.coerce.date().nullish(),
+  "status": zod.enum(['pending', 'in_progress', 'completed', 'cancelled']),
+  "deliverableId": zod.int().nullish(),
+  "createdAt": zod.coerce.date().optional(),
+  "updatedAt": zod.coerce.date().optional()
+})
+
+
+/**
+ * @summary Delete an action item
+ */
+export const DeleteActionItemParams = zod.object({
+  "meetingId": zod.coerce.number().int(),
+  "actionItemId": zod.coerce.number().int()
+})
+
+export const DeleteActionItemResponse = zod.object({
+  "id": zod.int()
+})
+
+
+/**
+ * @summary List deliverables
+ */
+export const ListDeliverablesQueryParams = zod.object({
+  "actionItemId": zod.coerce.number().int().optional(),
+  "status": zod.enum(['pending', 'in_progress', 'completed']).optional()
+})
+
+export const ListDeliverablesResponseItem = zod.object({
+  "id": zod.int(),
+  "actionItemId": zod.int(),
+  "title": zod.string(),
+  "description": zod.string().nullish(),
+  "dueDate": zod.coerce.date().nullish(),
+  "status": zod.enum(['pending', 'in_progress', 'completed']),
+  "url": zod.string().nullish(),
+  "createdAt": zod.coerce.date().optional(),
+  "updatedAt": zod.coerce.date().optional()
+})
+export const ListDeliverablesResponse = zod.array(ListDeliverablesResponseItem)
+
+
+/**
+ * @summary Create a deliverable
+ */
+
+
+
+export const CreateDeliverableBody = zod.object({
+  "actionItemId": zod.int(),
+  "title": zod.string().min(1),
+  "description": zod.string().optional(),
+  "dueDate": zod.coerce.date().nullish(),
+  "status": zod.enum(['pending', 'in_progress', 'completed']).optional(),
+  "url": zod.string().optional()
+})
+
+export const CreateDeliverableResponse = zod.object({
+  "id": zod.int(),
+  "actionItemId": zod.int(),
+  "title": zod.string(),
+  "description": zod.string().nullish(),
+  "dueDate": zod.coerce.date().nullish(),
+  "status": zod.enum(['pending', 'in_progress', 'completed']),
+  "url": zod.string().nullish(),
+  "createdAt": zod.coerce.date().optional(),
+  "updatedAt": zod.coerce.date().optional()
+})
+
+
+/**
+ * @summary Get a deliverable
+ */
+export const GetDeliverableParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+export const GetDeliverableResponse = zod.object({
+  "id": zod.int(),
+  "actionItemId": zod.int(),
+  "title": zod.string(),
+  "description": zod.string().nullish(),
+  "dueDate": zod.coerce.date().nullish(),
+  "status": zod.enum(['pending', 'in_progress', 'completed']),
+  "url": zod.string().nullish(),
+  "createdAt": zod.coerce.date().optional(),
+  "updatedAt": zod.coerce.date().optional()
+})
+
+
+/**
+ * @summary Update a deliverable
+ */
+export const UpdateDeliverableParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+
+
+
+export const UpdateDeliverableBody = zod.object({
+  "title": zod.string().min(1).optional(),
+  "description": zod.string().optional(),
+  "dueDate": zod.coerce.date().nullish(),
+  "status": zod.enum(['pending', 'in_progress', 'completed']).optional(),
+  "url": zod.string().optional()
+})
+
+export const UpdateDeliverableResponse = zod.object({
+  "id": zod.int(),
+  "actionItemId": zod.int(),
+  "title": zod.string(),
+  "description": zod.string().nullish(),
+  "dueDate": zod.coerce.date().nullish(),
+  "status": zod.enum(['pending', 'in_progress', 'completed']),
+  "url": zod.string().nullish(),
+  "createdAt": zod.coerce.date().optional(),
+  "updatedAt": zod.coerce.date().optional()
+})
+
+
+/**
+ * @summary Delete a deliverable
+ */
+export const DeleteDeliverableParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+export const DeleteDeliverableResponse = zod.object({
+  "id": zod.int()
+})
+
+
+/**
+ * @summary Update agreement lifecycle state
+ */
+export const UpdateAgreementLifecycleParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+export const UpdateAgreementLifecycleBody = zod.object({
+  "lifecycleState": zod.enum(['draft', 'review', 'approved', 'signed', 'archived'])
+})
+
+export const UpdateAgreementLifecycleResponse = zod.object({
+  "id": zod.int(),
+  "name": zod.string(),
+  "type": zod.string(),
+  "countryName": zod.string(),
+  "status": zod.enum(['draft', 'review', 'signed', 'archived']),
+  "updatedAt": zod.coerce.date(),
+  "renewalDate": zod.coerce.date().nullish()
+})
+
+

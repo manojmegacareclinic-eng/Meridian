@@ -15,7 +15,13 @@ export type AuditEntityType =
   | "ministry"
   | "position"
   | "office_term"
-  | "organization";
+  | "organization"
+  | "dr_strategy"
+  | "meeting_agenda"
+  | "meeting_participant"
+  | "meeting_transcript"
+  | "action_item"
+  | "deliverable";
 
 export interface AuditActor {
   id: string;

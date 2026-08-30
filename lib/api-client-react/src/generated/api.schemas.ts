@@ -744,9 +744,420 @@ export interface OrganizationUpdate {
   metadata?: OrganizationUpdateMetadata;
 }
 
+export type DrStrategyType = typeof DrStrategyType[keyof typeof DrStrategyType];
+
+
+export const DrStrategyType = {
+  uskdr: 'uskdr',
+  hq_agreement: 'hq_agreement',
+  host_country: 'host_country',
+  sister_city: 'sister_city',
+  proclamation: 'proclamation',
+  ngo_partnership: 'ngo_partnership',
+  refugee_partnership: 'refugee_partnership',
+  university_partnership: 'university_partnership',
+  custom: 'custom',
+} as const;
+
+/**
+ * @nullable
+ */
+export type DrStrategyCustomStages = { [key: string]: unknown } | null;
+
+export interface DrStrategy {
+  id: number;
+  countryId: number;
+  name: string;
+  type: DrStrategyType;
+  /** @nullable */
+  customStages?: DrStrategyCustomStages;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type DrStrategyInputType = typeof DrStrategyInputType[keyof typeof DrStrategyInputType];
+
+
+export const DrStrategyInputType = {
+  uskdr: 'uskdr',
+  hq_agreement: 'hq_agreement',
+  host_country: 'host_country',
+  sister_city: 'sister_city',
+  proclamation: 'proclamation',
+  ngo_partnership: 'ngo_partnership',
+  refugee_partnership: 'refugee_partnership',
+  university_partnership: 'university_partnership',
+  custom: 'custom',
+} as const;
+
+/**
+ * @nullable
+ */
+export type DrStrategyInputCustomStages = { [key: string]: unknown } | null;
+
+export interface DrStrategyInput {
+  countryId: number;
+  /** @minLength 1 */
+  name: string;
+  type: DrStrategyInputType;
+  /** @nullable */
+  customStages?: DrStrategyInputCustomStages;
+  isActive?: boolean;
+}
+
+export type DrStrategyUpdateType = typeof DrStrategyUpdateType[keyof typeof DrStrategyUpdateType];
+
+
+export const DrStrategyUpdateType = {
+  uskdr: 'uskdr',
+  hq_agreement: 'hq_agreement',
+  host_country: 'host_country',
+  sister_city: 'sister_city',
+  proclamation: 'proclamation',
+  ngo_partnership: 'ngo_partnership',
+  refugee_partnership: 'refugee_partnership',
+  university_partnership: 'university_partnership',
+  custom: 'custom',
+} as const;
+
+/**
+ * @nullable
+ */
+export type DrStrategyUpdateCustomStages = { [key: string]: unknown } | null;
+
+export interface DrStrategyUpdate {
+  /** @minLength 1 */
+  name?: string;
+  type?: DrStrategyUpdateType;
+  /** @nullable */
+  customStages?: DrStrategyUpdateCustomStages;
+  isActive?: boolean;
+}
+
+/**
+ * @nullable
+ */
+export type DrStrategyStageRequiredFields = { [key: string]: unknown } | null;
+
+export interface DrStrategyStage {
+  id: number;
+  strategyId: number;
+  position: number;
+  label: string;
+  /** @nullable */
+  description?: string | null;
+  /** @nullable */
+  slaDays?: number | null;
+  /** @nullable */
+  requiredFields?: DrStrategyStageRequiredFields;
+  createdAt?: string;
+}
+
+export type MeetingAgendaStatus = typeof MeetingAgendaStatus[keyof typeof MeetingAgendaStatus];
+
+
+export const MeetingAgendaStatus = {
+  pending: 'pending',
+  in_progress: 'in_progress',
+  completed: 'completed',
+} as const;
+
+export interface MeetingAgenda {
+  id: number;
+  meetingId: number;
+  order: number;
+  title: string;
+  /** @nullable */
+  description?: string | null;
+  /** @nullable */
+  durationMinutes?: number | null;
+  /** @nullable */
+  presenter?: string | null;
+  status: MeetingAgendaStatus;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export type MeetingAgendaInputStatus = typeof MeetingAgendaInputStatus[keyof typeof MeetingAgendaInputStatus];
+
+
+export const MeetingAgendaInputStatus = {
+  pending: 'pending',
+  in_progress: 'in_progress',
+  completed: 'completed',
+} as const;
+
+export interface MeetingAgendaInput {
+  meetingId: number;
+  /** @minLength 1 */
+  title: string;
+  description?: string;
+  durationMinutes?: number;
+  presenter?: string;
+  status?: MeetingAgendaInputStatus;
+  order?: number;
+}
+
+export type MeetingAgendaUpdateStatus = typeof MeetingAgendaUpdateStatus[keyof typeof MeetingAgendaUpdateStatus];
+
+
+export const MeetingAgendaUpdateStatus = {
+  pending: 'pending',
+  in_progress: 'in_progress',
+  completed: 'completed',
+} as const;
+
+export interface MeetingAgendaUpdate {
+  /** @minLength 1 */
+  title?: string;
+  description?: string;
+  durationMinutes?: number;
+  presenter?: string;
+  status?: MeetingAgendaUpdateStatus;
+  order?: number;
+}
+
+export interface MeetingParticipant {
+  id: number;
+  meetingId: number;
+  /** @nullable */
+  contactId?: number | null;
+  name: string;
+  /** @nullable */
+  role?: string | null;
+  /** @nullable */
+  organization?: string | null;
+  attended?: boolean;
+  createdAt?: string;
+}
+
+export interface MeetingParticipantInput {
+  meetingId: number;
+  contactId?: number;
+  /** @minLength 1 */
+  name: string;
+  role?: string;
+  organization?: string;
+}
+
+export interface MeetingParticipantUpdate {
+  /** @minLength 1 */
+  name?: string;
+  role?: string;
+  organization?: string;
+  attended?: boolean;
+  /** @nullable */
+  contactId?: number | null;
+}
+
+export type MeetingTranscriptType = typeof MeetingTranscriptType[keyof typeof MeetingTranscriptType];
+
+
+export const MeetingTranscriptType = {
+  transcript: 'transcript',
+  notes: 'notes',
+  summary: 'summary',
+} as const;
+
+export interface MeetingTranscript {
+  id: number;
+  meetingId: number;
+  authorId: string;
+  authorName: string;
+  content: string;
+  type: MeetingTranscriptType;
+  createdAt: string;
+}
+
+export type MeetingTranscriptInputType = typeof MeetingTranscriptInputType[keyof typeof MeetingTranscriptInputType];
+
+
+export const MeetingTranscriptInputType = {
+  transcript: 'transcript',
+  notes: 'notes',
+  summary: 'summary',
+} as const;
+
+export interface MeetingTranscriptInput {
+  meetingId: number;
+  /** @minLength 1 */
+  authorId: string;
+  /** @minLength 1 */
+  authorName: string;
+  /** @minLength 1 */
+  content: string;
+  type: MeetingTranscriptInputType;
+}
+
+export type MeetingTranscriptUpdateType = typeof MeetingTranscriptUpdateType[keyof typeof MeetingTranscriptUpdateType];
+
+
+export const MeetingTranscriptUpdateType = {
+  transcript: 'transcript',
+  notes: 'notes',
+  summary: 'summary',
+} as const;
+
+export interface MeetingTranscriptUpdate {
+  content?: string;
+  type?: MeetingTranscriptUpdateType;
+}
+
+export type ActionItemStatus = typeof ActionItemStatus[keyof typeof ActionItemStatus];
+
+
+export const ActionItemStatus = {
+  pending: 'pending',
+  in_progress: 'in_progress',
+  completed: 'completed',
+  cancelled: 'cancelled',
+} as const;
+
+export interface ActionItem {
+  id: number;
+  meetingId: number;
+  description: string;
+  assignee: string;
+  /** @nullable */
+  assigneeContactId?: number | null;
+  /** @nullable */
+  dueDate?: string | null;
+  status: ActionItemStatus;
+  /** @nullable */
+  deliverableId?: number | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export type ActionItemInputStatus = typeof ActionItemInputStatus[keyof typeof ActionItemInputStatus];
+
+
+export const ActionItemInputStatus = {
+  pending: 'pending',
+  in_progress: 'in_progress',
+  completed: 'completed',
+  cancelled: 'cancelled',
+} as const;
+
+export interface ActionItemInput {
+  meetingId: number;
+  /** @minLength 1 */
+  description: string;
+  /** @minLength 1 */
+  assignee: string;
+  assigneeContactId?: number;
+  /** @nullable */
+  dueDate?: string | null;
+  status?: ActionItemInputStatus;
+  deliverableId?: number;
+}
+
+export type ActionItemUpdateStatus = typeof ActionItemUpdateStatus[keyof typeof ActionItemUpdateStatus];
+
+
+export const ActionItemUpdateStatus = {
+  pending: 'pending',
+  in_progress: 'in_progress',
+  completed: 'completed',
+  cancelled: 'cancelled',
+} as const;
+
+export interface ActionItemUpdate {
+  /** @minLength 1 */
+  description?: string;
+  /** @minLength 1 */
+  assignee?: string;
+  assigneeContactId?: number;
+  /** @nullable */
+  dueDate?: string | null;
+  status?: ActionItemUpdateStatus;
+  deliverableId?: number;
+}
+
+export type DeliverableStatus = typeof DeliverableStatus[keyof typeof DeliverableStatus];
+
+
+export const DeliverableStatus = {
+  pending: 'pending',
+  in_progress: 'in_progress',
+  completed: 'completed',
+} as const;
+
+export interface Deliverable {
+  id: number;
+  actionItemId: number;
+  title: string;
+  /** @nullable */
+  description?: string | null;
+  /** @nullable */
+  dueDate?: string | null;
+  status: DeliverableStatus;
+  /** @nullable */
+  url?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export type DeliverableInputStatus = typeof DeliverableInputStatus[keyof typeof DeliverableInputStatus];
+
+
+export const DeliverableInputStatus = {
+  pending: 'pending',
+  in_progress: 'in_progress',
+  completed: 'completed',
+} as const;
+
+export interface DeliverableInput {
+  actionItemId: number;
+  /** @minLength 1 */
+  title: string;
+  description?: string;
+  /** @nullable */
+  dueDate?: string | null;
+  status?: DeliverableInputStatus;
+  url?: string;
+}
+
+export type DeliverableUpdateStatus = typeof DeliverableUpdateStatus[keyof typeof DeliverableUpdateStatus];
+
+
+export const DeliverableUpdateStatus = {
+  pending: 'pending',
+  in_progress: 'in_progress',
+  completed: 'completed',
+} as const;
+
+export interface DeliverableUpdate {
+  /** @minLength 1 */
+  title?: string;
+  description?: string;
+  /** @nullable */
+  dueDate?: string | null;
+  status?: DeliverableUpdateStatus;
+  url?: string;
+}
+
+export type AgreementLifecycleUpdateLifecycleState = typeof AgreementLifecycleUpdateLifecycleState[keyof typeof AgreementLifecycleUpdateLifecycleState];
+
+
+export const AgreementLifecycleUpdateLifecycleState = {
+  draft: 'draft',
+  review: 'review',
+  approved: 'approved',
+  signed: 'signed',
+  archived: 'archived',
+} as const;
+
+export interface AgreementLifecycleUpdate {
+  lifecycleState: AgreementLifecycleUpdateLifecycleState;
+}
+
 export type SearchParameter = string;
 
 export type AuditLimitParameter = number;
+
+export type MeetingIdQueryParameter = number;
 
 export type ListCountriesParams = {
 search?: SearchParameter;
@@ -857,5 +1268,38 @@ export const ListOrganizationsType = {
   ngo: 'ngo',
   party: 'party',
   religious: 'religious',
+} as const;
+
+export type ListDrStrategiesParams = {
+countryId: number;
+isActive?: boolean;
+};
+
+export type ListActionItemsParams = {
+status?: ListActionItemsStatus;
+};
+
+export type ListActionItemsStatus = typeof ListActionItemsStatus[keyof typeof ListActionItemsStatus];
+
+
+export const ListActionItemsStatus = {
+  pending: 'pending',
+  in_progress: 'in_progress',
+  completed: 'completed',
+  cancelled: 'cancelled',
+} as const;
+
+export type ListDeliverablesParams = {
+actionItemId?: number;
+status?: ListDeliverablesStatus;
+};
+
+export type ListDeliverablesStatus = typeof ListDeliverablesStatus[keyof typeof ListDeliverablesStatus];
+
+
+export const ListDeliverablesStatus = {
+  pending: 'pending',
+  in_progress: 'in_progress',
+  completed: 'completed',
 } as const;
 

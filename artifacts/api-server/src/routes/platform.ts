@@ -332,15 +332,20 @@ router.patch("/agreements/:id", async (req, res): Promise<void> => {
   const [existing] = await db.select({
     id: agreementsTable.id, name: agreementsTable.name, type: agreementsTable.type,
     status: agreementsTable.status, renewalDate: agreementsTable.renewalDate,
+    lifecycleState: agreementsTable.lifecycleState, reviewedAt: agreementsTable.reviewedAt,
+    reviewedBy: agreementsTable.reviewedBy, approvedAt: agreementsTable.approvedAt,
+    approvedBy: agreementsTable.approvedBy, signedAt: agreementsTable.signedAt,
+    signedBy: agreementsTable.signedBy,
   }).from(agreementsTable).where(eq(agreementsTable.id, params.data.id));
   if (!existing) { res.status(404).json({ error: "Agreement not found." }); return; }
-  const [row] = await db.update(agreementsTable).set({
+  const updateData = {
     ...parsed.data,
     renewalDate: parsed.data.renewalDate === null ? null : parsed.data.renewalDate?.toISOString().slice(0, 10),
     updatedAt: new Date().toISOString().slice(0, 10),
-  }).where(eq(agreementsTable.id, params.data.id)).returning();
+  };
+  const [row] = await db.update(agreementsTable).set(updateData).where(eq(agreementsTable.id, params.data.id)).returning();
   const [country] = await db.select({ name: countriesTable.name }).from(countriesTable).where(eq(countriesTable.id, row.countryId));
-  const diff = diffFields(existing as unknown as Record<string, unknown>, row as unknown as Record<string, unknown>, ["name", "type", "status", "renewalDate"]);
+  const diff = diffFields(existing as unknown as Record<string, unknown>, row as unknown as Record<string, unknown>, ["name", "type", "status", "renewalDate", "lifecycleState", "reviewedAt", "reviewedBy", "approvedAt", "approvedBy", "signedAt", "signedBy"]);
   await writeAudit({
     actor: getActor(req),
     action: "update",
