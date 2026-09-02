@@ -20,7 +20,6 @@ export {
   type MeetingAgendaInputStatus,
   type MeetingAgendaStatus,
   type MeetingAgendaUpdateStatus,
-  
   type MeetingParticipant,
   type MeetingParticipantInput,
   type MeetingParticipantUpdate,
@@ -72,4 +71,12 @@ export {
   type Contact,
   type CountryRiskLevel,
   type CountryStatus,
+  type DocumentInput,
+  type DocumentUpdate,
+  type DocumentInputStatus,
+  type DocumentUpdateStatus,
+  type DocumentStatus,
+  type NewsInput,
+  type NewsUpdate,
+  type News,
 } from "./generated/types";

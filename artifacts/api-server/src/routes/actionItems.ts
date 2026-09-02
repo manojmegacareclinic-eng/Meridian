@@ -6,7 +6,6 @@ import { getActor } from "../middlewares/guards";
 import {
   CreateActionItemBody,
   CreateActionItemParams,
-  CreateActionItemQueryParams,
   CreateActionItemResponse,
   DeleteActionItemParams,
   DeleteActionItemResponse,
@@ -37,19 +36,19 @@ import {
 
 const router: IRouter = Router();
 
-router.get("/meetings/:id/action-items", async (req, res): Promise<void> => {
-  const params = CreateActionItemParams.safeParse(req.params);
+router.get("/meetings/:meetingId/action-items", async (req, res): Promise<void> => {
+  const params = GetActionItemParams.safeParse(req.params);
   const parsed = ListActionItemsQueryParams.safeParse(req.query);
   if (!params.success || !parsed.success) {
     res.status(400).json({ error: "Invalid request." });
     return;
   }
-  const [existingMeeting] = await db.select({ id: meetingsTable.id }).from(meetingsTable).where(eq(meetingsTable.id, params.data.id));
+  const [existingMeeting] = await db.select({ id: meetingsTable.id }).from(meetingsTable).where(eq(meetingsTable.id, params.data.meetingId));
   if (!existingMeeting) {
     res.status(404).json({ error: "Meeting not found." });
     return;
   }
-  const filters = [eq(actionItemsTable.meetingId, params.data.id)];
+  const filters = [eq(actionItemsTable.meetingId, params.data.meetingId)];
   if (parsed.data.status) filters.push(eq(actionItemsTable.status, parsed.data.status));
   const rows = await db
     .select()
@@ -59,14 +58,14 @@ router.get("/meetings/:id/action-items", async (req, res): Promise<void> => {
   res.json(rows);
 });
 
-router.post("/meetings/:id/action-items", async (req, res): Promise<void> => {
-  const params = CreateActionItemParams.safeParse(req.params);
+router.post("/meetings/:meetingId/action-items", async (req, res): Promise<void> => {
+  const params = GetActionItemParams.safeParse(req.params);
   const parsed = CreateActionItemBody.safeParse(req.body);
   if (!params.success || !parsed.success) {
     res.status(400).json({ error: "Invalid action item creation." });
     return;
   }
-  const [existingMeeting] = await db.select({ id: meetingsTable.id }).from(meetingsTable).where(eq(meetingsTable.id, params.data.id));
+  const [existingMeeting] = await db.select({ id: meetingsTable.id }).from(meetingsTable).where(eq(meetingsTable.id, params.data.meetingId));
   if (!existingMeeting) {
     res.status(404).json({ error: "Meeting not found." });
     return;
@@ -85,11 +84,12 @@ router.post("/meetings/:id/action-items", async (req, res): Promise<void> => {
       return;
     }
   }
+  const dueDateStr = parsed.data.dueDate ? new Date(parsed.data.dueDate).toISOString().split('T')[0] : null;
   const insertData = {
     ...parsed.data,
-    meetingId: params.data.id,
-    dueDate: parsed.data.dueDate ? new Date(parsed.data.dueDate) : null,
-};
+    meetingId: params.data.meetingId,
+    dueDate: dueDateStr,
+  };
 const [row] = await db.insert(actionItemsTable).values(insertData).returning();
   await writeAudit({
     actor: getActor(req),
@@ -105,13 +105,13 @@ const [row] = await db.insert(actionItemsTable).values(insertData).returning();
   res.status(201).json(row);
 });
 
-router.get("/action-items/:id", async (req, res): Promise<void> => {
+router.get("/action-items/:actionItemId", async (req, res): Promise<void> => {
   const params = GetActionItemParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: "Invalid action item id." });
     return;
   }
-  const [row] = await db.select().from(actionItemsTable).where(eq(actionItemsTable.id, params.data.id));
+  const [row] = await db.select().from(actionItemsTable).where(eq(actionItemsTable.id, params.data.actionItemId));
   if (!row) {
     res.status(404).json({ error: "Action item not found." });
     return;
@@ -119,14 +119,14 @@ router.get("/action-items/:id", async (req, res): Promise<void> => {
   res.json(row);
 });
 
-router.patch("/action-items/:id", async (req, res): Promise<void> => {
-  const params = GetActionItemParams.safeParse(req.params);
+router.patch("/action-items/:actionItemId", async (req, res): Promise<void> => {
+  const params = UpdateActionItemParams.safeParse(req.params);
   const parsed = UpdateActionItemBody.safeParse(req.body);
   if (!params.success || !parsed.success) {
     res.status(400).json({ error: "Invalid action item update." });
     return;
   }
-  const [existing] = await db.select().from(actionItemsTable).where(eq(actionItemsTable.id, params.data.id));
+  const [existing] = await db.select().from(actionItemsTable).where(eq(actionItemsTable.id, params.data.actionItemId));
   if (!existing) {
     res.status(404).json({ error: "Action item not found." });
     return;
@@ -145,11 +145,12 @@ router.patch("/action-items/:id", async (req, res): Promise<void> => {
       return;
     }
   }
+  const dueDateStr = parsed.data.dueDate ? new Date(parsed.data.dueDate).toISOString().split('T')[0] : null;
   const updateData = {
     ...parsed.data,
-    dueDate: parsed.data.dueDate ? new Date(parsed.data.dueDate) : parsed.data.dueDate,
-};
-const [row] = await db.update(actionItemsTable).set(updateData).where(eq(actionItemsTable.id, params.data.id)).returning();
+    dueDate: dueDateStr,
+  };
+  const [row] = await db.update(actionItemsTable).set(updateData).where(eq(actionItemsTable.id, params.data.actionItemId)).returning();
   const diff = diffFields(existing, row, ["description", "assignee", "assigneeContactId", "dueDate", "status", "deliverableId"]);
   await writeAudit({
     actor: getActor(req),
@@ -166,29 +167,29 @@ const [row] = await db.update(actionItemsTable).set(updateData).where(eq(actionI
   res.json(row);
 });
 
-router.delete("/action-items/:id", async (req, res): Promise<void> => {
+router.delete("/action-items/:actionItemId", async (req, res): Promise<void> => {
   const params = DeleteActionItemParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: "Invalid action item id." });
     return;
   }
-  const [existing] = await db.select().from(actionItemsTable).where(eq(actionItemsTable.id, params.data.id));
+  const [existing] = await db.select().from(actionItemsTable).where(eq(actionItemsTable.id, params.data.actionItemId));
   if (!existing) {
     res.status(404).json({ error: "Action item not found." });
     return;
   }
-  await db.delete(actionItemsTable).where(eq(actionItemsTable.id, params.data.id));
+  await db.delete(actionItemsTable).where(eq(actionItemsTable.id, params.data.actionItemId));
   await writeAudit({
     actor: getActor(req),
     action: "delete",
     entityType: "action_item",
-    entityId: String(params.data.id),
+    entityId: String(params.data.actionItemId),
     kind: "action_item",
     title: "Action item deleted",
     description: `Action item was removed.`,
     countryId: null,
   });
-  res.json(DeleteActionItemResponse.parse({ id: params.data.id }));
+  res.json(DeleteActionItemResponse.parse({ id: params.data.actionItemId }));
 });
 
 router.get("/deliverables", async (req, res): Promise<void> => {
@@ -221,7 +222,12 @@ router.post("/deliverables", async (req, res): Promise<void> => {
       return;
     }
   }
-  const [row] = await db.insert(deliverablesTable).values(parsed.data).returning();
+  const dueDateStr = parsed.data.dueDate ? new Date(parsed.data.dueDate).toISOString().split('T')[0] : null;
+  const insertData = {
+    ...parsed.data,
+    dueDate: dueDateStr,
+  };
+  const [row] = await db.insert(deliverablesTable).values(insertData).returning();
   await writeAudit({
     actor: getActor(req),
     action: "create",
@@ -262,7 +268,12 @@ router.patch("/deliverables/:id", async (req, res): Promise<void> => {
     res.status(404).json({ error: "Deliverable not found." });
     return;
   }
-  const [row] = await db.update(deliverablesTable).set(parsed.data).where(eq(deliverablesTable.id, params.data.id)).returning();
+  const dueDateStr = parsed.data.dueDate ? new Date(parsed.data.dueDate).toISOString().split('T')[0] : null;
+  const updateData = {
+    ...parsed.data,
+    dueDate: dueDateStr,
+  };
+  const [row] = await db.update(deliverablesTable).set(updateData).where(eq(deliverablesTable.id, params.data.id)).returning();
   const diff = diffFields(existing, row, ["title", "description", "dueDate", "status", "url"]);
   await writeAudit({
     actor: getActor(req),
