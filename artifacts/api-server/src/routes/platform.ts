@@ -1,8 +1,9 @@
 import { Router, type IRouter } from "express";
 import { and, asc, desc, eq, ilike, inArray, or, sql } from "drizzle-orm";
-import { db, activityTable, agreementsTable, contactsTable, countriesTable, documentsTable, meetingsTable, newsTable } from "@workspace/db";
+import { db, activityTable, agreementsTable, contactsTable, countriesTable, documentsTable, meetingsTable, newsTable, userTable } from "@workspace/db";
 import { diffFields, writeAudit } from "../lib/audit";
 import { getActor } from "../middlewares/guards";
+import { WRITE_ROLES } from "@workspace/auth";
 import {
   CreateAgreementBody,
   CreateAgreementResponse,
@@ -20,6 +21,7 @@ import {
   GetCountryParams,
   GetCountryResponse,
   ListActivityQueryParams,
+  ListAssignableUsersResponse,
   ListAgreementsQueryParams,
   ListAgreementsResponse,
   ListContactsQueryParams,
@@ -62,7 +64,48 @@ const countryFields = {
   team: countriesTable.team,
   priority: countriesTable.priority,
   strategy: countriesTable.strategy,
+  primaryOwnerUserId: countriesTable.primaryOwnerUserId,
+  secondaryOwnerUserId: countriesTable.secondaryOwnerUserId,
+  reviewerUserId: countriesTable.reviewerUserId,
+  regionalCoordinatorUserId: countriesTable.regionalCoordinatorUserId,
 };
+
+type AssigneeRow = {
+  primaryOwnerUserId: string | null;
+  secondaryOwnerUserId: string | null;
+  reviewerUserId: string | null;
+  regionalCoordinatorUserId: string | null;
+};
+
+async function attachAssignees<T extends AssigneeRow>(rows: T[]) {
+  const ids = [
+    ...new Set(
+      rows.flatMap((r) => [
+        r.primaryOwnerUserId,
+        r.secondaryOwnerUserId,
+        r.reviewerUserId,
+        r.regionalCoordinatorUserId,
+      ].filter((x): x is string => Boolean(x))),
+    ),
+  ];
+  const users = ids.length
+    ? await db.select({ id: userTable.id, name: userTable.name }).from(userTable).where(inArray(userTable.id, ids))
+    : [];
+  const byId = new Map(users.map((u) => [u.id, u.name]));
+  const pick = (id: string | null) => (id && byId.has(id) ? { userId: id, name: byId.get(id)! } : null);
+  return rows.map((r) => ({
+    ...r,
+    primaryOwner: pick(r.primaryOwnerUserId),
+    secondaryOwner: pick(r.secondaryOwnerUserId),
+    reviewer: pick(r.reviewerUserId),
+    regionalCoordinator: pick(r.regionalCoordinatorUserId),
+  }));
+}
+
+async function resolveAssignees<T extends AssigneeRow>(row: T) {
+  const [resolved] = await attachAssignees([row]);
+  return resolved;
+}
 
 router.get("/dashboard/summary", async (req, res): Promise<void> => {
   const [countries, contacts, activeEngagements, meetingsThisMonth, agreements, pipeline] = await Promise.all([
@@ -106,11 +149,14 @@ router.get("/countries", async (req, res): Promise<void> => {
   ]);
   const contactsByCountry = new Map(contactCounts.map((row) => [row.countryId, Number(row.count)]));
   const meetingsByCountry = new Map(meetingCounts.map((row) => [row.countryId, Number(row.count)]));
-  res.json(ListCountriesResponse.parse(rows.map((row) => ({
-    ...row,
-    contactsCount: contactsByCountry.get(row.id) ?? 0,
-    meetingsCount: meetingsByCountry.get(row.id) ?? 0,
-  }))));
+  const mapped = await attachAssignees(
+    rows.map((row) => ({
+      ...row,
+      contactsCount: contactsByCountry.get(row.id) ?? 0,
+      meetingsCount: meetingsByCountry.get(row.id) ?? 0,
+    })),
+  );
+  res.json(ListCountriesResponse.parse(mapped));
 });
 
 router.post("/countries", async (req, res): Promise<void> => {
@@ -146,7 +192,8 @@ router.get("/countries/:id", async (req, res): Promise<void> => {
     db.select({ count: sql<number>`count(*)` }).from(contactsTable).where(eq(contactsTable.countryId, row.id)),
     db.select({ count: sql<number>`count(*)` }).from(meetingsTable).where(eq(meetingsTable.countryId, row.id)),
   ]);
-  res.json(GetCountryResponse.parse({ ...row, contactsCount: Number(contactCounts[0]?.count ?? 0), meetingsCount: Number(meetingCounts[0]?.count ?? 0) }));
+  const resolved = await resolveAssignees({ ...row, contactsCount: Number(contactCounts[0]?.count ?? 0), meetingsCount: Number(meetingCounts[0]?.count ?? 0) });
+  res.json(GetCountryResponse.parse(resolved));
 });
 
 router.patch("/countries/:id", async (req, res): Promise<void> => {
@@ -155,8 +202,21 @@ router.patch("/countries/:id", async (req, res): Promise<void> => {
   if (!params.success || !parsed.success) { res.status(400).json({ error: "Invalid country update." }); return; }
   const [existing] = await db.select(countryFields).from(countriesTable).where(eq(countriesTable.id, params.data.id));
   if (!existing) { res.status(404).json({ error: "Country not found." }); return; }
+  const assignmentIds = [
+    parsed.data.primaryOwnerUserId,
+    parsed.data.secondaryOwnerUserId,
+    parsed.data.reviewerUserId,
+    parsed.data.regionalCoordinatorUserId,
+  ].filter((x): x is string => typeof x === "string");
+  if (assignmentIds.length) {
+    const found = await db.select({ id: userTable.id }).from(userTable).where(inArray(userTable.id, assignmentIds));
+    if (found.length !== assignmentIds.length) {
+      res.status(400).json({ error: "Unknown user id in country assignment." });
+      return;
+    }
+  }
   const [row] = await db.update(countriesTable).set(parsed.data).where(eq(countriesTable.id, params.data.id)).returning();
-  const diff = diffFields(existing as unknown as Record<string, unknown>, row as unknown as Record<string, unknown>, ["name", "region", "status", "riskLevel", "language", "governmentType", "electionYear", "team", "priority", "strategy"]);
+  const diff = diffFields(existing as unknown as Record<string, unknown>, row as unknown as Record<string, unknown>, ["name", "region", "status", "riskLevel", "language", "governmentType", "electionYear", "team", "priority", "strategy", "primaryOwnerUserId", "secondaryOwnerUserId", "reviewerUserId", "regionalCoordinatorUserId"]);
   await writeAudit({
     actor: getActor(req),
     action: "update",
@@ -173,7 +233,24 @@ router.patch("/countries/:id", async (req, res): Promise<void> => {
     db.select({ count: sql<number>`count(*)` }).from(contactsTable).where(eq(contactsTable.countryId, row.id)),
     db.select({ count: sql<number>`count(*)` }).from(meetingsTable).where(eq(meetingsTable.countryId, row.id)),
   ]);
-  res.json(UpdateCountryResponse.parse({ ...row, contactsCount: Number(contactCounts[0]?.count ?? 0), meetingsCount: Number(meetingCounts[0]?.count ?? 0) }));
+  const resolved = await resolveAssignees({ ...row, contactsCount: Number(contactCounts[0]?.count ?? 0), meetingsCount: Number(meetingCounts[0]?.count ?? 0) });
+  res.json(UpdateCountryResponse.parse(resolved));
+});
+
+// Write-role gated inside the handler: the requireWriteRole mount middleware
+// bypasses GET, so this route checks the role itself.
+router.get("/users/assignable", async (req, res): Promise<void> => {
+  const actor = getActor(req);
+  if (actor.role === null || !WRITE_ROLES.has(actor.role)) {
+    res.status(403).json({ error: "forbidden", message: "Viewers have read-only access to the workspace." });
+    return;
+  }
+  const rows = await db
+    .select({ userId: userTable.id, name: userTable.name, role: userTable.role })
+    .from(userTable)
+    .where(eq(userTable.banned, false))
+    .orderBy(asc(userTable.name));
+  res.json(ListAssignableUsersResponse.parse(rows));
 });
 
 router.get("/contacts", async (req, res): Promise<void> => {

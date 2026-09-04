@@ -25,7 +25,7 @@ function check(name: string, cond: boolean, detail = "") {
   else { failed++; console.log(`  FAIL ${name} ${detail}`); }
 }
 
-const QA_EMAILS = ["qa@meridian.local", "qa-viewer@meridian.local", "qa-admin2@meridian.local"];
+const QA_EMAILS = ["qa@meridian.local", "qa-viewer@meridian.local", "qa-admin2@meridian.local", "qa-assignee@meridian.local"];
 // Unique per-run country code so a previously-aborted run can never collide
 // (the insert schema constrains `code` to 3 chars).
 const QA_CODE = `QA${Math.floor(1 + Math.random() * 9)}`;
@@ -477,6 +477,97 @@ async function main() {
   const auditLifecycle = await fetch(`${origin}/api/audit?entityType=agreement&entityId=${agreementId}`, { headers: { cookie: adminJar.header() } });
   const auditLifecycleBody = (await auditLifecycle.json().catch(() => [])) as { title?: string }[];
   check("audit agreement lifecycle update row", auditLifecycle.status === 200 && auditLifecycleBody.some((r) => (r.title ?? "").includes("lifecycle")), `status=${auditLifecycle.status}`);
+
+  // 4.1 Country assignments (Phase 4.1, spec 2026-09-04).
+  //    Admin creates a disposable assignee account (email QA_EMAILS[3]).
+  const assigneeCreate = await fetch(`${origin}/api/admin/users`, {
+    method: "POST",
+    headers: { "content-type": "application/json", cookie: adminJar.header() },
+    body: JSON.stringify({ email: QA_EMAILS[3], name: "QA Assignee", role: "country_lead" }),
+  });
+  check("POST /api/admin/users (assignee) -> 201", assigneeCreate.status === 201, `got ${assigneeCreate.status}`);
+
+  const assignAdmUsers = await fetch(`${origin}/api/admin/users`, { headers: { cookie: adminJar.header() } });
+  const assignAdmUsersBody = (await assignAdmUsers.json().catch(() => [])) as { id?: string; email?: string; name?: string; role?: string }[];
+  const assignee = assignAdmUsersBody.find((u) => u.email === QA_EMAILS[3]);
+  check(
+    "admin users list includes assignee with id",
+    Boolean(assignee?.id && assignee.name === "QA Assignee"),
+    `assignee=${JSON.stringify(assignee)}`,
+  );
+  const assigneeId = assignee?.id;
+
+  if (typeof adminPostBody.id === "number" && assigneeId) {
+    // New endpoint lists { userId, name, role } for non-banned users.
+    const assignable = await fetch(`${origin}/api/users/assignable`, { headers: { cookie: adminJar.header() } });
+    const assignableBody = (await assignable.json().catch(() => [])) as { userId?: string; name?: string; role?: string }[];
+    check(
+      "GET /api/users/assignable lists assignee with id/name/role",
+      assignable.status === 200 &&
+        assignableBody.some((u) => u.userId === assigneeId && u.name === "QA Assignee" && u.role === "country_lead") &&
+        assignableBody.every((u) => typeof u.userId === "string" && typeof u.name === "string" && typeof u.role === "string" && !("email" in u)),
+      `status=${assignable.status} body=${JSON.stringify(assignableBody).slice(0, 160)}`,
+    );
+
+    // Viewers are rejected by the in-handler gate (mount middleware bypasses GET).
+    const assignableViewer = await fetch(`${origin}/api/users/assignable`, { headers: { cookie: viewerJar.header() } });
+    check("GET /api/users/assignable as viewer -> 403", assignableViewer.status === 403, `got ${assignableViewer.status}`);
+
+    // Banned users are excluded.
+    await db.update(userTable).set({ banned: true }).where(eq(userTable.email, QA_EMAILS[3]));
+    const assignableBanned = await fetch(`${origin}/api/users/assignable`, { headers: { cookie: adminJar.header() } });
+    const assignableBannedBody = (await assignableBanned.json().catch(() => [])) as { userId?: string }[];
+    check(
+      "banned user excluded from assignable",
+      assignableBanned.status === 200 && !assignableBannedBody.some((u) => u.userId === assigneeId),
+      `status=${assignableBanned.status}`,
+    );
+    await db.update(userTable).set({ banned: false }).where(eq(userTable.email, QA_EMAILS[3]));
+
+    // Fresh country has no assignee.
+    const countryBefore = await fetch(`${origin}/api/countries/${adminPostBody.id}`, { headers: { cookie: adminJar.header() } });
+    const countryBeforeBody = (await countryBefore.json().catch(() => ({}))) as { primaryOwner?: { userId?: string } | null };
+    check("fresh country has primaryOwner null", countryBefore.status === 200 && countryBeforeBody.primaryOwner === null, `status=${countryBefore.status} owner=${JSON.stringify(countryBeforeBody.primaryOwner)}`);
+
+    // Assign primary owner -> response echoes { userId, name }.
+    const assignPatch = await fetch(`${origin}/api/countries/${adminPostBody.id}`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json", cookie: adminJar.header() },
+      body: JSON.stringify({ primaryOwnerUserId: assigneeId }),
+    });
+    const assignPatchBody = (await assignPatch.json().catch(() => ({}))) as { primaryOwner?: { userId?: string; name?: string } | null };
+    check(
+      "PATCH primaryOwnerUserId -> 200, echoes assignee",
+      assignPatch.status === 200 && assignPatchBody.primaryOwner?.userId === assigneeId && assignPatchBody.primaryOwner?.name === "QA Assignee",
+      `status=${assignPatch.status} body=${JSON.stringify(assignPatchBody).slice(0, 160)}`,
+    );
+
+    // Bogus user id -> clean 400 before FK.
+    const bogusPatch = await fetch(`${origin}/api/countries/${adminPostBody.id}`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json", cookie: adminJar.header() },
+      body: JSON.stringify({ reviewerUserId: "00000000-0000-0000-0000-000000000000" }),
+    });
+    check("PATCH with unknown user id -> 400", bogusPatch.status === 400, `got ${bogusPatch.status}`);
+
+    // Clearing via null.
+    const clearPatch = await fetch(`${origin}/api/countries/${adminPostBody.id}`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json", cookie: adminJar.header() },
+      body: JSON.stringify({ primaryOwnerUserId: null }),
+    });
+    const clearPatchBody = (await clearPatch.json().catch(() => ({}))) as { primaryOwner?: unknown };
+    check("PATCH primaryOwnerUserId null clears assignment", clearPatch.status === 200 && clearPatchBody.primaryOwner === null, `status=${clearPatch.status} owner=${JSON.stringify(clearPatchBody.primaryOwner)}`);
+
+    // Assignment change appears in the country audit dif.
+    const auditAssign = await fetch(`${origin}/api/audit?entityType=country&entityId=${adminPostBody.id}`, { headers: { cookie: adminJar.header() } });
+    const auditAssignBody = (await auditAssign.json().catch(() => [])) as { after?: Record<string, unknown> }[];
+    check(
+      "country audit row captures assignment change",
+      auditAssign.status === 200 && auditAssignBody.some((r) => r.after && "primaryOwnerUserId" in r.after),
+      `status=${auditAssign.status}`,
+    );
+  }
 
   // 25 (renumbered). Cleanup: remove disposable users (cascades accounts/sessions/members)
   //     and the disposable country row (with its activity trail).
