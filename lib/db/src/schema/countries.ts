@@ -1,6 +1,7 @@
 import { date, integer, pgTable, serial, text, timestamp } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
+import { userTable } from "./auth";
 
 export const countriesTable = pgTable("countries", {
   id: serial("id").primaryKey(),
@@ -15,6 +16,10 @@ export const countriesTable = pgTable("countries", {
   team: text("team"),
   priority: text("priority"),
   strategy: text("strategy"),
+  primaryOwnerUserId: text("primary_owner_user_id").references(() => userTable.id, { onDelete: "set null" }),
+  secondaryOwnerUserId: text("secondary_owner_user_id").references(() => userTable.id, { onDelete: "set null" }),
+  reviewerUserId: text("reviewer_user_id").references(() => userTable.id, { onDelete: "set null" }),
+  regionalCoordinatorUserId: text("regional_coordinator_user_id").references(() => userTable.id, { onDelete: "set null" }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
