@@ -37,6 +37,7 @@ import {
   getGetCountryQueryKey,
   getGetDashboardSummaryQueryKey,
   getListActivityQueryKey,
+  getListAssignableUsersQueryKey,
   getListAdminMembersQueryKey,
   getListAdminUsersQueryKey,
   getListAgreementsQueryKey,
@@ -71,6 +72,7 @@ import {
   useListAdminMembers,
   useListAdminUsers,
   useListAgreements,
+  useListAssignableUsers,
   useListAudit,
   useListContacts,
   useListCountries,
@@ -205,7 +207,7 @@ export function EmptyState({ icon: Icon, title, description, action }: { icon: t
   </div>;
 }
 
-function OverviewTab({ countryId }: { countryId: number }) {
+function OverviewTab({ country, countryId }: { country: Country; countryId: number }) {
   const contactsQuery = useListContacts({ countryId });
   const meetingsQuery = useListMeetings({ countryId });
   const agreementsQuery = useListAgreements({ countryId });
@@ -220,6 +222,7 @@ function OverviewTab({ countryId }: { countryId: number }) {
         <KpiCard label="Agreements" value={agreementsQuery.data?.length ?? 0} icon={FileCheck2} />
         <KpiCard label="Documents" value={documentsQuery.data?.length ?? 0} icon={FileText} />
       </div>
+      <AssignmentsBlock country={country} />
       <section className="rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--card))]">
         <div className="border-b border-[hsl(var(--border))] px-6 py-5">
           <h3 className="font-serif text-[22px]">Recent activity</h3>
@@ -240,6 +243,41 @@ function OverviewTab({ countryId }: { countryId: number }) {
         )}
       </section>
     </>
+  );
+}
+
+const ASSIGNMENT_ROLES = [
+  { key: 'primaryOwner', label: 'Primary owner', testId: 'primary-owner' },
+  { key: 'secondaryOwner', label: 'Secondary owner', testId: 'secondary-owner' },
+  { key: 'reviewer', label: 'Reviewer', testId: 'reviewer' },
+  { key: 'regionalCoordinator', label: 'Regional coordinator', testId: 'regional-coordinator' },
+] as const;
+
+function AssignmentsBlock({ country }: { country: Country }) {
+  return (
+    <section className="rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--card))]" data-testid="assignments-block">
+      <div className="border-b border-[hsl(var(--border))] px-6 py-5">
+        <h3 className="font-serif text-[22px]">Assignments</h3>
+        <p className="mt-1 text-xs text-[hsl(var(--muted-foreground))]">Who owns, reviews, and coordinates this relationship.</p>
+      </div>
+      <div className="divide-y divide-[hsl(var(--border))]">
+        {ASSIGNMENT_ROLES.map(({ key, label, testId }) => {
+          const assignee = country[key];
+          return (
+            <div key={key} className="flex items-center justify-between px-6 py-4" data-testid={`assignment-role-${testId}`}>
+              <span className="text-xs font-bold uppercase tracking-[.08em] text-[hsl(var(--muted-foreground))]">{label}</span>
+              <span className="text-xs" data-testid={`assignment-assignee-${testId}`}>
+                {assignee ? (
+                  <StatusPill tone="neutral">{assignee.name}</StatusPill>
+                ) : (
+                  <span className="text-[hsl(var(--muted-foreground))]">Unassigned</span>
+                )}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </section>
   );
 }
 
@@ -406,6 +444,11 @@ function CountryCard({ country, index }: { country: Country; index: number }) {
         </div>
         <div className="mb-5 flex items-center gap-2 text-[11px] text-[hsl(var(--muted-foreground))]">
           <span className={`h-2 w-2 rounded-full ${country.riskLevel === 'high' ? 'bg-[hsl(var(--destructive))]' : country.riskLevel === 'medium' ? 'bg-[hsl(var(--accent-foreground))]' : 'bg-[hsl(157_38%_39%)]'}`} /> {country.riskLevel} risk profile
+          {country.primaryOwner && (
+            <span className="ml-auto rounded-full bg-[hsl(var(--secondary)/.55)] px-2.5 py-1 font-bold" data-testid="country-primary-owner">
+              {country.primaryOwner.name.split(' ')[0]}
+            </span>
+          )}
         </div>
         <div className="fine-rule mb-4" />
         <div className="grid grid-cols-2 gap-4">
@@ -869,8 +912,14 @@ export function CountryDetailPage() {
     team: '',
     priority: 'medium',
     strategy: '',
+    primaryOwnerUserId: '',
+    secondaryOwnerUserId: '',
+    reviewerUserId: '',
+    regionalCoordinatorUserId: '',
   });
   const updateCountry = useUpdateCountry();
+  const assignableUsersQuery = useListAssignableUsers({ query: { queryKey: getListAssignableUsersQueryKey(), enabled: editOpen } });
+  const assignableUsers = assignableUsersQuery.data ?? [];
 
   useEffect(() => {
     if (country) {
@@ -881,18 +930,35 @@ export function CountryDetailPage() {
         team: country.team ?? '',
         priority: country.priority ?? 'medium',
         strategy: country.strategy ?? '',
+        primaryOwnerUserId: country.primaryOwner?.userId ?? '',
+        secondaryOwnerUserId: country.secondaryOwner?.userId ?? '',
+        reviewerUserId: country.reviewer?.userId ?? '',
+        regionalCoordinatorUserId: country.regionalCoordinator?.userId ?? '',
       });
     }
   }, [country]);
 
   const handleEditSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    const data: CountryUpdate = {
+      language: editValues.language,
+      governmentType: editValues.governmentType as CountryUpdate['governmentType'],
+      electionYear: editValues.electionYear,
+      team: editValues.team,
+      priority: editValues.priority as CountryUpdate['priority'],
+      strategy: editValues.strategy,
+      primaryOwnerUserId: editValues.primaryOwnerUserId === '' ? null : editValues.primaryOwnerUserId,
+      secondaryOwnerUserId: editValues.secondaryOwnerUserId === '' ? null : editValues.secondaryOwnerUserId,
+      reviewerUserId: editValues.reviewerUserId === '' ? null : editValues.reviewerUserId,
+      regionalCoordinatorUserId: editValues.regionalCoordinatorUserId === '' ? null : editValues.regionalCoordinatorUserId,
+    };
     updateCountry.mutate(
-      { id, data: editValues as any },
+      { id, data },
       {
         onSuccess: () => {
           setEditOpen(false);
           void queryClient.invalidateQueries({ queryKey: getGetCountryQueryKey(id) });
+          void queryClient.invalidateQueries({ queryKey: getListCountriesQueryKey() });
         },
       }
     );
@@ -998,6 +1064,64 @@ export function CountryDetailPage() {
                     />
                   </FormField>
                 </div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <FormField label="Primary owner">
+                    <select
+                      name="primaryOwnerUserId"
+                      value={editValues.primaryOwnerUserId}
+                      onChange={(e) => setEditValues({ ...editValues, primaryOwnerUserId: e.target.value })}
+                      className={selectClass}
+                      data-testid="country-field-assignee-primary-owner"
+                    >
+                      <option value="">Unassigned</option>
+                      {assignableUsers.map((u) => (
+                        <option value={u.userId} key={u.userId}>{u.name} — {roleLabel(u.role)}</option>
+                      ))}
+                    </select>
+                  </FormField>
+                  <FormField label="Secondary owner">
+                    <select
+                      name="secondaryOwnerUserId"
+                      value={editValues.secondaryOwnerUserId}
+                      onChange={(e) => setEditValues({ ...editValues, secondaryOwnerUserId: e.target.value })}
+                      className={selectClass}
+                      data-testid="country-field-assignee-secondary-owner"
+                    >
+                      <option value="">Unassigned</option>
+                      {assignableUsers.map((u) => (
+                        <option value={u.userId} key={u.userId}>{u.name} — {roleLabel(u.role)}</option>
+                      ))}
+                    </select>
+                  </FormField>
+                  <FormField label="Reviewer">
+                    <select
+                      name="reviewerUserId"
+                      value={editValues.reviewerUserId}
+                      onChange={(e) => setEditValues({ ...editValues, reviewerUserId: e.target.value })}
+                      className={selectClass}
+                      data-testid="country-field-assignee-reviewer"
+                    >
+                      <option value="">Unassigned</option>
+                      {assignableUsers.map((u) => (
+                        <option value={u.userId} key={u.userId}>{u.name} — {roleLabel(u.role)}</option>
+                      ))}
+                    </select>
+                  </FormField>
+                  <FormField label="Regional coordinator">
+                    <select
+                      name="regionalCoordinatorUserId"
+                      value={editValues.regionalCoordinatorUserId}
+                      onChange={(e) => setEditValues({ ...editValues, regionalCoordinatorUserId: e.target.value })}
+                      className={selectClass}
+                      data-testid="country-field-assignee-regional-coordinator"
+                    >
+                      <option value="">Unassigned</option>
+                      {assignableUsers.map((u) => (
+                        <option value={u.userId} key={u.userId}>{u.name} — {roleLabel(u.role)}</option>
+                      ))}
+                    </select>
+                  </FormField>
+                </div>
                 <div className="flex justify-end gap-3 border-t border-[hsl(var(--border))] pt-5">
                   <button type="button" onClick={() => setEditOpen(false)} className="rounded-xl px-4 py-2.5 text-xs font-bold hover:bg-[hsl(var(--muted))]" data-testid="button-cancel-edit">
                     Cancel
@@ -1015,7 +1139,7 @@ export function CountryDetailPage() {
         ))}
       </div>
       <div className="space-y-5">
-{activeTab === 'overview' && <OverviewTab countryId={id} />}
+{activeTab === 'overview' && country && <OverviewTab country={country} countryId={id} />}
         {activeTab === 'contacts' && <ContactsList countryId={id} />}
         {activeTab === 'meetings' && <MeetingsList countryId={id} />}
         {activeTab === 'agreements' && <AgreementsList countryId={id} />}

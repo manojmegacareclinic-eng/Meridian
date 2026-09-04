@@ -145,6 +145,8 @@ async function main() {
     // Get the first country's ID from the card's testid
     const firstCountryTestId = await page.locator('[data-testid^="card-country-"]').first().getAttribute("data-testid");
     const countryId = firstCountryTestId?.replace("card-country-", "");
+    const ownerChips = await page.locator('[data-testid="country-primary-owner"]').count();
+    check("no primary-owner chip when unassigned (demo)", ownerChips === 0, `got ${ownerChips}`);
     console.log("DEBUG: Navigating to country detail page for ID:", countryId);
     // Check for console errors before navigation
     const consoleErrors: string[] = [];
@@ -201,6 +203,12 @@ async function main() {
       if (tab.id === "overview") {
         await page.waitForSelector('[data-testid="button-country-edit"]', { timeout: 15000 });
         check('overview tab shows "Edit details" button', true);
+        await page.waitForSelector('[data-testid="assignments-block"]', { timeout: 15000 });
+        check('overview tab shows "Assignments" block', true);
+        const roleRows = await page.locator('[data-testid^="assignment-role-"]').count();
+        check("assignments block shows four assignee roles", roleRows === 4, `got ${roleRows}`);
+        const unassignedText = ((await page.locator('[data-testid="assignments-block"]').textContent()) ?? "");
+        check("each unassigned role shows a placeholder", (unassignedText.match(/Unassigned/g) ?? []).length >= 4, `got "${unassignedText.slice(0, 120)}"`);
       }
       if (tab.id === "documents") {
         await page.waitForSelector('[data-testid="button-add-doc"]', { timeout: 15000 });
