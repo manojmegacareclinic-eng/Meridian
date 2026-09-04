@@ -14,6 +14,7 @@ import {
   FileText,
   Globe2,
   Landmark,
+  Layers,
   LayoutDashboard,
   LifeBuoy,
   LockKeyhole,
@@ -81,8 +82,10 @@ import {
   useListOrganizations,
   useListPositions,
   useListActivity,
+  useListActionItems,
   useUpdateAdminUserRole,
   useUpdateAgreement,
+  useUpdateAgreementLifecycle,
   useUpdateCountry,
   useUpdateMeeting,
   useUpdateMinistry,
@@ -97,6 +100,7 @@ import type {
   AdminUserInput,
   Agreement,
   AgreementInput,
+  AgreementLifecycleState,
   AuditEntry,
   Contact,
   ContactInput,
@@ -129,6 +133,8 @@ import {
 } from '@/lib/auth-client';
 import { OrganizationsTab } from '@/components/OrganizationsTab';
 import { GovernmentTab } from '@/components/GovernmentTab';
+import { StrategyPipeline } from '@/components/StrategyPipeline';
+import { MeetingDetailPage } from '@/components/MeetingDetail';
 import './index.css';
 
 const navItems = [
@@ -138,6 +144,7 @@ const navItems = [
   { href: '/contacts', label: 'Contacts', icon: Users },
   { href: '/meetings', label: 'Meetings', icon: CalendarDays },
   { href: '/agreements', label: 'Agreements', icon: FileCheck2 },
+  { href: '/dr-strategies', label: 'Strategies', icon: Layers },
   { href: '/audit', label: 'Audit', icon: ScrollText },
 ];
 
@@ -289,7 +296,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
   </div>;
 }
 
-function PageIntro({ eyebrow, title, description, action }: { eyebrow: string; title: string; description: string; action?: React.ReactNode }) {
+export function PageIntro({ eyebrow, title, description, action }: { eyebrow: string; title: string; description: string; action?: React.ReactNode }) {
   return <div className="mb-8 flex flex-col justify-between gap-5 md:flex-row md:items-end"><div><div className="mb-2 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[.22em] text-[hsl(var(--muted-foreground))]"><span className="h-1.5 w-1.5 rounded-full bg-[hsl(var(--accent-foreground))]" />{eyebrow}</div><h2 className="font-serif text-[32px] leading-tight tracking-[-.025em] sm:text-[40px]">{title}</h2><p className="mt-2 max-w-xl text-sm leading-6 text-[hsl(var(--muted-foreground))]">{description}</p></div>{action && <div className="shrink-0">{action}</div>}</div>;
 }
 
@@ -451,8 +458,10 @@ export function MeetingsPage() {
 
 function MeetingCard({ meeting }: { meeting: Meeting }) {
   const updateMeeting = useUpdateMeeting();
+  const actionItemsQuery = useListActionItems(meeting.id);
+  const openActionItems = (actionItemsQuery.data ?? []).filter((i) => i.status !== 'completed').length;
   const updateStatus = (status: 'scheduled' | 'completed' | 'follow_up') => updateMeeting.mutate({ id: meeting.id, data: { status } }, { onSuccess: () => void queryClient.invalidateQueries({ queryKey: getListMeetingsQueryKey() }) });
-  return <article className="group grid gap-4 rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-5 shadow-[0_4px_16px_hsl(190_20%_20%/.03)] hover:border-[hsl(var(--accent-foreground)/.45)] sm:grid-cols-[86px_1fr_auto] sm:items-center" data-testid={`card-meeting-${meeting.id}`}><div className="flex items-center gap-3 sm:block"><div className="font-mono text-[11px] font-bold uppercase tracking-[.08em] text-[hsl(var(--accent-foreground))]">{formatDate(meeting.date).split(' ')[1]}</div><div className="font-serif text-[29px] leading-none">{formatDate(meeting.date).split(' ')[0]}</div><div className="mt-1 text-[10px] text-[hsl(var(--muted-foreground))]">{formatTime(meeting.date)}</div></div><div className="border-l-0 sm:border-l sm:pl-5"><div className="mb-2 flex flex-wrap items-center gap-2"><StatusPill tone={toneForStatus(meeting.status)}>{meeting.status.replace('_', ' ')}</StatusPill><span className="text-[11px] text-[hsl(var(--muted-foreground))]">{meeting.countryName}</span></div><h3 className="font-serif text-[20px]">{meeting.title}</h3><div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-[hsl(var(--muted-foreground))]"><span>{meeting.actionArea}</span><span>{meeting.participants} participants</span>{meeting.owner && <span>Owner: {meeting.owner}</span>}</div></div><select value={meeting.status} onChange={(event) => updateStatus(event.target.value as 'scheduled' | 'completed' | 'follow_up')} disabled={updateMeeting.isPending} className="h-9 rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--background))] px-2 text-[11px] font-bold" aria-label={`Update status for ${meeting.title}`} data-testid={`select-meeting-status-${meeting.id}`}><option value="scheduled">Scheduled</option><option value="follow_up">Follow-up</option><option value="completed">Completed</option></select></article>;
+  return <article className="group grid gap-4 rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-5 shadow-[0_4px_16px_hsl(190_20%_20%/.03)] hover:border-[hsl(var(--accent-foreground)/.45)] sm:grid-cols-[86px_1fr_auto] sm:items-center" data-testid={`card-meeting-${meeting.id}`}><div className="flex items-center gap-3 sm:block"><div className="font-mono text-[11px] font-bold uppercase tracking-[.08em] text-[hsl(var(--accent-foreground))]">{formatDate(meeting.date).split(' ')[1]}</div><div className="font-serif text-[29px] leading-none">{formatDate(meeting.date).split(' ')[0]}</div><div className="mt-1 text-[10px] text-[hsl(var(--muted-foreground))]">{formatTime(meeting.date)}</div></div><div className="border-l-0 sm:border-l sm:pl-5"><div className="mb-2 flex flex-wrap items-center gap-2"><StatusPill tone={toneForStatus(meeting.status)}>{meeting.status.replace('_', ' ')}</StatusPill><span className="text-[11px] text-[hsl(var(--muted-foreground))]">{meeting.countryName}</span></div><h3 className="font-serif text-[20px]"><Link to="/meeting/$meetingId" params={{ meetingId: String(meeting.id) }} className="hover:text-[hsl(var(--primary))]" data-testid={`link-meeting-detail-${meeting.id}`}>{meeting.title}</Link></h3><div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-[hsl(var(--muted-foreground))]"><span>{meeting.actionArea}</span><span>{meeting.participants} participants</span><span>{openActionItems} open action{openActionItems === 1 ? '' : 's'}</span>{meeting.owner && <span>Owner: {meeting.owner}</span>}</div></div><select value={meeting.status} onChange={(event) => updateStatus(event.target.value as 'scheduled' | 'completed' | 'follow_up')} disabled={updateMeeting.isPending} className="h-9 rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--background))] px-2 text-[11px] font-bold" aria-label={`Update status for ${meeting.title}`} data-testid={`select-meeting-status-${meeting.id}`}><option value="scheduled">Scheduled</option><option value="follow_up">Follow-up</option><option value="completed">Completed</option></select></article>;
 }
 
 export function AgreementsPage() {
@@ -472,8 +481,38 @@ export function AgreementsPage() {
 
 function AgreementRow({ agreement }: { agreement: Agreement }) {
   const updateAgreement = useUpdateAgreement();
+  const updateLifecycle = useUpdateAgreementLifecycle();
+  const [transitioning, setTransitioning] = useState<string | null>(null);
   const updateStatus = (status: 'draft' | 'review' | 'signed' | 'archived') => updateAgreement.mutate({ id: agreement.id, data: { status } }, { onSuccess: () => { void queryClient.invalidateQueries({ queryKey: getListAgreementsQueryKey() }); void queryClient.invalidateQueries({ queryKey: getListActivityQueryKey() }); } });
-  return <div className="grid gap-3 border-b border-[hsl(var(--border))] px-5 py-4 last:border-0 hover:bg-[hsl(var(--muted)/.38)] md:grid-cols-[1.4fr_.9fr_1fr_140px_110px] md:items-center md:gap-4" data-testid={`row-agreement-${agreement.id}`}><div><p className="text-xs font-bold">{agreement.name}</p><p className="mt-1 text-[11px] text-[hsl(var(--muted-foreground))]">Updated {formatDate(agreement.updatedAt)}</p></div><div className="hidden text-xs md:block">{agreement.type}</div><div className="flex justify-between text-xs md:block"><span className="text-[10px] uppercase tracking-[.08em] text-[hsl(var(--muted-foreground))] md:hidden">Country</span>{agreement.countryName}</div><div className="flex justify-between md:block"><span className="text-[10px] uppercase tracking-[.08em] text-[hsl(var(--muted-foreground))] md:hidden">Status</span><select value={agreement.status} onChange={(event) => updateStatus(event.target.value as 'draft' | 'review' | 'signed' | 'archived')} disabled={updateAgreement.isPending} className="h-8 rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--background))] px-2 text-[11px] font-bold" aria-label={`Update status for ${agreement.name}`} data-testid={`select-agreement-status-${agreement.id}`}><option value="draft">Draft</option><option value="review">In review</option><option value="signed">Signed</option><option value="archived">Archived</option></select></div><div className="flex justify-between text-xs md:block"><span className="text-[10px] uppercase tracking-[.08em] text-[hsl(var(--muted-foreground))] md:hidden">Renewal</span>{formatDate(agreement.renewalDate, true)}</div></div>;
+  const lifecycle = agreement.lifecycleState ?? 'draft';
+  const lifecycleTransitions: Record<string, string[]> = {
+    draft: ['review'],
+    review: ['approved', 'draft'],
+    approved: ['signed', 'review'],
+    signed: ['archived'],
+    archived: [],
+  };
+  const handleLifecycle = (next: string) => {
+    setTransitioning(next);
+    updateLifecycle.mutate({ id: agreement.id, data: { lifecycleState: next as AgreementLifecycleState } }, {
+      onSuccess: () => {
+        setTransitioning(null);
+        void queryClient.invalidateQueries({ queryKey: getListAgreementsQueryKey() });
+        void queryClient.invalidateQueries({ queryKey: getListActivityQueryKey() });
+      },
+      onError: () => setTransitioning(null),
+    });
+  };
+  const friendlyTransition = (state: string) => state === 'approved' ? 'approve' : state === 'signed' ? 'sign' : state === 'archived' ? 'archive' : state;
+  return <div className={`grid gap-3 border-b border-[hsl(var(--border))] px-5 py-4 last:border-0 hover:bg-[hsl(var(--muted)/.38)] md:grid-cols-[1.4fr_.9fr_1fr_120px_150px_110px] md:items-center md:gap-4 ${transitioning ? 'opacity-60' : ''}`} data-testid={`row-agreement-${agreement.id}`}><div><p className="text-xs font-bold">{agreement.name}</p><p className="mt-1 text-[11px] text-[hsl(var(--muted-foreground))]">Updated {formatDate(agreement.updatedAt)}</p></div><div className="hidden text-xs md:block">{agreement.type}</div><div className="flex justify-between text-xs md:block"><span className="text-[10px] uppercase tracking-[.08em] text-[hsl(var(--muted-foreground))] md:hidden">Country</span>{agreement.countryName}</div><div className="flex justify-between md:block"><span className="text-[10px] uppercase tracking-[.08em] text-[hsl(var(--muted-foreground))] md:hidden">Status</span><select value={agreement.status} onChange={(event) => updateStatus(event.target.value as 'draft' | 'review' | 'signed' | 'archived')} disabled={updateAgreement.isPending} className="h-8 rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--background))] px-2 text-[11px] font-bold" aria-label={`Update status for ${agreement.name}`} data-testid={`select-agreement-status-${agreement.id}`}><option value="draft">Draft</option><option value="review">In review</option><option value="signed">Signed</option><option value="archived">Archived</option></select></div><div className="flex justify-between md:block"><span className="text-[10px] uppercase tracking-[.08em] text-[hsl(var(--muted-foreground))] md:hidden">Lifecycle</span><StatusPill tone={lifecycleTone(lifecycle)}>{lifecycle}</StatusPill></div><div className="flex justify-end md:block"><div className="flex flex-wrap items-center gap-1.5">{lifecycleTransitions[lifecycle] && lifecycleTransitions[lifecycle].map((next) => <button key={next} onClick={() => handleLifecycle(next)} disabled={updateLifecycle.isPending} className="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))] px-2 py-1 text-[10px] font-bold text-[hsl(var(--primary))] hover:bg-[hsl(var(--muted))]" data-testid={`button-agreement-lifecycle-${next}-${agreement.id}`}>{friendlyTransition(next)}</button>)}</div></div></div>;
+}
+
+function lifecycleTone(state: string): 'neutral' | 'gold' | 'green' | 'red' | 'blue' {
+  if (['signed'].includes(state)) return 'green';
+  if (['draft', 'review'].includes(state)) return 'gold';
+  if (['archived'].includes(state)) return 'red';
+  if (['approved'].includes(state)) return 'blue';
+  return 'neutral';
 }
 
 export function SettingsPage() {
@@ -502,6 +541,7 @@ const TABS = [
   { id: 'news', label: 'News' },
   { id: 'government', label: 'Government' },
   { id: 'organizations', label: 'Organizations' },
+  { id: 'strategies', label: 'Strategies' },
   { id: 'tasks', label: 'Tasks' },
   { id: 'analytics', label: 'Analytics' },
 ] as const;
@@ -582,7 +622,7 @@ function MeetingsList({ countryId }: { countryId: number }) {
       ) : meetings.length ? (
         meetings.map((meeting) => (
           <div key={meeting.id} className="rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-4 hover:bg-[hsl(var(--muted)/.38)]">
-            <p className="text-sm font-bold">{meeting.title}</p>
+            <p className="text-sm font-bold"><Link to="/meeting/$meetingId" params={{ meetingId: String(meeting.id) }} className="hover:text-[hsl(var(--primary))]" data-testid={`link-meeting-detail-${meeting.id}`}>{meeting.title}</Link></p>
             <p className="mt-1 text-xs text-[hsl(var(--muted-foreground))]">{formatDate(meeting.date)} · {meeting.status}</p>
           </div>
         ))
@@ -983,6 +1023,7 @@ export function CountryDetailPage() {
         {activeTab === 'news' && <NewsList countryId={id} />}
         {activeTab === 'government' && <GovernmentTab countryId={id} />}
         {activeTab === 'organizations' && <OrganizationsTab countryId={id} />}
+        {activeTab === 'strategies' && <StrategyPipeline countryId={id} />}
         {['tasks', 'analytics'].includes(activeTab) && (
           <EmptyPlaceholder
             icon={BarChart2}

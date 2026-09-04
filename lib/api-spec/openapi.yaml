@@ -2062,6 +2062,14 @@ components:
           - string
           - 'null'
           format: date
+        lifecycleState:
+          type: string
+          enum:
+          - draft
+          - review
+          - approved
+          - signed
+          - archived
     AgreementInput:
       type: object
       required:

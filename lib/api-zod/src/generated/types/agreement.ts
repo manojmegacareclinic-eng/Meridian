@@ -5,6 +5,7 @@
  * Global Diplomatic Relations platform API
  * OpenAPI spec version: 0.1.0
  */
+import type { AgreementLifecycleState } from './agreementLifecycleState';
 import type { AgreementStatus } from './agreementStatus';
 
 export interface Agreement {
@@ -16,4 +17,5 @@ export interface Agreement {
   updatedAt: Date;
   /** @nullable */
   renewalDate?: Date | null;
+  lifecycleState?: AgreementLifecycleState;
 }

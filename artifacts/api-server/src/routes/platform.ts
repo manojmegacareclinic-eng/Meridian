@@ -296,6 +296,7 @@ router.get("/agreements", async (req, res): Promise<void> => {
   const rows = await db.select({
     id: agreementsTable.id, name: agreementsTable.name, type: agreementsTable.type, countryName: countriesTable.name,
     status: agreementsTable.status, updatedAt: agreementsTable.updatedAt, renewalDate: agreementsTable.renewalDate,
+    lifecycleState: agreementsTable.lifecycleState,
   }).from(agreementsTable).innerJoin(countriesTable, eq(agreementsTable.countryId, countriesTable.id))
     .where(filters.length ? and(...filters) : undefined).orderBy(desc(agreementsTable.updatedAt));
   res.json(ListAgreementsResponse.parse(rows));

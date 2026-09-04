@@ -15,11 +15,13 @@ import { Route as AgreementsRouteImport } from './routes/agreements'
 import { Route as AuditRouteImport } from './routes/audit'
 import { Route as ContactsRouteImport } from './routes/contacts'
 import { Route as CountriesRouteImport } from './routes/countries'
+import { Route as DrStrategiesRouteImport } from './routes/dr-strategies'
 import { Route as MapRouteImport } from './routes/map'
 import { Route as MeetingsRouteImport } from './routes/meetings'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as CountriesIndexRouteImport } from './routes/countries/index'
 import { Route as CountryCountryIdRouteImport } from './routes/country.$countryId'
+import { Route as MeetingMeetingIdRouteImport } from './routes/meeting.$meetingId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -51,6 +53,11 @@ const CountriesRoute = CountriesRouteImport.update({
   path: '/countries',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DrStrategiesRoute = DrStrategiesRouteImport.update({
+  id: '/dr-strategies',
+  path: '/dr-strategies',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const MapRoute = MapRouteImport.update({
   id: '/map',
   path: '/map',
@@ -76,6 +83,11 @@ const CountryCountryIdRoute = CountryCountryIdRouteImport.update({
   path: '/country/$countryId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MeetingMeetingIdRoute = MeetingMeetingIdRouteImport.update({
+  id: '/meeting/$meetingId',
+  path: '/meeting/$meetingId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -84,10 +96,12 @@ export interface FileRoutesByFullPath {
   '/audit': typeof AuditRoute
   '/contacts': typeof ContactsRoute
   '/countries': typeof CountriesRouteWithChildren
+  '/dr-strategies': typeof DrStrategiesRoute
   '/map': typeof MapRoute
   '/meetings': typeof MeetingsRoute
   '/settings': typeof SettingsRoute
   '/country/$countryId': typeof CountryCountryIdRoute
+  '/meeting/$meetingId': typeof MeetingMeetingIdRoute
   '/countries/': typeof CountriesIndexRoute
 }
 export interface FileRoutesByTo {
@@ -96,10 +110,12 @@ export interface FileRoutesByTo {
   '/agreements': typeof AgreementsRoute
   '/audit': typeof AuditRoute
   '/contacts': typeof ContactsRoute
+  '/dr-strategies': typeof DrStrategiesRoute
   '/map': typeof MapRoute
   '/meetings': typeof MeetingsRoute
   '/settings': typeof SettingsRoute
   '/country/$countryId': typeof CountryCountryIdRoute
+  '/meeting/$meetingId': typeof MeetingMeetingIdRoute
   '/countries': typeof CountriesIndexRoute
 }
 export interface FileRoutesById {
@@ -110,10 +126,12 @@ export interface FileRoutesById {
   '/audit': typeof AuditRoute
   '/contacts': typeof ContactsRoute
   '/countries': typeof CountriesRouteWithChildren
+  '/dr-strategies': typeof DrStrategiesRoute
   '/map': typeof MapRoute
   '/meetings': typeof MeetingsRoute
   '/settings': typeof SettingsRoute
   '/country/$countryId': typeof CountryCountryIdRoute
+  '/meeting/$meetingId': typeof MeetingMeetingIdRoute
   '/countries/': typeof CountriesIndexRoute
 }
 export interface FileRouteTypes {
@@ -125,10 +143,12 @@ export interface FileRouteTypes {
     | '/audit'
     | '/contacts'
     | '/countries'
+    | '/dr-strategies'
     | '/map'
     | '/meetings'
     | '/settings'
     | '/country/$countryId'
+    | '/meeting/$meetingId'
     | '/countries/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -137,10 +157,12 @@ export interface FileRouteTypes {
     | '/agreements'
     | '/audit'
     | '/contacts'
+    | '/dr-strategies'
     | '/map'
     | '/meetings'
     | '/settings'
     | '/country/$countryId'
+    | '/meeting/$meetingId'
     | '/countries'
   id:
     | '__root__'
@@ -150,10 +172,12 @@ export interface FileRouteTypes {
     | '/audit'
     | '/contacts'
     | '/countries'
+    | '/dr-strategies'
     | '/map'
     | '/meetings'
     | '/settings'
     | '/country/$countryId'
+    | '/meeting/$meetingId'
     | '/countries/'
   fileRoutesById: FileRoutesById
 }
@@ -164,10 +188,12 @@ export interface RootRouteChildren {
   AuditRoute: typeof AuditRoute
   ContactsRoute: typeof ContactsRoute
   CountriesRoute: typeof CountriesRouteWithChildren
+  DrStrategiesRoute: typeof DrStrategiesRoute
   MapRoute: typeof MapRoute
   MeetingsRoute: typeof MeetingsRoute
   SettingsRoute: typeof SettingsRoute
   CountryCountryIdRoute: typeof CountryCountryIdRoute
+  MeetingMeetingIdRoute: typeof MeetingMeetingIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -214,6 +240,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CountriesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/dr-strategies': {
+      id: '/dr-strategies'
+      path: '/dr-strategies'
+      fullPath: '/dr-strategies'
+      preLoaderRoute: typeof DrStrategiesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/map': {
       id: '/map'
       path: '/map'
@@ -249,6 +282,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CountryCountryIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/meeting/$meetingId': {
+      id: '/meeting/$meetingId'
+      path: '/meeting/$meetingId'
+      fullPath: '/meeting/$meetingId'
+      preLoaderRoute: typeof MeetingMeetingIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -271,10 +311,12 @@ const rootRouteChildren: RootRouteChildren = {
   AuditRoute: AuditRoute,
   ContactsRoute: ContactsRoute,
   CountriesRoute: CountriesRouteWithChildren,
+  DrStrategiesRoute: DrStrategiesRoute,
   MapRoute: MapRoute,
   MeetingsRoute: MeetingsRoute,
   SettingsRoute: SettingsRoute,
   CountryCountryIdRoute: CountryCountryIdRoute,
+  MeetingMeetingIdRoute: MeetingMeetingIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

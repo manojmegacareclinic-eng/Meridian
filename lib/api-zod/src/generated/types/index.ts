@@ -23,6 +23,7 @@ export * from './adminUserInputRole';
 export * from './agreement';
 export * from './agreementInput';
 export * from './agreementInputStatus';
+export * from './agreementLifecycleState';
 export * from './agreementLifecycleUpdate';
 export * from './agreementLifecycleUpdateLifecycleState';
 export * from './agreementStatus';

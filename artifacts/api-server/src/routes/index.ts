@@ -32,15 +32,18 @@ router.use(requireWriteRole());
 router.use(platformRouter);
 router.use("/documents", documentsRouter);
 router.use("/news", newsRouter);
-router.use("/ministries", ministriesRouter);
-router.use("/positions", positionsRouter);
-router.use("/terms", officeTermsRouter);
-router.use("/organizations", organizationsRouter);
-router.use("/dr-strategies", drStrategiesRouter);
-router.use("/meetings", meetingAgendaRouter);
-router.use("/meetings", meetingParticipantsRouter);
-router.use("/meetings", meetingTranscriptsRouter);
-router.use("/action-items", actionItemsRouter);
-router.use("/agreements", agreementLifecycleRouter);
+// Resource routers define their full absolute paths, so they are mounted at
+// the root (no prefix) — mounting them with a prefix would strip it and cause
+// every route to 404.
+router.use(ministriesRouter);
+router.use(positionsRouter);
+router.use(officeTermsRouter);
+router.use(organizationsRouter);
+router.use(drStrategiesRouter);
+router.use(meetingAgendaRouter);
+router.use(meetingParticipantsRouter);
+router.use(meetingTranscriptsRouter);
+router.use(actionItemsRouter);
+router.use(agreementLifecycleRouter);
 
 export default router;

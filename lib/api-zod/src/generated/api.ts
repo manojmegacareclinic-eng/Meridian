@@ -318,7 +318,8 @@ export const ListAgreementsResponseItem = zod.object({
   "countryName": zod.string(),
   "status": zod.enum(['draft', 'review', 'signed', 'archived']),
   "updatedAt": zod.coerce.date(),
-  "renewalDate": zod.coerce.date().nullish()
+  "renewalDate": zod.coerce.date().nullish(),
+  "lifecycleState": zod.enum(['draft', 'review', 'approved', 'signed', 'archived']).optional()
 })
 export const ListAgreementsResponse = zod.array(ListAgreementsResponseItem)
 
@@ -345,7 +346,8 @@ export const CreateAgreementResponse = zod.object({
   "countryName": zod.string(),
   "status": zod.enum(['draft', 'review', 'signed', 'archived']),
   "updatedAt": zod.coerce.date(),
-  "renewalDate": zod.coerce.date().nullish()
+  "renewalDate": zod.coerce.date().nullish(),
+  "lifecycleState": zod.enum(['draft', 'review', 'approved', 'signed', 'archived']).optional()
 })
 
 
@@ -374,7 +376,8 @@ export const UpdateAgreementResponse = zod.object({
   "countryName": zod.string(),
   "status": zod.enum(['draft', 'review', 'signed', 'archived']),
   "updatedAt": zod.coerce.date(),
-  "renewalDate": zod.coerce.date().nullish()
+  "renewalDate": zod.coerce.date().nullish(),
+  "lifecycleState": zod.enum(['draft', 'review', 'approved', 'signed', 'archived']).optional()
 })
 
 
@@ -1806,7 +1809,8 @@ export const UpdateAgreementLifecycleResponse = zod.object({
   "countryName": zod.string(),
   "status": zod.enum(['draft', 'review', 'signed', 'archived']),
   "updatedAt": zod.coerce.date(),
-  "renewalDate": zod.coerce.date().nullish()
+  "renewalDate": zod.coerce.date().nullish(),
+  "lifecycleState": zod.enum(['draft', 'review', 'approved', 'signed', 'archived']).optional()
 })
 
 

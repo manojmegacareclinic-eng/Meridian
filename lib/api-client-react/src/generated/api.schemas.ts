@@ -278,6 +278,17 @@ export const AgreementStatus = {
   archived: 'archived',
 } as const;
 
+export type AgreementLifecycleState = typeof AgreementLifecycleState[keyof typeof AgreementLifecycleState];
+
+
+export const AgreementLifecycleState = {
+  draft: 'draft',
+  review: 'review',
+  approved: 'approved',
+  signed: 'signed',
+  archived: 'archived',
+} as const;
+
 export interface Agreement {
   id: number;
   name: string;
@@ -287,6 +298,7 @@ export interface Agreement {
   updatedAt: string;
   /** @nullable */
   renewalDate?: string | null;
+  lifecycleState?: AgreementLifecycleState;
 }
 
 export type AgreementInputStatus = typeof AgreementInputStatus[keyof typeof AgreementInputStatus];
