@@ -203,11 +203,13 @@ router.patch("/countries/:id", async (req, res): Promise<void> => {
   const [existing] = await db.select(countryFields).from(countriesTable).where(eq(countriesTable.id, params.data.id));
   if (!existing) { res.status(404).json({ error: "Country not found." }); return; }
   const assignmentIds = [
-    parsed.data.primaryOwnerUserId,
-    parsed.data.secondaryOwnerUserId,
-    parsed.data.reviewerUserId,
-    parsed.data.regionalCoordinatorUserId,
-  ].filter((x): x is string => typeof x === "string");
+    ...new Set([
+      parsed.data.primaryOwnerUserId,
+      parsed.data.secondaryOwnerUserId,
+      parsed.data.reviewerUserId,
+      parsed.data.regionalCoordinatorUserId,
+    ].filter((x): x is string => typeof x === "string")),
+  ];
   if (assignmentIds.length) {
     const found = await db.select({ id: userTable.id }).from(userTable).where(inArray(userTable.id, assignmentIds));
     if (found.length !== assignmentIds.length) {
