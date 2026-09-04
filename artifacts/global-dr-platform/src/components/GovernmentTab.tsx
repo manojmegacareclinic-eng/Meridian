@@ -28,7 +28,7 @@ import {
   getListPositionsQueryKey,
   getListOfficeTermsQueryKey,
 } from "@workspace/api-client-react";
-import type { Ministry, MinistryInput, Position, PositionInput, OfficeTerm, OfficeTermInput } from "@workspace/api-client-react";
+import type { MinistryInput, MinistryUpdate, PositionInput, PositionUpdate, OfficeTermInput, OfficeTermUpdate } from "@workspace/api-client-react";
 import { queryClient } from "@/lib/query";
 import { PrimaryButton, SecondaryButton, AddDialog, FormField, Select, inputClass, selectClass } from "@/App";
 
@@ -62,7 +62,7 @@ function TermItem({ term, onEdit, onDelete }: { term: any; onEdit: (term: any) =
   );
 }
 
-function TermList({ positionId, onAdd, onEdit, onDelete }: { positionId: number; onAdd: () => void; onEdit: (term: any) => void; onDelete: (id: number) => void }) {
+function TermList({ positionId, onAdd, onEdit, onDelete }: { positionId: number; onAdd: () => void; onEdit: (term: any) => void; onDelete: (id: number, positionId: number) => void }) {
   const termsQuery = useListOfficeTerms(positionId);
 
   return (
@@ -74,7 +74,7 @@ function TermList({ positionId, onAdd, onEdit, onDelete }: { positionId: number;
       ) : (
         <div className="space-y-2">
           {termsQuery.data!.map((term) => (
-            <TermItem key={term.id} term={term} onEdit={onEdit} onDelete={onDelete} />
+            <TermItem key={term.id} term={term} onEdit={onEdit} onDelete={(id) => onDelete(id, positionId)} />
           ))}
         </div>
       )}
@@ -82,7 +82,7 @@ function TermList({ positionId, onAdd, onEdit, onDelete }: { positionId: number;
   );
 }
 
-function PositionItem({ position, ministryId, onEdit, onDelete, onAddTerm }: { position: any; ministryId: number; onEdit: (position: any) => void; onDelete: (id: number) => void; onAddTerm: (positionId: number) => void }) {
+function PositionItem({ position, ministryId, onEdit, onDelete, onAddTerm, onEditTerm, onDeleteTerm }: { position: any; ministryId: number; onEdit: (position: any) => void; onDelete: (id: number, ministryId: number) => void; onAddTerm: (positionId: number) => void; onEditTerm: (term: any) => void; onDeleteTerm: (id: number, positionId: number) => void }) {
   const [expanded, setExpanded] = useState(false);
   const termsQuery = useListOfficeTerms(position.id);
 
@@ -98,7 +98,7 @@ function PositionItem({ position, ministryId, onEdit, onDelete, onAddTerm }: { p
           <div className="flex items-center gap-2">
             <button onClick={(e) => { e.stopPropagation(); onAddTerm(position.id); }} className="text-[hsl(var(--primary))] text-sm font-bold">+ Add Term</button>
             <button onClick={(e) => { e.stopPropagation(); onEdit(position); }} className="px-2 py-1 text-xs font-bold rounded hover:bg-[hsl(var(--muted))]">Edit</button>
-            <button onClick={(e) => { e.stopPropagation(); onDelete(position.id); }} className="px-2 py-1 text-xs font-bold rounded hover:bg-[hsl(var(--destructive)/.15)] text-red-500">Delete</button>
+            <button onClick={(e) => { e.stopPropagation(); onDelete(position.id, ministryId); }} className="px-2 py-1 text-xs font-bold rounded hover:bg-[hsl(var(--destructive)/.15)] text-red-500">Delete</button>
             {expanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
           </div>
         </div>
@@ -110,14 +110,14 @@ function PositionItem({ position, ministryId, onEdit, onDelete, onAddTerm }: { p
             <h5 className="font-bold text-sm">Office Terms</h5>
             <button onClick={() => onAddTerm(position.id)} className="px-2 py-1 text-xs font-bold rounded bg-[hsl(var(--primary))] text-white">+ Add Term</button>
           </div>
-          <TermList positionId={position.id} onAdd={() => {}} onEdit={() => {}} onDelete={() => {}} />
+          <TermList positionId={position.id} onAdd={() => onAddTerm(position.id)} onEdit={onEditTerm} onDelete={onDeleteTerm} />
         </div>
       )}
     </div>
   );
 }
 
-function PositionList({ ministry, onEdit, onDelete, onAddTerm }: { ministry: any; onEdit: (position: any) => void; onDelete: (id: number) => void; onAddTerm: (positionId: number) => void }) {
+function PositionList({ ministry, onEdit, onDelete, onAddTerm, onEditTerm, onDeleteTerm }: { ministry: any; onEdit: (position: any) => void; onDelete: (id: number, ministryId: number) => void; onAddTerm: (positionId: number) => void; onEditTerm: (term: any) => void; onDeleteTerm: (id: number, positionId: number) => void }) {
   const positionsQuery = useListPositions(ministry.id);
 
   return (
@@ -129,7 +129,7 @@ function PositionList({ ministry, onEdit, onDelete, onAddTerm }: { ministry: any
       ) : (
         <div className="space-y-2 p-4">
           {positionsQuery.data!.map((position) => (
-            <PositionItem key={position.id} position={position} ministryId={ministry.id} onEdit={onEdit} onDelete={onDelete} onAddTerm={onAddTerm} />
+            <PositionItem key={position.id} position={position} ministryId={ministry.id} onEdit={onEdit} onDelete={onDelete} onAddTerm={onAddTerm} onEditTerm={onEditTerm} onDeleteTerm={onDeleteTerm} />
           ))}
         </div>
       )}
@@ -137,7 +137,7 @@ function PositionList({ ministry, onEdit, onDelete, onAddTerm }: { ministry: any
   );
 }
 
-function MinistryItem({ ministry, onEdit, onDelete, onAddPosition }: { ministry: any; onEdit: (ministry: any) => void; onDelete: (id: number) => void; onAddPosition: (ministryId: number) => void }) {
+function MinistryItem({ ministry, onEdit, onDelete, onAddPosition, onEditPosition, onDeletePosition, onAddTerm, onEditTerm, onDeleteTerm }: { ministry: any; onEdit: (ministry: any) => void; onDelete: (id: number) => void; onAddPosition: (ministryId: number) => void; onEditPosition: (position: any) => void; onDeletePosition: (id: number, ministryId: number) => void; onAddTerm: (positionId: number) => void; onEditTerm: (term: any) => void; onDeleteTerm: (id: number, positionId: number) => void }) {
   const [expanded, setExpanded] = useState(false);
   const positionsQuery = useListPositions(ministry.id);
 
@@ -166,14 +166,14 @@ function MinistryItem({ ministry, onEdit, onDelete, onAddPosition }: { ministry:
             <h4 className="font-bold">Positions</h4>
             <button onClick={() => onAddPosition(ministry.id)} className="px-2 py-1 text-xs font-bold rounded bg-[hsl(var(--primary))] text-white">+ Add Position</button>
           </div>
-          <PositionList ministry={ministry} onEdit={() => {}} onDelete={() => {}} onAddTerm={() => {}} />
+          <PositionList ministry={ministry} onEdit={onEditPosition} onDelete={onDeletePosition} onAddTerm={onAddTerm} onEditTerm={onEditTerm} onDeleteTerm={onDeleteTerm} />
         </div>
       )}
     </div>
   );
 }
 
-function MinistryList({ countryId, onEdit, onDelete, onAddPosition }: { countryId: number; onEdit: (ministry: any) => void; onDelete: (id: number) => void; onAddPosition: (ministryId: number) => void }) {
+function MinistryList({ countryId, onEdit, onDelete, onAddPosition, onEditPosition, onDeletePosition, onAddTerm, onEditTerm, onDeleteTerm }: { countryId: number; onEdit: (ministry: any) => void; onDelete: (id: number) => void; onAddPosition: (ministryId: number) => void; onEditPosition: (position: any) => void; onDeletePosition: (id: number, ministryId: number) => void; onAddTerm: (positionId: number) => void; onEditTerm: (term: any) => void; onDeleteTerm: (id: number, positionId: number) => void }) {
   const ministriesQuery = useListMinistries({ countryId });
 
   return (
@@ -188,7 +188,7 @@ function MinistryList({ countryId, onEdit, onDelete, onAddPosition }: { countryI
       ) : (
         <div className="space-y-4">
           {ministriesQuery.data!.map((ministry) => (
-            <MinistryItem key={ministry.id} ministry={ministry} onEdit={onEdit} onDelete={onDelete} onAddPosition={onAddPosition} />
+            <MinistryItem key={ministry.id} ministry={ministry} onEdit={onEdit} onDelete={onDelete} onAddPosition={onAddPosition} onEditPosition={onEditPosition} onDeletePosition={onDeletePosition} onAddTerm={onAddTerm} onEditTerm={onEditTerm} onDeleteTerm={onDeleteTerm} />
           ))}
         </div>
       )}
@@ -207,6 +207,13 @@ export function GovernmentTab({ countryId }: { countryId: number }) {
   const [ministryDialog, setMinistryDialog] = useState<{ open: boolean; editing?: any }>({ open: false });
   const [positionDialog, setPositionDialog] = useState<{ open: boolean; ministryId?: number; editing?: any }>({ open: false });
   const [termDialog, setTermDialog] = useState<{ open: boolean; positionId?: number; editing?: any }>({ open: false });
+
+  const createPosition = useCreatePosition();
+  const updatePosition = useUpdatePosition();
+  const deletePosition = useDeletePosition();
+  const createTerm = useCreateOfficeTerm();
+  const updateTerm = useUpdateOfficeTerm();
+  const deleteTerm = useDeleteOfficeTerm();
 
   const [ministryForm, setMinistryForm] = useState({ name: "", type: "" });
   const [positionForm, setPositionForm] = useState({ title: "", description: "", sortOrder: 0 });
@@ -237,16 +244,26 @@ export function GovernmentTab({ countryId }: { countryId: number }) {
   const resetPositionForm = () => setPositionForm({ title: "", description: "", sortOrder: 0 });
   const resetTermForm = () => setTermForm({ personName: "", personEmail: "", personPhone: "", startDate: new Date().toISOString().slice(0, 10), endDate: "" });
 
+  const invalidateMinistries = () => void queryClient.invalidateQueries({ queryKey: getListMinistriesQueryKey({ countryId }) });
+  const invalidatePositions = (ministryId: number) => void queryClient.invalidateQueries({ queryKey: getListPositionsQueryKey(ministryId) });
+  const invalidateTerms = (positionId: number) => void queryClient.invalidateQueries({ queryKey: getListOfficeTermsQueryKey(positionId) });
+
   const handleCreateMinistry = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    const data: MinistryInput = { countryId, name: ministryForm.name, type: ministryForm.type };
+    createMinistry.mutate({ data }, { onSuccess: () => { setMinistryDialog({ open: false }); resetMinistryForm(); invalidateMinistries(); } });
   };
 
   const handleUpdateMinistry = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (!ministryDialog.editing) return;
+    const data: MinistryUpdate = { name: ministryForm.name, type: ministryForm.type };
+    updateMinistry.mutate({ id: ministryDialog.editing.id, data }, { onSuccess: () => { setMinistryDialog({ open: false }); resetMinistryForm(); invalidateMinistries(); } });
   };
 
   const handleDeleteMinistry = (id: number) => {
     if (!confirm("Delete this ministry and all its positions/terms?")) return;
+    deleteMinistry.mutate({ id }, { onSuccess: invalidateMinistries });
   };
 
   const openEditMinistry = (m: any) => {
@@ -266,11 +283,22 @@ export function GovernmentTab({ countryId }: { countryId: number }) {
 
   const handleCreatePosition = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!positionDialog.ministryId) return;
+    const ministryId = positionDialog.ministryId;
+    if (!ministryId) return;
+    const data: PositionInput = { ministryId, title: positionForm.title, description: positionForm.description || undefined, sortOrder: positionForm.sortOrder };
+    createPosition.mutate({ id: ministryId, data }, { onSuccess: () => { setPositionDialog({ open: false }); resetPositionForm(); invalidatePositions(ministryId); invalidateMinistries(); } });
   };
 
-  const handleDeletePosition = (id: number) => {
+  const handleUpdatePosition = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!positionDialog.editing) return;
+    const data: PositionUpdate = { title: positionForm.title, description: positionForm.description || undefined, sortOrder: positionForm.sortOrder };
+    updatePosition.mutate({ id: positionDialog.editing.id, data }, { onSuccess: () => { setPositionDialog({ open: false }); resetPositionForm(); invalidatePositions(positionDialog.editing.ministryId); } });
+  };
+
+  const handleDeletePosition = (id: number, ministryId: number) => {
     if (!confirm("Delete this position and all its terms?")) return;
+    deletePosition.mutate({ id }, { onSuccess: () => invalidatePositions(ministryId) });
   };
 
   const openAddTerm = (positionId: number) => {
@@ -291,11 +319,35 @@ export function GovernmentTab({ countryId }: { countryId: number }) {
 
   const handleCreateTerm = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!termDialog.positionId) return;
+    const positionId = termDialog.positionId;
+    if (!positionId) return;
+    const data: OfficeTermInput = {
+      positionId,
+      personName: termForm.personName,
+      personEmail: termForm.personEmail || undefined,
+      personPhone: termForm.personPhone || undefined,
+      startDate: termForm.startDate,
+      endDate: termForm.endDate || undefined,
+    };
+    createTerm.mutate({ id: positionId, data }, { onSuccess: () => { setTermDialog({ open: false }); resetTermForm(); invalidateTerms(positionId); } });
   };
 
-  const handleDeleteTerm = (id: number) => {
+  const handleUpdateTerm = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!termDialog.editing) return;
+    const data: OfficeTermUpdate = {
+      personName: termForm.personName,
+      personEmail: termForm.personEmail || undefined,
+      personPhone: termForm.personPhone || undefined,
+      startDate: termForm.startDate,
+      endDate: termForm.endDate || null,
+    };
+    updateTerm.mutate({ id: termDialog.editing.id, data }, { onSuccess: () => { setTermDialog({ open: false }); resetTermForm(); invalidateTerms(termDialog.editing.positionId); } });
+  };
+
+  const handleDeleteTerm = (id: number, positionId: number) => {
     if (!confirm("Delete this office term?")) return;
+    deleteTerm.mutate({ id }, { onSuccess: () => invalidateTerms(positionId) });
   };
 
   const ministries = ministriesQuery.data ?? [];
@@ -314,6 +366,11 @@ export function GovernmentTab({ countryId }: { countryId: number }) {
         onEdit={openEditMinistry}
         onDelete={handleDeleteMinistry}
         onAddPosition={openAddPosition}
+        onEditPosition={openEditPosition}
+        onDeletePosition={handleDeletePosition}
+        onAddTerm={openAddTerm}
+        onEditTerm={openEditTerm}
+        onDeleteTerm={handleDeleteTerm}
       />
 
       <AddDialog open={ministryDialog.open} title={ministryDialog.editing ? "Edit Ministry" : "Add Ministry"} onClose={() => { setMinistryDialog({ open: false }); resetMinistryForm(); }}>
@@ -337,7 +394,7 @@ export function GovernmentTab({ countryId }: { countryId: number }) {
       </AddDialog>
 
       <AddDialog open={positionDialog.open} title={positionDialog.editing ? "Edit Position" : "Add Position"} onClose={() => { setPositionDialog({ open: false }); resetPositionForm(); }}>
-        <form onSubmit={handleCreatePosition} className="space-y-4">
+        <form onSubmit={positionDialog.editing ? handleUpdatePosition : handleCreatePosition} className="space-y-4">
           <FormField label="Position Title">
             <input required value={positionForm.title} onChange={(e) => setPositionForm((f) => ({ ...f, title: e.target.value }))} placeholder="e.g. Ambassador to the United Nations" className={inputClass} />
           </FormField>
@@ -355,7 +412,7 @@ export function GovernmentTab({ countryId }: { countryId: number }) {
       </AddDialog>
 
       <AddDialog open={termDialog.open} title={termDialog.editing ? "Edit Office Term" : "Add Office Term"} onClose={() => { setTermDialog({ open: false }); resetTermForm(); }}>
-        <form onSubmit={handleCreateTerm} className="space-y-4">
+        <form onSubmit={termDialog.editing ? handleUpdateTerm : handleCreateTerm} className="space-y-4">
           <FormField label="Person Name">
             <input required value={termForm.personName} onChange={(e) => setTermForm((f) => ({ ...f, personName: e.target.value }))} placeholder="Full name" className={inputClass} />
           </FormField>
