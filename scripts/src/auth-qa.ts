@@ -5,7 +5,7 @@ import http from "node:http";
 import { once } from "node:events";
 import { betterAuth } from "better-auth";
 import { eq, inArray } from "drizzle-orm";
-import { db, pool, activityTable, countriesTable, documentsTable, newsTable, userTable } from "@workspace/db";
+import { db, pool, activityTable, countriesTable, documentsTable, newsTable, userTable, meetingsTable, agreementsTable, drStrategiesTable } from "@workspace/db";
 import {
   buildAuthOptions,
   createAccount,
@@ -365,11 +365,127 @@ async function main() {
   const auditCountryUpdateBody = (await auditCountryUpdate.json().catch(() => ([]))) as { before?: { language?: string | null }; after?: { language?: string } }[];
   check("audit country update with before/after language", auditCountryUpdate.status === 200 && auditCountryUpdateBody.some((r) => r.before?.language === null && r.after?.language === "English"), `status=${auditCountryUpdate.status}`);
 
+  // 38-49. Phase 3: DR strategies, expanded meetings, action items, and lifecycle.
+  // Setup fixtures: a meeting, an agreement, and a strategy sharing the disposable country.
+
+  // 38. POST /api/meetings
+  const createMeeting = await fetch(`${origin}/api/meetings`, { method: "POST", headers: { "content-type": "application/json", cookie: adminJar.header() }, body: JSON.stringify({ title: "QA bilateral", countryId, date: new Date().toISOString(), actionArea: "Trade & investment" }) });
+  const meetingBody = (await createMeeting.json().catch(() => ({}))) as { id: number; status: string };
+  check("POST /api/meetings -> 201 scheduled", createMeeting.status === 201 && meetingBody.status === "scheduled", `status=${createMeeting.status}`);
+  const meetingId = meetingBody.id;
+
+  // 39. POST /api/agreements
+  const createAgreement = await fetch(`${origin}/api/agreements`, { method: "POST", headers: { "content-type": "application/json", cookie: adminJar.header() }, body: JSON.stringify({ name: "QA Memorandum", type: "Memorandum of understanding", countryId }) });
+  const agreementBody = (await createAgreement.json().catch(() => ({}))) as { id: number; status: string };
+  check("POST /api/agreements -> 201 draft", createAgreement.status === 201 && agreementBody.status === "draft", `status=${createAgreement.status}`);
+  const agreementId = agreementBody.id;
+
+  // 40. POST /api/dr-strategies (default uskdr pipeline gets 5 stages)
+  const createStrategy = await fetch(`${origin}/api/dr-strategies`, { method: "POST", headers: { "content-type": "application/json", cookie: adminJar.header() }, body: JSON.stringify({ countryId, name: "QA USKDR", type: "uskdr" }) });
+  const strategyBody = (await createStrategy.json().catch(() => ({}))) as { id: number; type?: string };
+  check("POST /api/dr-strategies -> 201", createStrategy.status === 201 && strategyBody.type === "uskdr", `status=${createStrategy.status}`);
+  const strategyId = strategyBody.id;
+
+  // 41. GET /api/dr-strategies?countryId lists it
+  const listStrategies = await fetch(`${origin}/api/dr-strategies?countryId=${countryId}`, { headers: { cookie: adminJar.header() } });
+  const listStrategiesBody = (await listStrategies.json().catch(() => [])) as { id: number }[];
+  check("GET /api/dr-strategies?countryId -> includes strategy", listStrategies.status === 200 && listStrategiesBody.some((s) => s.id === strategyId), `status=${listStrategies.status} count=${listStrategiesBody.length}`);
+
+  // 42. GET /api/dr-strategies/:id includes default pipeline stages
+  const getStrategy = await fetch(`${origin}/api/dr-strategies/${strategyId}`, { headers: { cookie: adminJar.header() } });
+  const getStrategyBody = (await getStrategy.json().catch(() => ({}))) as { stages?: unknown[] };
+  check("GET /api/dr-strategies/:id -> 5 default stages", getStrategy.status === 200 && (getStrategyBody.stages ?? []).length === 5, `status=${getStrategy.status} stages=${getStrategyBody.stages?.length}`);
+
+  // 43. PATCH /api/dr-strategies/:id (deactivate)
+  const patchStrategy = await fetch(`${origin}/api/dr-strategies/${strategyId}`, { method: "PATCH", headers: { "content-type": "application/json", cookie: adminJar.header() }, body: JSON.stringify({ isActive: false }) });
+  const patchStrategyBody = (await patchStrategy.json().catch(() => ({}))) as { isActive?: boolean };
+  check("PATCH /api/dr-strategies/:id -> deactivated", patchStrategy.status === 200 && patchStrategyBody.isActive === false, `status=${patchStrategy.status}`);
+
+  // 44. DELETE /api/dr-strategies/:id
+  const deleteStrategy = await fetch(`${origin}/api/dr-strategies/${strategyId}`, { method: "DELETE", headers: { cookie: adminJar.header() } });
+  check("DELETE /api/dr-strategies/:id -> 200", deleteStrategy.status === 200, `got ${deleteStrategy.status}`);
+
+  // 45. Meeting sub-resources: agenda, participants, transcripts, action items
+  const createAgenda = await fetch(`${origin}/api/meetings/${meetingId}/agenda`, { method: "POST", headers: { "content-type": "application/json", cookie: adminJar.header() }, body: JSON.stringify({ meetingId, title: "Opening remarks" }) });
+  const agendaBody = (await createAgenda.json().catch(() => ({}))) as { id: number };
+  check("POST /api/meetings/:id/agenda -> 201", createAgenda.status === 201, `status=${createAgenda.status}`);
+  const agendaId = agendaBody.id;
+
+  const listAgenda = await fetch(`${origin}/api/meetings/${meetingId}/agenda`, { headers: { cookie: adminJar.header() } });
+  const listAgendaBody = (await listAgenda.json().catch(() => [])) as { id: number }[];
+  check("GET /api/meetings/:id/agenda -> includes item", listAgenda.status === 200 && listAgendaBody.some((a) => a.id === agendaId), `status=${listAgenda.status} count=${listAgendaBody.length}`);
+
+  const createParticipant = await fetch(`${origin}/api/meetings/${meetingId}/participants`, { method: "POST", headers: { "content-type": "application/json", cookie: adminJar.header() }, body: JSON.stringify({ meetingId, name: "QA Delegate", role: "Lead" }) });
+  const participantBody = (await createParticipant.json().catch(() => ({}))) as { id: number };
+  check("POST /api/meetings/:id/participants -> 201", createParticipant.status === 201, `status=${createParticipant.status}`);
+  const participantId = participantBody.id;
+
+  const listParticipants = await fetch(`${origin}/api/meetings/${meetingId}/participants`, { headers: { cookie: adminJar.header() } });
+  const listParticipantsBody = (await listParticipants.json().catch(() => [])) as { id: number }[];
+  check("GET /api/meetings/:id/participants -> includes participant", listParticipants.status === 200 && listParticipantsBody.some((p) => p.id === participantId), `status=${listParticipants.status} count=${listParticipantsBody.length}`);
+
+  const createTranscript = await fetch(`${origin}/api/meetings/${meetingId}/transcripts`, { method: "POST", headers: { "content-type": "application/json", cookie: adminJar.header() }, body: JSON.stringify({ meetingId, authorId: qaUser.user.id, authorName: "QA User", content: "Minutes of the QA engagement.", type: "notes" }) });
+  const transcriptBody = (await createTranscript.json().catch(() => ({}))) as { id: number; type?: string };
+  check("POST /api/meetings/:id/transcripts -> 201 notes", createTranscript.status === 201 && transcriptBody.type === "notes", `status=${createTranscript.status}`);
+  const transcriptId = transcriptBody.id;
+
+  const listTranscripts = await fetch(`${origin}/api/meetings/${meetingId}/transcripts`, { headers: { cookie: adminJar.header() } });
+  const listTranscriptsBody = (await listTranscripts.json().catch(() => [])) as { id: number }[];
+  check("GET /api/meetings/:id/transcripts -> includes note", listTranscripts.status === 200 && listTranscriptsBody.some((t) => t.id === transcriptId), `status=${listTranscripts.status} count=${listTranscriptsBody.length}`);
+
+  const createActionItem = await fetch(`${origin}/api/meetings/${meetingId}/action-items`, { method: "POST", headers: { "content-type": "application/json", cookie: adminJar.header() }, body: JSON.stringify({ meetingId, description: "Follow up on QA bilateral", assignee: "QA User" }) });
+  const actionItemBody = (await createActionItem.json().catch(() => ({}))) as { id: number; status?: string };
+  check("POST /api/meetings/:id/action-items -> 201 pending", createActionItem.status === 201 && actionItemBody.status === "pending", `status=${createActionItem.status}`);
+  const actionItemId = actionItemBody.id;
+
+  const listActionItems = await fetch(`${origin}/api/meetings/${meetingId}/action-items`, { headers: { cookie: adminJar.header() } });
+  const listActionItemsBody = (await listActionItems.json().catch(() => [])) as { id: number }[];
+  check("GET /api/meetings/:id/action-items -> includes item", listActionItems.status === 200 && listActionItemsBody.some((a) => a.id === actionItemId), `status=${listActionItems.status} count=${listActionItemsBody.length}`);
+
+  // 46. POST /api/deliverables (linked to the action item)
+  const createDeliverable = await fetch(`${origin}/api/deliverables`, { method: "POST", headers: { "content-type": "application/json", cookie: adminJar.header() }, body: JSON.stringify({ actionItemId, title: "QA report" }) });
+  const deliverableBody = (await createDeliverable.json().catch(() => ({}))) as { id: number; actionItemId?: number };
+  check("POST /api/deliverables -> 201 linked to action item", createDeliverable.status === 201 && deliverableBody.actionItemId === actionItemId, `status=${createDeliverable.status}`);
+  const deliverableId = deliverableBody.id;
+
+  const listDeliverables = await fetch(`${origin}/api/deliverables?actionItemId=${actionItemId}`, { headers: { cookie: adminJar.header() } });
+  const listDeliverablesBody = (await listDeliverables.json().catch(() => [])) as { id: number }[];
+  check("GET /api/deliverables?actionItemId -> includes deliverable", listDeliverables.status === 200 && listDeliverablesBody.some((d) => d.id === deliverableId), `status=${listDeliverables.status} count=${listDeliverablesBody.length}`);
+
+  // 47. Agreement lifecycle transitions: draft -> review -> approved -> signed
+  const lcReview = await fetch(`${origin}/api/agreements/${agreementId}/lifecycle`, { method: "PATCH", headers: { "content-type": "application/json", cookie: adminJar.header() }, body: JSON.stringify({ lifecycleState: "review" }) });
+  const lcReviewBody = (await lcReview.json().catch(() => ({}))) as { lifecycleState?: string };
+  check("lifecycle draft -> review -> 200", lcReview.status === 200 && lcReviewBody.lifecycleState === "review", `status=${lcReview.status}`);
+
+  const lcApproved = await fetch(`${origin}/api/agreements/${agreementId}/lifecycle`, { method: "PATCH", headers: { "content-type": "application/json", cookie: adminJar.header() }, body: JSON.stringify({ lifecycleState: "approved" }) });
+  const lcApprovedBody = (await lcApproved.json().catch(() => ({}))) as { lifecycleState?: string };
+  check("lifecycle review -> approved -> 200", lcApproved.status === 200 && lcApprovedBody.lifecycleState === "approved", `status=${lcApproved.status}`);
+
+  const lcSigned = await fetch(`${origin}/api/agreements/${agreementId}/lifecycle`, { method: "PATCH", headers: { "content-type": "application/json", cookie: adminJar.header() }, body: JSON.stringify({ lifecycleState: "signed" }) });
+  const lcSignedBody = (await lcSigned.json().catch(() => ({}))) as { lifecycleState?: string };
+  check("lifecycle approved -> signed -> 200", lcSigned.status === 200 && lcSignedBody.lifecycleState === "signed", `status=${lcSigned.status}`);
+
+  // 48. Invalid lifecycle transition rejected (signed -> draft is not allowed)
+  const lcInvalid = await fetch(`${origin}/api/agreements/${agreementId}/lifecycle`, { method: "PATCH", headers: { "content-type": "application/json", cookie: adminJar.header() }, body: JSON.stringify({ lifecycleState: "draft" }) });
+  check("lifecycle signed -> draft rejected -> 400", lcInvalid.status === 400, `got ${lcInvalid.status}`);
+
+  // 49. Audit rows for the phase-3 mutations carry the actor
+  const auditStrategyCreate = await fetch(`${origin}/api/audit?entityType=dr_strategy`, { headers: { cookie: adminJar.header() } });
+  const auditStrategyBody = (await auditStrategyCreate.json().catch(() => [])) as { action?: string; after?: { name?: string } }[];
+  check("audit dr_strategy create row", auditStrategyCreate.status === 200 && auditStrategyBody.some((r) => r.action === "create" && r.after?.name === "QA USKDR"), `status=${auditStrategyCreate.status}`);
+
+  const auditLifecycle = await fetch(`${origin}/api/audit?entityType=agreement&entityId=${agreementId}`, { headers: { cookie: adminJar.header() } });
+  const auditLifecycleBody = (await auditLifecycle.json().catch(() => [])) as { title?: string }[];
+  check("audit agreement lifecycle update row", auditLifecycle.status === 200 && auditLifecycleBody.some((r) => (r.title ?? "").includes("lifecycle")), `status=${auditLifecycle.status}`);
+
   // 25 (renumbered). Cleanup: remove disposable users (cascades accounts/sessions/members)
   //     and the disposable country row (with its activity trail).
   await db.delete(userTable).where(inArray(userTable.email, QA_EMAILS));
   if (typeof adminPostBody.id === "number") {
-    // Delete news and documents first (FK to countries, no cascade)
+    // Delete phase-3 parents and news/documents first (FK to countries, no cascade)
+    await db.delete(drStrategiesTable).where(eq(drStrategiesTable.countryId, adminPostBody.id));
+    await db.delete(agreementsTable).where(eq(agreementsTable.countryId, adminPostBody.id));
+    await db.delete(meetingsTable).where(eq(meetingsTable.countryId, adminPostBody.id));
     await db.delete(newsTable).where(eq(newsTable.countryId, adminPostBody.id));
     await db.delete(documentsTable).where(eq(documentsTable.countryId, adminPostBody.id));
     // Activity sweep removes every audit row referencing the disposable country

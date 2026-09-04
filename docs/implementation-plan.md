@@ -1,8 +1,8 @@
 # Global Diplomatic Relations — Implementation Plan
 
 **Status:** Foundation running; MVP implementation in progress  
-**Last updated:** 30 August 2026  
-**Current next task:** Phase 3 — Diplomatic relations and engagement workflows.  
+**Last updated:** 04 September 2026  
+**Current next task:** Phase 4 — Deliverables, tasks, and notifications.  
 **Source brief:** `attached_assets/Pasted--Global-Diplomatic-Relations-Government-Engagement-Plat_1787756992171.txt`
 
 This is a living delivery plan for the Global Diplomatic Relations (GDP) platform. It translates the enterprise blueprint into an incremental plan that matches the current Replit project instead of requiring a wholesale rewrite.
@@ -104,7 +104,7 @@ and cleanup (`ALL PASS, 26`); demo and real-auth route-qa push the audit page (`
 
 ### Phase 3 — Diplomatic relations and engagement workflows
 
-**Status: `NEXT` — meeting and agreement records exist; configurable relationship strategies and full lifecycle automation remain.**
+**Status: `DONE` — delivered and QA-verified.**
 
 1. Add configurable DR strategies:
    - USKDR
@@ -115,11 +115,13 @@ and cleanup (`ALL PASS, 26`); demo and real-auth route-qa push the audit page (`
    - NGO Partnership
    - Refugee Partnership
    - University Partnership
-   - Honorary Doctorate
-2. Give each strategy its own visible pipeline stages.
-3. Expand meeting records to include agenda, participants, transcript, notes, AI summary, risk, attachments, and follow-up timeline.
-4. Connect completed meetings to action items and deliverables.
-5. Add document and agreement lifecycle states: draft, review, approved, signed, and archived.
+   - Custom ✓ (9 types, each with a default pipeline stage list; custom strategies accept free-form stages)
+2. Give each strategy its own visible pipeline stages. ✓ (`/dr-strategies` page with country-select + StagePipeline; stages rendered as a clickable pipeline with SLA/description/required-fields detail)
+3. Expand meeting records to include agenda, participants, transcript, notes, AI summary, risk, attachments, and follow-up timeline. ✓ (agenda/participants/transcripts sub-resources and `/meeting/:meetingId` tabbed detail view)
+4. Connect completed meetings to action items and deliverables. ✓ (action items + deliverables CRUD in the API and the meeting detail tabs)
+5. Add document and agreement lifecycle states: draft, review, approved, signed, and archived. ✓ (agreement lifecycle with validated transitions + lifecycle badge and transition buttons on `/agreements`)
+
+**Evidence:** `bun run typecheck` and `bun run build` clean; `auth-qa` ALL PASS 66/66 against the live DB (DR strategy CRUD + 5-stage default pipeline, meeting sub-resources, action items / deliverables, agreement lifecycle transitions incl. invalid-transition rejection, audit rows); `route-qa` ALL PASS 44/44 in demo mode (dr-strategies pipeline page, expanded meeting detail tabs, agreement lifecycle badge + transition buttons). QA surfaced and fixed three real backend defects: meetings `owner` nullable contract (OpenAPI + codegen), agreement-lifecycle response missing `countryName`, and sub-resource GET/action-items param-schema mismatches.
 
 ### Phase 4 — Deliverables, tasks, and notifications
 

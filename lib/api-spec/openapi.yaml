@@ -1987,7 +1987,9 @@ components:
         actionArea:
           type: string
         owner:
-          type: string
+          type:
+          - string
+          - 'null'
     MeetingInput:
       type: object
       required:

@@ -15,5 +15,6 @@ export interface Meeting {
   status: MeetingStatus;
   participants: number;
   actionArea: string;
-  owner?: string;
+  /** @nullable */
+  owner?: string | null;
 }

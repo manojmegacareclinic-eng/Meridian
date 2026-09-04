@@ -239,7 +239,7 @@ export const ListMeetingsResponseItem = zod.object({
   "status": zod.enum(['scheduled', 'completed', 'follow_up']),
   "participants": zod.int(),
   "actionArea": zod.string(),
-  "owner": zod.string().optional()
+  "owner": zod.string().nullish()
 })
 export const ListMeetingsResponse = zod.array(ListMeetingsResponseItem)
 
@@ -267,7 +267,7 @@ export const CreateMeetingResponse = zod.object({
   "status": zod.enum(['scheduled', 'completed', 'follow_up']),
   "participants": zod.int(),
   "actionArea": zod.string(),
-  "owner": zod.string().optional()
+  "owner": zod.string().nullish()
 })
 
 
@@ -298,7 +298,7 @@ export const UpdateMeetingResponse = zod.object({
   "status": zod.enum(['scheduled', 'completed', 'follow_up']),
   "participants": zod.int(),
   "actionArea": zod.string(),
-  "owner": zod.string().optional()
+  "owner": zod.string().nullish()
 })
 
 

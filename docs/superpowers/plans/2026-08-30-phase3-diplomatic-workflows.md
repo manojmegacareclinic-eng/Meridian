@@ -198,27 +198,34 @@ git commit -m "feat(spa): DR strategy pipeline, expanded meeting detail, lifecyc
 ## Chunk 5: QA & Docs
 
 ### Task 24: Auth-QA Extensions
-- [ ] Add assertions for DR strategies CRUD
-- [ ] Add assertions for meeting agenda/participants/transcripts
-- [ ] Add assertions for action items/deliverables CRUD
-- [ ] Add assertions for agreement lifecycle transitions
-- [ ] Run auth-qa: `DATABASE_URL=... bun run --filter @workspace/scripts auth-qa`
+- [x] Add assertions for DR strategies CRUD
+- [x] Add assertions for meeting agenda/participants/transcripts
+- [x] Add assertions for action items/deliverables CRUD
+- [x] Add assertions for agreement lifecycle transitions
+- [x] Run auth-qa: `DATABASE_URL=... bun run --filter @workspace/scripts auth-qa` → **ALL PASS (66 passed)**
 
 ### Task 25: Route-QA Extensions
-- [ ] Add route checks for DR strategies page
-- [ ] Add route checks for meeting detail tabs
-- [ ] Add route checks for agreement lifecycle
+- [x] Add route checks for DR strategies page
+- [x] Add route checks for meeting detail tabs
+- [x] Add route checks for agreement lifecycle
+- [x] Run route-qa → **ALL PASS (44 passed)** in demo mode
 
 ### Task 26: Docs Updates
-- [ ] Update `docs/implementation-plan.md`
-- [ ] Update `docs/roles-and-permissions.md` if needed
+- [x] Update `docs/implementation-plan.md`
+- [x] Update `docs/roles-and-permissions.md` if needed
 
 ### Task 27: Final Commit & Push
-```bash
-git add -A
-git commit -m "feat: Phase 3 Diplomatic Relations & Engagement Workflows complete"
-git push origin main
-```
+- [ ] Commit & push Phase 3 completion
+
+> **QA follow-ups:** auth-qa surfaced and this session fixed three real backend defects —
+> (1) `CreateMeetingResponse.owner` rejected the nullable column (`owner → null`) with a
+> 500; fixed in the OpenAPI `Meeting.owner` (nullable) + codegen. (2) agreement lifecycle
+> `PATCH` parsed the raw DB row against a response schema requiring the joined
+> `countryName`; route now joins it like `platform.ts`. (3) meeting sub-resource list GETs
+> validated the empty query against a required-`id` path schema (400), and the
+> `/meetings/:meetingId/action-items` collection + `/action-items/:actionItemId` item
+> routes used params schemas that demanded the wrong keys; route-local `{ meetingId }` /
+> `{ actionItemId }` schemas added (and `zod` added as an api-server dependency).
 
 ---
 

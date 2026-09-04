@@ -212,6 +212,63 @@ async function main() {
       }
     }
 
+    // Phase 3 — relationship strategies pipeline page
+    await page.goto(`${baseURL}/dr-strategies`, { waitUntil: "load" });
+    await page.waitForSelector('[data-testid="select-dr-strategy-country"]', { timeout: 15000 });
+    check("dr-strategies route renders country selector", await page.isVisible('[data-testid="select-dr-strategy-country"]'));
+    const strategyCountrySelect = page.locator('[data-testid="select-dr-strategy-country"]');
+    const strategyCountryOptions = await strategyCountrySelect.locator("option").count();
+    check("dr-strategies country selector lists workspaces", strategyCountryOptions > 1, `got ${strategyCountryOptions} options`);
+    const strategyNavClass = (await page.locator('[data-testid="link-nav-strategies"]').getAttribute("class")) ?? "";
+    check("dr-strategies nav item highlighted as active", strategyNavClass.includes("bg-[hsl(var(--sidebar-accent))]"), "active class missing");
+    if (strategyCountryOptions > 1) {
+      await strategyCountrySelect.selectOption({ index: 1 });
+      await page.waitForSelector('[data-testid="button-add-strategy"]', { timeout: 15000 });
+      check("strategy pipeline renders new-strategy action", await page.isVisible('[data-testid="button-add-strategy"]'));
+    }
+
+    // Phase 3 — expanded meeting detail page
+    await page.goto(`${baseURL}/meetings`, { waitUntil: "load" });
+    await page.waitForSelector('[data-testid^="card-meeting-"], [data-testid="button-empty-add-meeting"], [data-testid="button-add-meeting"]', { timeout: 15000 });
+    const firstMeetingTestId = await page.locator('[data-testid^="card-meeting-"]').first().getAttribute("data-testid");
+    const meetingId = firstMeetingTestId?.replace("card-meeting-", "");
+    if (meetingId) {
+      await page.goto(`${baseURL}/meeting/${meetingId}`, { waitUntil: "load" });
+      await page.waitForSelector('[data-testid="link-back-to-meetings"]', { timeout: 15000 });
+      check("meeting detail renders back-to-meetings link", await page.isVisible('[data-testid="link-back-to-meetings"]'));
+      const meetingH1 = ((await page.textContent("header h1")) ?? "").trim();
+      check("meeting detail header title renders", meetingH1.length > 0, `got "${meetingH1}"`);
+      const detailTabs = ["Agenda", "Participants", "Transcripts", "Action Items", "Deliverables"] as const;
+      const addActionByTab: Record<(typeof detailTabs)[number], string> = {
+        Agenda: "button-add-agenda",
+        Participants: "button-add-participant",
+        Transcripts: "button-add-transcript",
+        "Action Items": "button-add-action-item",
+        Deliverables: "button-add-deliverable",
+      };
+      for (const tabLabel of detailTabs) {
+        await page.getByRole("button", { name: tabLabel, exact: true }).click();
+        await page.waitForSelector(`[data-testid="${addActionByTab[tabLabel]}"]`, { timeout: 15000 });
+        check(`meeting detail "${tabLabel}" tab renders its add action`, await page.isVisible(`[data-testid="${addActionByTab[tabLabel]}"]`));
+      }
+    } else {
+      console.log("  SKIP meeting detail flow (no meetings in view)");
+    }
+
+    // Phase 3 — agreement lifecycle (badge + allowed transitions)
+    await page.goto(`${baseURL}/agreements`, { waitUntil: "load" });
+    await page.waitForSelector('[data-testid^="row-agreement-"], [data-testid="button-empty-add-agreement"]', { timeout: 15000 });
+    const agreementRows = await page.locator('[data-testid^="row-agreement-"]').count();
+    if (agreementRows > 0) {
+      const lifecycleButtons = await page.locator('[data-testid^="button-agreement-lifecycle-"]').count();
+      check("agreement lifecycle transition buttons render", lifecycleButtons > 0, `got ${lifecycleButtons}`);
+      const rowText = (await page.locator('[data-testid^="row-agreement-"]').first().textContent()) ?? "";
+      const lifecycleShown = /draft|review|approved|signed|archived/i.test(rowText);
+      check("agreement row shows lifecycle state", lifecycleShown, "no lifecycle state text in row");
+    } else {
+      console.log("  SKIP agreement lifecycle flow (no agreements in view)");
+    }
+
     await page.goto(`${baseURL}/definitely-not-a-route`, { waitUntil: "load" });
     await page.waitForSelector("text=This room does not exist.", { timeout: 15000 });
     check("unknown route shows 404 page", true);

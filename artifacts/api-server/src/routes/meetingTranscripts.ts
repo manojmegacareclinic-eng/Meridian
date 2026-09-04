@@ -8,7 +8,6 @@ import {
   CreateMeetingTranscriptParams,
   DeleteMeetingTranscriptParams,
   DeleteMeetingTranscriptResponse,
-  ListMeetingTranscriptsParams,
   ListMeetingTranscriptsResponseItem,
   UpdateMeetingTranscriptBody,
   UpdateMeetingTranscriptParams,
@@ -19,8 +18,7 @@ const router: IRouter = Router();
 
 router.get("/meetings/:id/transcripts", async (req, res): Promise<void> => {
   const params = CreateMeetingTranscriptParams.safeParse(req.params);
-  const parsed = ListMeetingTranscriptsParams.safeParse(req.query);
-  if (!params.success || !parsed.success) {
+  if (!params.success) {
     res.status(400).json({ error: "Invalid request." });
     return;
   }

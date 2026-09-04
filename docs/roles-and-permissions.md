@@ -31,8 +31,10 @@ the user's role allows it.
 - Admin API: `GET/POST /api/admin/users`, `GET /api/admin/members`,
   `POST /api/admin/invitations`, `PATCH /api/admin/users/:id/role` require
   `role === global_admin`. A `viewer` gets `403` on these.
-- Write routes (POST/PATCH on countries, contacts, meetings, agreements, invitations)
-  require `role !== viewer`.
+- Write routes (POST/PATCH on countries, contacts, meetings, agreements, invitations,
+  DR strategies, agenda/participants/transcripts, action items, deliverables, and the
+  agreement lifecycle) require `role !== viewer` — the same `requireWriteRole()` guard
+  in `routes/index.ts` covers every Phase 2/3 write endpoint.
 - Every request maps a verified session (or the dev `AUTH_PASSTHROUGH` session) to an
   actor `{ id, name, role }`; the actor name and id are stamped onto audit rows.
 
@@ -51,7 +53,8 @@ primary request path):
 
 - **Writes** — create/update on countries, contacts, meetings, agreements, admin
   users, invitations, ministries, positions, office terms, organizations, documents,
-  and news. Updates carry a compact `before`/`after` diff over an
+  news, DR strategies, meeting agenda items, meeting participants, meeting transcripts,
+  action items, and deliverables. Updates carry a compact `before`/`after` diff over an
   allowlist of keys (e.g. `title`, `status`, `date`, `roles`), so sensitive full bodies
   (emails, phone numbers) are never echoed.
 - **Sensitive reads** — dashboard summary, contact records, and the admin user/member
@@ -70,6 +73,8 @@ returns `401`. The `/audit` page surfaces filterable, expandable before/after re
 Records are not editable or deletable through the application.
 
 **New entity types** (Phase 2): ministries, positions, office_terms, organizations, documents, news — all audited with `action` ∈ {create, update, delete} and `entityType` matching the entity name.
+
+**New entity types** (Phase 3): dr_strategies, meeting_agenda, meeting_participants, meeting_transcripts, action_items, deliverables — all audited the same way; the agreement lifecycle transition writes an `agreement` update row via `PATCH /api/agreements/:id/lifecycle`.
 
 ## Development without a deployed instance
 

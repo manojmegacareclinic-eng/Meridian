@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { eq } from "drizzle-orm";
-import { db, agreementsTable } from "@workspace/db";
+import { db, agreementsTable, countriesTable } from "@workspace/db";
 import { diffFields, writeAudit } from "../lib/audit";
 import { getActor } from "../middlewares/guards";
 import {
@@ -58,6 +58,7 @@ router.patch("/agreements/:id/lifecycle", async (req, res): Promise<void> => {
   }
 
   const [row] = await db.update(agreementsTable).set(updateData).where(eq(agreementsTable.id, params.data.id)).returning();
+  const [country] = await db.select({ name: countriesTable.name }).from(countriesTable).where(eq(countriesTable.id, row.countryId));
   
   const diff = diffFields(existing, row, ["lifecycleState", "reviewedAt", "reviewedBy", "approvedAt", "approvedBy", "signedAt", "signedBy"]);
   await writeAudit({
@@ -72,7 +73,7 @@ router.patch("/agreements/:id/lifecycle", async (req, res): Promise<void> => {
     before: diff?.before ?? null,
     after: diff?.after ?? null,
   });
-  res.json(UpdateAgreementLifecycleResponse.parse(row));
+  res.json(UpdateAgreementLifecycleResponse.parse({ ...row, countryName: country?.name ?? "Unknown" }));
 });
 
 export default router;

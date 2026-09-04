@@ -1,5 +1,6 @@
 import { Router, type IRouter } from "express";
 import { and, desc, eq, sql } from "drizzle-orm";
+import { z } from "zod";
 import { db, actionItemsTable, deliverablesTable, meetingsTable, contactsTable } from "@workspace/db";
 import { diffFields, writeAudit } from "../lib/audit";
 import { getActor } from "../middlewares/guards";
@@ -7,9 +8,7 @@ import {
   CreateActionItemBody,
   CreateActionItemParams,
   CreateActionItemResponse,
-  DeleteActionItemParams,
   DeleteActionItemResponse,
-  GetActionItemParams,
   GetActionItemResponse,
   ListActionItemsQueryParams,
   ListActionItemsResponseItem,
@@ -17,7 +16,6 @@ import {
   ActionItemInput,
   ActionItemUpdate,
   UpdateActionItemBody,
-  UpdateActionItemParams,
   UpdateActionItemResponse,
   CreateDeliverableBody,
   DeleteDeliverableParams,
@@ -36,8 +34,11 @@ import {
 
 const router: IRouter = Router();
 
+const MeetingIdCollectionParams = z.object({ meetingId: z.coerce.number().int() });
+const ActionItemByIdParams = z.object({ actionItemId: z.coerce.number().int() });
+
 router.get("/meetings/:meetingId/action-items", async (req, res): Promise<void> => {
-  const params = GetActionItemParams.safeParse(req.params);
+  const params = MeetingIdCollectionParams.safeParse(req.params);
   const parsed = ListActionItemsQueryParams.safeParse(req.query);
   if (!params.success || !parsed.success) {
     res.status(400).json({ error: "Invalid request." });
@@ -59,7 +60,7 @@ router.get("/meetings/:meetingId/action-items", async (req, res): Promise<void> 
 });
 
 router.post("/meetings/:meetingId/action-items", async (req, res): Promise<void> => {
-  const params = GetActionItemParams.safeParse(req.params);
+  const params = MeetingIdCollectionParams.safeParse(req.params);
   const parsed = CreateActionItemBody.safeParse(req.body);
   if (!params.success || !parsed.success) {
     res.status(400).json({ error: "Invalid action item creation." });
@@ -106,7 +107,7 @@ const [row] = await db.insert(actionItemsTable).values(insertData).returning();
 });
 
 router.get("/action-items/:actionItemId", async (req, res): Promise<void> => {
-  const params = GetActionItemParams.safeParse(req.params);
+  const params = ActionItemByIdParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: "Invalid action item id." });
     return;
@@ -120,7 +121,7 @@ router.get("/action-items/:actionItemId", async (req, res): Promise<void> => {
 });
 
 router.patch("/action-items/:actionItemId", async (req, res): Promise<void> => {
-  const params = UpdateActionItemParams.safeParse(req.params);
+  const params = ActionItemByIdParams.safeParse(req.params);
   const parsed = UpdateActionItemBody.safeParse(req.body);
   if (!params.success || !parsed.success) {
     res.status(400).json({ error: "Invalid action item update." });
@@ -168,7 +169,7 @@ router.patch("/action-items/:actionItemId", async (req, res): Promise<void> => {
 });
 
 router.delete("/action-items/:actionItemId", async (req, res): Promise<void> => {
-  const params = DeleteActionItemParams.safeParse(req.params);
+  const params = ActionItemByIdParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: "Invalid action item id." });
     return;

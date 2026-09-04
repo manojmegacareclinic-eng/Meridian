@@ -8,7 +8,6 @@ import {
   CreateMeetingParticipantParams,
   DeleteMeetingParticipantParams,
   DeleteMeetingParticipantResponse,
-  ListMeetingParticipantsParams,
   ListMeetingParticipantsResponseItem,
   UpdateMeetingParticipantBody,
   UpdateMeetingParticipantParams,
@@ -19,8 +18,7 @@ const router: IRouter = Router();
 
 router.get("/meetings/:id/participants", async (req, res): Promise<void> => {
   const params = CreateMeetingParticipantParams.safeParse(req.params);
-  const parsed = ListMeetingParticipantsParams.safeParse(req.query);
-  if (!params.success || !parsed.success) {
+  if (!params.success) {
     res.status(400).json({ error: "Invalid request." });
     return;
   }
