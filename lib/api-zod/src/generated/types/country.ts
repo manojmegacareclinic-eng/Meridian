@@ -6,8 +6,12 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { CountryGovernmentType } from './countryGovernmentType';
+import type { CountryPrimaryOwner } from './countryPrimaryOwner';
 import type { CountryPriority } from './countryPriority';
+import type { CountryRegionalCoordinator } from './countryRegionalCoordinator';
+import type { CountryReviewer } from './countryReviewer';
 import type { CountryRiskLevel } from './countryRiskLevel';
+import type { CountrySecondaryOwner } from './countrySecondaryOwner';
 import type { CountryStatus } from './countryStatus';
 
 export interface Country {
@@ -31,4 +35,12 @@ export interface Country {
   priority?: CountryPriority;
   /** @nullable */
   strategy?: string | null;
+  /** @nullable */
+  primaryOwner?: CountryPrimaryOwner;
+  /** @nullable */
+  secondaryOwner?: CountrySecondaryOwner;
+  /** @nullable */
+  reviewer?: CountryReviewer;
+  /** @nullable */
+  regionalCoordinator?: CountryRegionalCoordinator;
 }

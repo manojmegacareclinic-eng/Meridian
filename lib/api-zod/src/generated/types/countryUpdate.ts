@@ -28,4 +28,12 @@ export interface CountryUpdate {
   team?: string;
   priority?: CountryUpdatePriority;
   strategy?: string;
+  /** @nullable */
+  primaryOwnerUserId?: string | null;
+  /** @nullable */
+  secondaryOwnerUserId?: string | null;
+  /** @nullable */
+  reviewerUserId?: string | null;
+  /** @nullable */
+  regionalCoordinatorUserId?: string | null;
 }

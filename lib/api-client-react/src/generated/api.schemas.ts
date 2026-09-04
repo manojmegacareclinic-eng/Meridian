@@ -72,6 +72,38 @@ export const CountryPriority = {
   high: 'high',
 } as const;
 
+/**
+ * @nullable
+ */
+export type CountryPrimaryOwner = {
+  userId: string;
+  name: string;
+} | null;
+
+/**
+ * @nullable
+ */
+export type CountrySecondaryOwner = {
+  userId: string;
+  name: string;
+} | null;
+
+/**
+ * @nullable
+ */
+export type CountryReviewer = {
+  userId: string;
+  name: string;
+} | null;
+
+/**
+ * @nullable
+ */
+export type CountryRegionalCoordinator = {
+  userId: string;
+  name: string;
+} | null;
+
 export interface Country {
   id: number;
   name: string;
@@ -93,6 +125,14 @@ export interface Country {
   priority?: CountryPriority;
   /** @nullable */
   strategy?: string | null;
+  /** @nullable */
+  primaryOwner?: CountryPrimaryOwner;
+  /** @nullable */
+  secondaryOwner?: CountrySecondaryOwner;
+  /** @nullable */
+  reviewer?: CountryReviewer;
+  /** @nullable */
+  regionalCoordinator?: CountryRegionalCoordinator;
 }
 
 export type CountryUpdateStatus = typeof CountryUpdateStatus[keyof typeof CountryUpdateStatus];
@@ -156,6 +196,14 @@ export interface CountryUpdate {
   team?: string;
   priority?: CountryUpdatePriority;
   strategy?: string;
+  /** @nullable */
+  primaryOwnerUserId?: string | null;
+  /** @nullable */
+  secondaryOwnerUserId?: string | null;
+  /** @nullable */
+  reviewerUserId?: string | null;
+  /** @nullable */
+  regionalCoordinatorUserId?: string | null;
 }
 
 export type CountryInputStatus = typeof CountryInputStatus[keyof typeof CountryInputStatus];
@@ -354,6 +402,12 @@ export interface Activity {
   actorId?: string | null;
   /** @nullable */
   actorName?: string | null;
+}
+
+export interface AssignableUser {
+  userId: string;
+  name: string;
+  role: string;
 }
 
 /**

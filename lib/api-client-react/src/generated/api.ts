@@ -32,6 +32,7 @@ import type {
   AgreementInput,
   AgreementLifecycleUpdate,
   AgreementUpdate,
+  AssignableUser,
   AuditEntry,
   Contact,
   ContactInput,
@@ -607,6 +608,83 @@ export const useUpdateCountry = <TError = ErrorType<void>,
       > => {
       return useMutation(getUpdateCountryMutationOptions(options));
     }
+
+export const getListAssignableUsersUrl = () => {
+
+
+
+
+  return `/api/users/assignable`
+}
+
+/**
+ * @summary List users that can be assigned to a country
+ */
+export const listAssignableUsers = async ( options?: Parameters<typeof customFetch>[1]): Promise<AssignableUser[]> => {
+
+  return customFetch<AssignableUser[]>(getListAssignableUsersUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListAssignableUsersQueryKey = () => {
+    return [
+    `/api/users/assignable`
+    ] as const;
+    }
+
+
+export const getListAssignableUsersQueryOptions = <TData = Awaited<ReturnType<typeof listAssignableUsers>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAssignableUsers>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListAssignableUsersQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listAssignableUsers>>> = ({ signal }) => listAssignableUsers({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listAssignableUsers>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListAssignableUsersQueryResult = NonNullable<Awaited<ReturnType<typeof listAssignableUsers>>>
+export type ListAssignableUsersQueryError = ErrorType<void>
+
+
+/**
+ * @summary List users that can be assigned to a country
+ */
+
+export function useListAssignableUsers<TData = Awaited<ReturnType<typeof listAssignableUsers>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAssignableUsers>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListAssignableUsersQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 
 export const getListContactsUrl = (params?: ListContactsParams,) => {
   const normalizedParams = new URLSearchParams();

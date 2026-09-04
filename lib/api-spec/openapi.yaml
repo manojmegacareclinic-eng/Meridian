@@ -25,6 +25,7 @@ tags:
 - name: dr_strategies
 - name: action_items
 - name: deliverables
+- name: users
 paths:
   /healthz:
     get:
@@ -138,6 +139,23 @@ paths:
                 $ref: '#/components/schemas/Country'
         '404':
           description: Country not found
+  /users/assignable:
+    get:
+      operationId: listAssignableUsers
+      tags:
+      - users
+      summary: List users that can be assigned to a country
+      responses:
+        '200':
+          description: Assignable users (id, name, role; never email)
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AssignableUser'
+        '403':
+          description: Forbidden for viewers
   /contacts:
     get:
       operationId: listContacts
@@ -1808,6 +1826,54 @@ components:
           type:
           - string
           - 'null'
+        primaryOwner:
+          type:
+          - object
+          - 'null'
+          properties:
+            userId:
+              type: string
+            name:
+              type: string
+          required:
+          - userId
+          - name
+        secondaryOwner:
+          type:
+          - object
+          - 'null'
+          properties:
+            userId:
+              type: string
+            name:
+              type: string
+          required:
+          - userId
+          - name
+        reviewer:
+          type:
+          - object
+          - 'null'
+          properties:
+            userId:
+              type: string
+            name:
+              type: string
+          required:
+          - userId
+          - name
+        regionalCoordinator:
+          type:
+          - object
+          - 'null'
+          properties:
+            userId:
+              type: string
+            name:
+              type: string
+          required:
+          - userId
+          - name
     CountryUpdate:
       type: object
       properties:
@@ -1860,6 +1926,22 @@ components:
           - high
         strategy:
           type: string
+        primaryOwnerUserId:
+          type:
+          - string
+          - 'null'
+        secondaryOwnerUserId:
+          type:
+          - string
+          - 'null'
+        reviewerUserId:
+          type:
+          - string
+          - 'null'
+        regionalCoordinatorUserId:
+          type:
+          - string
+          - 'null'
     CountryInput:
       type: object
       required:
@@ -2150,6 +2232,19 @@ components:
           type:
           - string
           - 'null'
+    AssignableUser:
+      type: object
+      required:
+      - userId
+      - name
+      - role
+      properties:
+        userId:
+          type: string
+        name:
+          type: string
+        role:
+          type: string
     AuditEntry:
       allOf:
       - $ref: '#/components/schemas/Activity'

@@ -54,7 +54,23 @@ export const ListCountriesResponseItem = zod.object({
   "electionYear": zod.int().nullish(),
   "team": zod.string().nullish(),
   "priority": zod.enum(['low', 'medium', 'high']).nullish(),
-  "strategy": zod.string().nullish()
+  "strategy": zod.string().nullish(),
+  "primaryOwner": zod.object({
+  "userId": zod.string(),
+  "name": zod.string()
+}).nullish(),
+  "secondaryOwner": zod.object({
+  "userId": zod.string(),
+  "name": zod.string()
+}).nullish(),
+  "reviewer": zod.object({
+  "userId": zod.string(),
+  "name": zod.string()
+}).nullish(),
+  "regionalCoordinator": zod.object({
+  "userId": zod.string(),
+  "name": zod.string()
+}).nullish()
 })
 export const ListCountriesResponse = zod.array(ListCountriesResponseItem)
 
@@ -90,7 +106,23 @@ export const CreateCountryResponse = zod.object({
   "electionYear": zod.int().nullish(),
   "team": zod.string().nullish(),
   "priority": zod.enum(['low', 'medium', 'high']).nullish(),
-  "strategy": zod.string().nullish()
+  "strategy": zod.string().nullish(),
+  "primaryOwner": zod.object({
+  "userId": zod.string(),
+  "name": zod.string()
+}).nullish(),
+  "secondaryOwner": zod.object({
+  "userId": zod.string(),
+  "name": zod.string()
+}).nullish(),
+  "reviewer": zod.object({
+  "userId": zod.string(),
+  "name": zod.string()
+}).nullish(),
+  "regionalCoordinator": zod.object({
+  "userId": zod.string(),
+  "name": zod.string()
+}).nullish()
 })
 
 
@@ -115,7 +147,23 @@ export const GetCountryResponse = zod.object({
   "electionYear": zod.int().nullish(),
   "team": zod.string().nullish(),
   "priority": zod.enum(['low', 'medium', 'high']).nullish(),
-  "strategy": zod.string().nullish()
+  "strategy": zod.string().nullish(),
+  "primaryOwner": zod.object({
+  "userId": zod.string(),
+  "name": zod.string()
+}).nullish(),
+  "secondaryOwner": zod.object({
+  "userId": zod.string(),
+  "name": zod.string()
+}).nullish(),
+  "reviewer": zod.object({
+  "userId": zod.string(),
+  "name": zod.string()
+}).nullish(),
+  "regionalCoordinator": zod.object({
+  "userId": zod.string(),
+  "name": zod.string()
+}).nullish()
 })
 
 
@@ -144,7 +192,11 @@ export const UpdateCountryBody = zod.object({
   "electionYear": zod.int().optional(),
   "team": zod.string().optional(),
   "priority": zod.enum(['low', 'medium', 'high']).optional(),
-  "strategy": zod.string().optional()
+  "strategy": zod.string().optional(),
+  "primaryOwnerUserId": zod.string().nullish(),
+  "secondaryOwnerUserId": zod.string().nullish(),
+  "reviewerUserId": zod.string().nullish(),
+  "regionalCoordinatorUserId": zod.string().nullish()
 })
 
 export const UpdateCountryResponse = zod.object({
@@ -161,8 +213,35 @@ export const UpdateCountryResponse = zod.object({
   "electionYear": zod.int().nullish(),
   "team": zod.string().nullish(),
   "priority": zod.enum(['low', 'medium', 'high']).nullish(),
-  "strategy": zod.string().nullish()
+  "strategy": zod.string().nullish(),
+  "primaryOwner": zod.object({
+  "userId": zod.string(),
+  "name": zod.string()
+}).nullish(),
+  "secondaryOwner": zod.object({
+  "userId": zod.string(),
+  "name": zod.string()
+}).nullish(),
+  "reviewer": zod.object({
+  "userId": zod.string(),
+  "name": zod.string()
+}).nullish(),
+  "regionalCoordinator": zod.object({
+  "userId": zod.string(),
+  "name": zod.string()
+}).nullish()
 })
+
+
+/**
+ * @summary List users that can be assigned to a country
+ */
+export const ListAssignableUsersResponseItem = zod.object({
+  "userId": zod.string(),
+  "name": zod.string(),
+  "role": zod.string()
+})
+export const ListAssignableUsersResponse = zod.array(ListAssignableUsersResponseItem)
 
 
 /**
