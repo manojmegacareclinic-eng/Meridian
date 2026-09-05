@@ -15,6 +15,7 @@ import meetingParticipantsRouter from "./meetingParticipants";
 import meetingTranscriptsRouter from "./meetingTranscripts";
 import actionItemsRouter from "./actionItems";
 import agreementLifecycleRouter from "./agreementLifecycle";
+import tasksRouter from "./tasks";
 import { requireSession, requireWriteRole } from "../middlewares/guards";
 
 const router: IRouter = Router();
@@ -45,5 +46,6 @@ router.use(meetingParticipantsRouter);
 router.use(meetingTranscriptsRouter);
 router.use(actionItemsRouter);
 router.use(agreementLifecycleRouter);
+router.use(tasksRouter);
 
 export default router;

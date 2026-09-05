@@ -21,7 +21,8 @@ export type AuditEntityType =
   | "meeting_participant"
   | "meeting_transcript"
   | "action_item"
-  | "deliverable";
+  | "deliverable"
+  | "task";
 
 export interface AuditActor {
   id: string;

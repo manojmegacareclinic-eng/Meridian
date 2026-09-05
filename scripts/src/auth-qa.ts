@@ -5,7 +5,7 @@ import http from "node:http";
 import { once } from "node:events";
 import { betterAuth } from "better-auth";
 import { eq, inArray } from "drizzle-orm";
-import { db, pool, activityTable, countriesTable, documentsTable, newsTable, userTable, meetingsTable, agreementsTable, drStrategiesTable } from "@workspace/db";
+import { db, pool, activityTable, countriesTable, documentsTable, newsTable, userTable, meetingsTable, agreementsTable, drStrategiesTable, tasksTable } from "@workspace/db";
 import {
   buildAuthOptions,
   createAccount,
@@ -569,11 +569,91 @@ async function main() {
     );
   }
 
+  // 4.2 Tasks (Phase 4.2, spec 2026-09-05). Per-country recurring deliverables.
+  const taskCreate = await fetch(`${origin}/api/tasks`, {
+    method: "POST",
+    headers: { "content-type": "application/json", cookie: adminJar.header() },
+    body: JSON.stringify({ countryId, title: "Weekly security briefing", actionArea: "Security dialogue" }),
+  });
+  const taskBody = (await taskCreate.json().catch(() => ({}))) as { id: number; cadence?: string; status?: string; actionArea?: string; countryName?: string };
+  check(
+    "POST /api/tasks -> 201 defaults weekly/active, echoes countryName",
+    taskCreate.status === 201 && taskBody.cadence === "weekly" && taskBody.status === "active" && taskBody.actionArea === "Security dialogue" && String(taskBody.countryName).length > 0,
+    `status=${taskCreate.status} body=${JSON.stringify(taskBody).slice(0, 160)}`,
+  );
+  const taskId = taskBody.id;
+
+  const taskBadArea = await fetch(`${origin}/api/tasks`, {
+    method: "POST",
+    headers: { "content-type": "application/json", cookie: adminJar.header() },
+    body: JSON.stringify({ countryId, title: "bad", actionArea: "Bogus area" }),
+  });
+  check("POST /api/tasks invalid actionArea -> 400", taskBadArea.status === 400, `got ${taskBadArea.status}`);
+
+  const taskBadCountry = await fetch(`${origin}/api/tasks`, {
+    method: "POST",
+    headers: { "content-type": "application/json", cookie: adminJar.header() },
+    body: JSON.stringify({ countryId: 999999, title: "bad", actionArea: "Security dialogue" }),
+  });
+  check("POST /api/tasks unknown countryId -> 400", taskBadCountry.status === 400, `got ${taskBadCountry.status}`);
+
+  const taskList = await fetch(`${origin}/api/tasks?countryId=${countryId}`, { headers: { cookie: adminJar.header() } });
+  const taskListBody = (await taskList.json().catch(() => [])) as { id: number }[];
+  check("GET /api/tasks?countryId -> includes task", taskList.status === 200 && taskListBody.some((t) => t.id === taskId), `status=${taskList.status} count=${taskListBody.length}`);
+
+  const taskFiltered = await fetch(`${origin}/api/tasks?countryId=${countryId}&cadence=weekly&status=active`, { headers: { cookie: adminJar.header() } });
+  const taskFilteredBody = (await taskFiltered.json().catch(() => [])) as { id: number }[];
+  const taskFilteredOut = await fetch(`${origin}/api/tasks?countryId=${countryId}&cadence=daily`, { headers: { cookie: adminJar.header() } });
+  const taskFilteredOutBody = (await taskFilteredOut.json().catch(() => [])) as { id: number }[];
+  check(
+    "GET /api/tasks filters narrow correctly",
+    taskFiltered.status === 200 && taskFilteredBody.some((t) => t.id === taskId) && taskFilteredOut.status === 200 && !taskFilteredOutBody.some((t) => t.id === taskId),
+    `status=${taskFiltered.status}`,
+  );
+
+  const taskPatch = await fetch(`${origin}/api/tasks/${taskId}`, {
+    method: "PATCH",
+    headers: { "content-type": "application/json", cookie: adminJar.header() },
+    body: JSON.stringify({ cadence: "daily", status: "done" }),
+  });
+  const taskPatchBody = (await taskPatch.json().catch(() => ({}))) as { cadence?: string; status?: string };
+  check("PATCH /api/tasks/:id cadence+status -> echoes daily/done", taskPatch.status === 200 && taskPatchBody.cadence === "daily" && taskPatchBody.status === "done", `status=${taskPatch.status} body=${JSON.stringify(taskPatchBody).slice(0, 120)}`);
+
+  const taskPatchBad = await fetch(`${origin}/api/tasks/${taskId}`, {
+    method: "PATCH",
+    headers: { "content-type": "application/json", cookie: adminJar.header() },
+    body: JSON.stringify({ status: "bogus" }),
+  });
+  check("PATCH /api/tasks/:id invalid status -> 400", taskPatchBad.status === 400, `got ${taskPatchBad.status}`);
+
+  const taskPatch404 = await fetch(`${origin}/api/tasks/999999`, {
+    method: "PATCH",
+    headers: { "content-type": "application/json", cookie: adminJar.header() },
+    body: JSON.stringify({ status: "done" }),
+  });
+  check("PATCH unknown task -> 404", taskPatch404.status === 404, `got ${taskPatch404.status}`);
+
+  const auditTask = await fetch(`${origin}/api/audit?entityType=task&entityId=${taskId}`, { headers: { cookie: adminJar.header() } });
+  const auditTaskBody = (await auditTask.json().catch(() => [])) as { entityType?: string; entityId?: string; action?: string; after?: Record<string, unknown> }[];
+  check(
+    "audit task rows carry entityId and diff",
+    auditTask.status === 200 && auditTaskBody.some((r) => r.entityType === "task" && r.entityId === String(taskId) && r.action === "update" && (r.after ?? {})["status"] === "done"),
+    `status=${auditTask.status} rows=${auditTaskBody.length}`,
+  );
+
+  const taskDelete = await fetch(`${origin}/api/tasks/${taskId}`, { method: "DELETE", headers: { cookie: adminJar.header() } });
+  check("DELETE /api/tasks/:id -> 200", taskDelete.status === 200, `got ${taskDelete.status}`);
+
+  const taskListAfter = await fetch(`${origin}/api/tasks?countryId=${countryId}`, { headers: { cookie: adminJar.header() } });
+  const taskListAfterBody = (await taskListAfter.json().catch(() => [])) as { id: number }[];
+  check("task removed after delete", taskListAfter.status === 200 && !taskListAfterBody.some((t) => t.id === taskId), `count=${taskListAfterBody.length}`);
+
   // 25 (renumbered). Cleanup: remove disposable users (cascades accounts/sessions/members)
   //     and the disposable country row (with its activity trail).
   await db.delete(userTable).where(inArray(userTable.email, QA_EMAILS));
   if (typeof adminPostBody.id === "number") {
     // Delete phase-3 parents and news/documents first (FK to countries, no cascade)
+    await db.delete(tasksTable).where(eq(tasksTable.countryId, adminPostBody.id));
     await db.delete(drStrategiesTable).where(eq(drStrategiesTable.countryId, adminPostBody.id));
     await db.delete(agreementsTable).where(eq(agreementsTable.countryId, adminPostBody.id));
     await db.delete(meetingsTable).where(eq(meetingsTable.countryId, adminPostBody.id));

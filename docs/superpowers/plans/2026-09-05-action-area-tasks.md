@@ -521,10 +521,10 @@ Insert immediately BEFORE the `// 25 (renumbered). Cleanup:` comment (line ~572)
   check("PATCH unknown task -> 404", taskPatch404.status === 404, `got ${taskPatch404.status}`);
 
   const auditTask = await fetch(`${origin}/api/audit?entityType=task&entityId=${taskId}`, { headers: { cookie: adminJar.header() } });
-  const auditTaskBody = (await auditTask.json().catch(() => [])) as { countryId?: number | null; after?: Record<string, unknown> }[];
+  const auditTaskBody = (await auditTask.json().catch(() => [])) as { entityType?: string; entityId?: string; action?: string; after?: Record<string, unknown> }[];
   check(
-    "audit task rows carry countryId and diff",
-    auditTask.status === 200 && auditTaskBody.some((r) => r.countryId === countryId) && auditTaskBody.some((r) => (r.after ?? {})["status"] === "done"),
+    "audit task rows carry entityId and diff",
+    auditTask.status === 200 && auditTaskBody.some((r) => r.entityType === "task" && r.entityId === String(taskId) && r.action === "update" && (r.after ?? {})["status"] === "done"),
     `status=${auditTask.status} rows=${auditTaskBody.length}`,
   );
 
@@ -1176,5 +1176,5 @@ git commit -m "feat(tasks): Phase 4.2 complete — weekly/daily action-area task
 - **Read/write gates:** mounting `tasksRouter` after `requireWriteRole()` means reads work for any session and writes are gated to non-viewers — no in-handler gate needed (unlike `/users/assignable`).
 - **Hook shape:** `useListTasks({ countryId })` — the required query param is the first positional arg (like `useListMinistries({ countryId })`), NOT the single-arg `{ query }` form.
 - **route-qa specifics:** API + SPA dev servers must be booted in the SAME bash invocation as the route-qa run (background jobs don't survive across tool invocations). Use `/var/folders/41/dlw_dftx72v3cxf9mnrw3bxc0000gn/T/opencode/*.log` for logs (the `/tmp` cleanup already bit us). The demo DB needs the QA Meeting + QA Agreement rows (countries 10/19) or the meeting/agreement sections of route-qa time out — re-seed if missing.
-- **auth-qa dates:** don't assert `dueDate` string-equality (date normalization differs across codegen/DB); assert enum fields (`cadence`/`status`/`actionArea`) only.
+- **auth-qa dates:** don't assert `dueDate` string-equality (date normalization differs across codegen/DB); assert enum fields (`cadence`/`status`/`actionArea`) only. Note the audit-list response exposes `entityType`/`entityId`/`action`/`after` but NOT `countryId` (left-join yields `countryName` only) — assert on those.
 - **Empty-state each run:** demo data has no tasks, so route-qa sees `button-add-task` + the empty state; create/edit/delete flows are covered at the API level by auth-qa.
