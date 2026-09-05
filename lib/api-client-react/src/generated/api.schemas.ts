@@ -666,6 +666,139 @@ export interface MinistryUpdate {
   type?: string;
 }
 
+export type TaskActionArea = typeof TaskActionArea[keyof typeof TaskActionArea];
+
+
+export const TaskActionArea = {
+  'Trade_&_investment': 'Trade & investment',
+  Security_dialogue: 'Security dialogue',
+  'Climate_&_energy': 'Climate & energy',
+  Humanitarian_affairs: 'Humanitarian affairs',
+  'Protocol_&_access': 'Protocol & access',
+} as const;
+
+export type TaskCadence = typeof TaskCadence[keyof typeof TaskCadence];
+
+
+export const TaskCadence = {
+  daily: 'daily',
+  weekly: 'weekly',
+} as const;
+
+export type TaskStatus = typeof TaskStatus[keyof typeof TaskStatus];
+
+
+export const TaskStatus = {
+  active: 'active',
+  paused: 'paused',
+  done: 'done',
+} as const;
+
+export interface Task {
+  id: number;
+  countryId: number;
+  countryName: string;
+  actionArea: TaskActionArea;
+  cadence: TaskCadence;
+  title: string;
+  /** @nullable */
+  description?: string | null;
+  /** @nullable */
+  owner?: string | null;
+  status: TaskStatus;
+  /** @nullable */
+  dueDate?: string | null;
+  /** @nullable */
+  lastDoneAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type TaskInputActionArea = typeof TaskInputActionArea[keyof typeof TaskInputActionArea];
+
+
+export const TaskInputActionArea = {
+  'Trade_&_investment': 'Trade & investment',
+  Security_dialogue: 'Security dialogue',
+  'Climate_&_energy': 'Climate & energy',
+  Humanitarian_affairs: 'Humanitarian affairs',
+  'Protocol_&_access': 'Protocol & access',
+} as const;
+
+export type TaskInputCadence = typeof TaskInputCadence[keyof typeof TaskInputCadence];
+
+
+export const TaskInputCadence = {
+  daily: 'daily',
+  weekly: 'weekly',
+} as const;
+
+export type TaskInputStatus = typeof TaskInputStatus[keyof typeof TaskInputStatus];
+
+
+export const TaskInputStatus = {
+  active: 'active',
+  paused: 'paused',
+  done: 'done',
+} as const;
+
+export interface TaskInput {
+  countryId: number;
+  actionArea: TaskInputActionArea;
+  cadence?: TaskInputCadence;
+  /** @minLength 1 */
+  title: string;
+  description?: string;
+  owner?: string;
+  status?: TaskInputStatus;
+  dueDate?: string;
+  lastDoneAt?: string;
+}
+
+export type TaskUpdateActionArea = typeof TaskUpdateActionArea[keyof typeof TaskUpdateActionArea];
+
+
+export const TaskUpdateActionArea = {
+  'Trade_&_investment': 'Trade & investment',
+  Security_dialogue: 'Security dialogue',
+  'Climate_&_energy': 'Climate & energy',
+  Humanitarian_affairs: 'Humanitarian affairs',
+  'Protocol_&_access': 'Protocol & access',
+} as const;
+
+export type TaskUpdateCadence = typeof TaskUpdateCadence[keyof typeof TaskUpdateCadence];
+
+
+export const TaskUpdateCadence = {
+  daily: 'daily',
+  weekly: 'weekly',
+} as const;
+
+export type TaskUpdateStatus = typeof TaskUpdateStatus[keyof typeof TaskUpdateStatus];
+
+
+export const TaskUpdateStatus = {
+  active: 'active',
+  paused: 'paused',
+  done: 'done',
+} as const;
+
+export interface TaskUpdate {
+  actionArea?: TaskUpdateActionArea;
+  cadence?: TaskUpdateCadence;
+  /** @minLength 1 */
+  title?: string;
+  /** @nullable */
+  description?: string | null;
+  /** @nullable */
+  owner?: string | null;
+  status?: TaskUpdateStatus;
+  /** @nullable */
+  dueDate?: string | null;
+  /** @nullable */
+  lastDoneAt?: string | null;
+}
+
 export interface Position {
   id: number;
   ministryId: number;
@@ -1309,6 +1442,45 @@ export const ListDocumentsStatus = {
   signed: 'signed',
   archived: 'archived',
 } as const;
+
+export type ListTasksParams = {
+countryId: number;
+actionArea?: ListTasksActionArea;
+status?: ListTasksStatus;
+cadence?: ListTasksCadence;
+};
+
+export type ListTasksActionArea = typeof ListTasksActionArea[keyof typeof ListTasksActionArea];
+
+
+export const ListTasksActionArea = {
+  'Trade_&_investment': 'Trade & investment',
+  Security_dialogue: 'Security dialogue',
+  'Climate_&_energy': 'Climate & energy',
+  Humanitarian_affairs: 'Humanitarian affairs',
+  'Protocol_&_access': 'Protocol & access',
+} as const;
+
+export type ListTasksStatus = typeof ListTasksStatus[keyof typeof ListTasksStatus];
+
+
+export const ListTasksStatus = {
+  active: 'active',
+  paused: 'paused',
+  done: 'done',
+} as const;
+
+export type ListTasksCadence = typeof ListTasksCadence[keyof typeof ListTasksCadence];
+
+
+export const ListTasksCadence = {
+  daily: 'daily',
+  weekly: 'weekly',
+} as const;
+
+export type DeleteTask200 = {
+  id: number;
+};
 
 export type ListNewsParams = {
 countryId?: number;

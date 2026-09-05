@@ -26,6 +26,7 @@ tags:
 - name: action_items
 - name: deliverables
 - name: users
+- name: tasks
 paths:
   /healthz:
     get:
@@ -511,6 +512,112 @@ paths:
                 $ref: '#/components/schemas/DeleteResponse'
         '404':
           description: Document not found
+  /tasks:
+    get:
+      operationId: listTasks
+      tags:
+      - tasks
+      summary: List recurring tasks for a country
+      parameters:
+      - name: countryId
+        in: query
+        required: true
+        schema:
+          type: integer
+      - name: actionArea
+        in: query
+        schema:
+          type: string
+          enum:
+          - Trade & investment
+          - Security dialogue
+          - Climate & energy
+          - Humanitarian affairs
+          - Protocol & access
+      - name: status
+        in: query
+        schema:
+          type: string
+          enum:
+          - active
+          - paused
+          - done
+      - name: cadence
+        in: query
+        schema:
+          type: string
+          enum:
+          - daily
+          - weekly
+      responses:
+        '200':
+          description: Tasks
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Task'
+    post:
+      operationId: createTask
+      tags:
+      - tasks
+      summary: Create a recurring task
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskInput'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+  /tasks/{id}:
+    patch:
+      operationId: updateTask
+      tags:
+      - tasks
+      summary: Update a recurring task
+      parameters:
+      - $ref: '#/components/parameters/TaskId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskUpdate'
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+        '404':
+          description: Task not found
+    delete:
+      operationId: deleteTask
+      tags:
+      - tasks
+      summary: Delete a recurring task
+      parameters:
+      - $ref: '#/components/parameters/TaskId'
+      responses:
+        '200':
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - id
+                properties:
+                  id:
+                    type: integer
   /news:
     get:
       operationId: listNews
@@ -1625,6 +1732,12 @@ components:
       required: true
       schema:
         type: integer
+    TaskId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: integer
     PositionId:
       name: id
       in: path
@@ -2674,6 +2787,156 @@ components:
         type:
           type: string
           minLength: 1
+    Task:
+      type: object
+      required:
+      - id
+      - countryId
+      - countryName
+      - actionArea
+      - cadence
+      - title
+      - status
+      - createdAt
+      - updatedAt
+      properties:
+        id:
+          type: integer
+        countryId:
+          type: integer
+        countryName:
+          type: string
+        actionArea:
+          type: string
+          enum:
+          - Trade & investment
+          - Security dialogue
+          - Climate & energy
+          - Humanitarian affairs
+          - Protocol & access
+        cadence:
+          type: string
+          enum:
+          - daily
+          - weekly
+        title:
+          type: string
+        description:
+          type:
+          - string
+          - 'null'
+        owner:
+          type:
+          - string
+          - 'null'
+        status:
+          type: string
+          enum:
+          - active
+          - paused
+          - done
+        dueDate:
+          type:
+          - string
+          - 'null'
+          format: date
+        lastDoneAt:
+          type:
+          - string
+          - 'null'
+          format: date
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    TaskInput:
+      type: object
+      required:
+      - countryId
+      - actionArea
+      - title
+      properties:
+        countryId:
+          type: integer
+        actionArea:
+          type: string
+          enum:
+          - Trade & investment
+          - Security dialogue
+          - Climate & energy
+          - Humanitarian affairs
+          - Protocol & access
+        cadence:
+          type: string
+          enum:
+          - daily
+          - weekly
+          default: weekly
+        title:
+          type: string
+          minLength: 1
+        description:
+          type: string
+        owner:
+          type: string
+        status:
+          type: string
+          enum:
+          - active
+          - paused
+          - done
+          default: active
+        dueDate:
+          type: string
+          format: date
+        lastDoneAt:
+          type: string
+          format: date
+    TaskUpdate:
+      type: object
+      properties:
+        actionArea:
+          type: string
+          enum:
+          - Trade & investment
+          - Security dialogue
+          - Climate & energy
+          - Humanitarian affairs
+          - Protocol & access
+        cadence:
+          type: string
+          enum:
+          - daily
+          - weekly
+        title:
+          type: string
+          minLength: 1
+        description:
+          type:
+          - string
+          - 'null'
+        owner:
+          type:
+          - string
+          - 'null'
+        status:
+          type: string
+          enum:
+          - active
+          - paused
+          - done
+        dueDate:
+          type:
+          - string
+          - 'null'
+          format: date
+        lastDoneAt:
+          type:
+          - string
+          - 'null'
+          format: date
     Position:
       type: object
       required:

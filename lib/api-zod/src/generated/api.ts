@@ -626,6 +626,119 @@ export const DeleteDocumentResponse = zod.object({
 
 
 /**
+ * @summary List recurring tasks for a country
+ */
+export const ListTasksQueryParams = zod.object({
+  "countryId": zod.coerce.number().int(),
+  "actionArea": zod.enum(['Trade & investment', 'Security dialogue', 'Climate & energy', 'Humanitarian affairs', 'Protocol & access']).optional(),
+  "status": zod.enum(['active', 'paused', 'done']).optional(),
+  "cadence": zod.enum(['daily', 'weekly']).optional()
+})
+
+export const ListTasksResponseItem = zod.object({
+  "id": zod.int(),
+  "countryId": zod.int(),
+  "countryName": zod.string(),
+  "actionArea": zod.enum(['Trade & investment', 'Security dialogue', 'Climate & energy', 'Humanitarian affairs', 'Protocol & access']),
+  "cadence": zod.enum(['daily', 'weekly']),
+  "title": zod.string(),
+  "description": zod.string().nullish(),
+  "owner": zod.string().nullish(),
+  "status": zod.enum(['active', 'paused', 'done']),
+  "dueDate": zod.coerce.date().nullish(),
+  "lastDoneAt": zod.coerce.date().nullish(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+export const ListTasksResponse = zod.array(ListTasksResponseItem)
+
+
+/**
+ * @summary Create a recurring task
+ */
+export const createTaskBodyCadenceDefault = `weekly`;
+export const createTaskBodyStatusDefault = `active`;
+
+export const CreateTaskBody = zod.object({
+  "countryId": zod.int(),
+  "actionArea": zod.enum(['Trade & investment', 'Security dialogue', 'Climate & energy', 'Humanitarian affairs', 'Protocol & access']),
+  "cadence": zod.enum(['daily', 'weekly']).default(createTaskBodyCadenceDefault),
+  "title": zod.string().min(1),
+  "description": zod.string().optional(),
+  "owner": zod.string().optional(),
+  "status": zod.enum(['active', 'paused', 'done']).default(createTaskBodyStatusDefault),
+  "dueDate": zod.coerce.date().optional(),
+  "lastDoneAt": zod.coerce.date().optional()
+})
+
+export const CreateTaskResponse = zod.object({
+  "id": zod.int(),
+  "countryId": zod.int(),
+  "countryName": zod.string(),
+  "actionArea": zod.enum(['Trade & investment', 'Security dialogue', 'Climate & energy', 'Humanitarian affairs', 'Protocol & access']),
+  "cadence": zod.enum(['daily', 'weekly']),
+  "title": zod.string(),
+  "description": zod.string().nullish(),
+  "owner": zod.string().nullish(),
+  "status": zod.enum(['active', 'paused', 'done']),
+  "dueDate": zod.coerce.date().nullish(),
+  "lastDoneAt": zod.coerce.date().nullish(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Update a recurring task
+ */
+export const UpdateTaskParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+
+
+
+export const UpdateTaskBody = zod.object({
+  "actionArea": zod.enum(['Trade & investment', 'Security dialogue', 'Climate & energy', 'Humanitarian affairs', 'Protocol & access']).optional(),
+  "cadence": zod.enum(['daily', 'weekly']).optional(),
+  "title": zod.string().min(1).optional(),
+  "description": zod.string().nullish(),
+  "owner": zod.string().nullish(),
+  "status": zod.enum(['active', 'paused', 'done']).optional(),
+  "dueDate": zod.coerce.date().nullish(),
+  "lastDoneAt": zod.coerce.date().nullish()
+})
+
+export const UpdateTaskResponse = zod.object({
+  "id": zod.int(),
+  "countryId": zod.int(),
+  "countryName": zod.string(),
+  "actionArea": zod.enum(['Trade & investment', 'Security dialogue', 'Climate & energy', 'Humanitarian affairs', 'Protocol & access']),
+  "cadence": zod.enum(['daily', 'weekly']),
+  "title": zod.string(),
+  "description": zod.string().nullish(),
+  "owner": zod.string().nullish(),
+  "status": zod.enum(['active', 'paused', 'done']),
+  "dueDate": zod.coerce.date().nullish(),
+  "lastDoneAt": zod.coerce.date().nullish(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Delete a recurring task
+ */
+export const DeleteTaskParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+export const DeleteTaskResponse = zod.object({
+  "id": zod.int()
+})
+
+
+/**
  * @summary List news items for a country
  */
 export const ListNewsQueryParams = zod.object({
