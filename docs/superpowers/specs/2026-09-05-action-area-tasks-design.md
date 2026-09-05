@@ -44,7 +44,7 @@ New table in `lib/db/src/schema/tasks.ts`, exported from `lib/db/src/schema/inde
 | `status` | `status` | `text`, notNull, default `'active'` | `active` \| `paused` \| `done` |
 | `due_date` | `dueDate` | `date` (string mode) | nullable, next-due YYYY-MM-DD |
 | `last_done_at` | `lastDoneAt` | `date` (string mode) | nullable, last-completed YYYY-MM-DD |
-| `created_at` / `updated_at` | `createdAt` / `updatedAt` | timestamps, default `now()` / `onUpdate` | |
+| `created_at` / `updated_at` | `createdAt` / `updatedAt` | timestamps, `.defaultNow()` (matching every existing table — the repo has no `.$onUpdate` convention) | |
 
 No FK cascade requirement (a country's tasks must be cleaned up before deleting the
 country in QA — follows the existing `auth-qa` disposal ordering; `onDelete: "cascade"`
@@ -52,7 +52,7 @@ is acceptable here to match `meeting_agenda`-style child behavior).
 
 ### Enumerated values (single source of truth)
 
-New `lib/db/src/schema/tasks.ts` cotains the value constants; the SPA imports them from a
+New `lib/db/src/schema/tasks.ts` contains the value constants; the SPA imports them from a
 matching `artifacts/global-dr-platform/src/lib/tasks.ts`:
 
 - `ACTION_AREAS` — the five existing meeting action areas: `Trade & investment`,
@@ -62,7 +62,10 @@ matching `artifacts/global-dr-platform/src/lib/tasks.ts`:
 
 The five action-area `<option>` strings currently hard-coded inline at
 `App.tsx:498` (the meeting "Schedule" dialog) are lifted to import `ACTION_AREAS` from the
-new shared constant, so the two selectors cannot drift.
+new shared constant, so the two selectors cannot drift. The DB column stays untyped
+`text` (as `meetings.actionArea` does); enum **validation** is enforced at the API layer
+via the OpenAPI-declared enums below — the "cannot drift" guarantee is between the two
+SPA selectors, not API-vs-DB.
 
 ---
 
@@ -105,12 +108,16 @@ entity; no in-handler gate needed).
   actionArea/status/cadence equality; join `countries.name` → `countryName`; order by
   `actionArea` then `title`; respond `ListTasksResponse`.
 - `POST /tasks`: `safeParse` body → validate the country exists (400 if not) → insert →
-  `writeAudit({ actor: getActor(req), action: "create", entityType: "task", entityId,
-  kind, title, description, countryId })` → `201` + `CreateTaskResponse.parse(row)`.
+  **look up `countries.name` and respond joined**, exactly like meetings
+  (`CreateMeetingResponse.parse({ ...row, countryName: country?.name ?? "Unknown" })` at
+  `platform.ts:334`) → `writeAudit({ actor: getActor(req), action: "create",
+  entityType: "task", entityId, kind, title, description, countryId })` → `201` +
+  `CreateTaskResponse.parse({ ...row, countryName })`. (Raw `.returning()` rows carry no
+  `countryName`; `Task` requires it, so the join is mandatory on create and update.)
 - `PATCH /tasks/{id}`: parse params + body → 404 if missing → update →
+  **join `countries.name` as above** `UpdateTaskResponse.parse({ ...row, countryName })` →
   `diffFields(existing, row, ["title", "description", "actionArea", "cadence", "owner",
-  "status", "dueDate", "lastDoneAt"])` → audit create/update with before/after →
-  `UpdateTaskResponse`.
+  "status", "dueDate", "lastDoneAt"])` → audit create/update with before/after.
 - `DELETE /tasks/{id}`: parse params → 404 if missing → delete → audit `delete` →
   `DeleteTaskResponse`.
 
@@ -121,6 +128,12 @@ entity; no in-handler gate needed).
 Entity type `task`. Create/update/delete rows all carry `countryId`. Update diffs are
 limited to the `diffFields` allowlist above; the FKs and timestamps never appear in diffs.
 No sensitive bodies echoed.
+
+**Required code edit:** `writeAudit`'s `entityType` is typed as the `AuditEntityType` union
+in `lib/audit.ts` (currently terminal at `"deliverable"`), so **add `| "task"`** to that
+union or the route fails typecheck. The DB column (`activity.entity_type`, plain `text`)
+and OpenAPI `AuditEntry.entityType` (plain string, no enum) accept `"task"` with no further
+change.
 
 ---
 
@@ -157,10 +170,13 @@ Testids (repo convention): `button-add-task`, `button-empty-add-task`, `button-s
 
 ### 4.3 Data flow
 
-Generated hooks `useListTasks({ query: { queryKey: getListTasksQueryKey({ countryId }) } })`,
-`useCreateTask`, `useUpdateTask`, `useDeleteTask`. Invalidate
-`getListTasksQueryKey({ countryId })` on every mutation success. No new route, no nav
-change, no sidebar change.
+Generated hooks `useListTasks({ countryId })` (required `countryId` list param is the
+**first positional arg**, exactly like `useListMinistries({ countryId })` — the
+single-arg `{ query }` form only exists for param-less hooks such as
+`useListAssignableUsers`), plus `useCreateTask`, `useUpdateTask`, `useDeleteTask`. Optional
+filters pass through params: `useListTasks({ countryId, actionArea, status })`.
+Invalidate `getListTasksQueryKey({ countryId })` on every mutation success. No new route,
+no nav change, no sidebar change.
 
 ---
 
@@ -185,8 +201,11 @@ authorization this phase.
 4. `PATCH` status → `done` + cadence → `daily` echo; bogus enum value → `400`.
 5. Audit: create + update rows both carry `countryId`; update `after` diff limited to the
    changed keys.
-6. `DELETE` → `200`; list no longer contains it. Cleanup removes the country last
-   (existing disposal ordering).
+6. `DELETE` → `200`; list no longer contains it.
+7. Cleanup: the tasks block **must** `await db.delete(tasksTable).where(
+   eq(tasksTable.countryId, adminPostBody.id))` ahead of the existing country deletion in
+   the disposal block (`auth-qa.ts:575-585`) — the country delete will throw if the FK
+   still points at it.
 
 ### 6.2 route-qa (`scripts/src/route-qa.ts`)
 
@@ -202,10 +221,15 @@ authorization this phase.
 
 - `bun run --filter @workspace/db push` (applies the new `tasks` table to the live DB).
 - `bun run typecheck` (libs + all workspaces clean).
-- Codegen: `bun run --filter @workspace/api-spec codegen` → **manually remove the
-  re-appended `export * from './generated/types';` line** from `lib/api-zod/src/index.ts`
-  if the patch script re-inserts it (known codegen pitfall) →
-  rebuild `npx tsc --build lib/api-client-react`.
+- Codegen: `bun run --filter @workspace/api-spec codegen` (orval regenerates
+  `lib/api-zod/src/generated/*` and `lib/api-client-react/src/generated/*`; the
+  `patch-generated.ts` script repatches the `getHeaders` helper). **`lib/api-zod/src/index.ts`
+  is hand-curated and not touched by codegen** — manually add the new named type exports
+  (`Task`, `TaskInput`, `TaskUpdate`, `ListTasksResponseItem`, `ListTasksResponse`,
+  `ListTasksQueryParams`, `CreateTaskBody`/`Response`, `UpdateTaskBody`/`Params`/`Response`,
+  `DeleteTaskParams`/`Response`) to its curated `export { type ... } from "./generated/types"`
+  block (the Zod schemas themselves come through automatically via the
+  `export * from "./generated/api"` at line 2) → rebuild `npx tsc --build lib/api-client-react`.
 - auth-qa, route-qa, SPA `build` all green.
 - Commit message: `feat(tasks): weekly/daily action-area tasks per country`.
 
