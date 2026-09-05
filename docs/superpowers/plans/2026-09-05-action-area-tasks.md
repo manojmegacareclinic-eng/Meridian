@@ -391,11 +391,11 @@ bun run --filter @workspace/api-spec codegen
 ```
 Expected: orval regenerates `lib/api-zod/src/generated/*` and `lib/api-client-react/src/generated/*`, then `patch-generated.ts` prints `patched getHeaders in …`.
 
-- [ ] **Step 6: Add the new named type exports to the hand-curated zod barrel**
+- [ ] **Step 6: Fix the codegen-appended wildcard, then add the task types to the curated barrel**
 
-`lib/api-zod/src/index.ts` is **not** touched by codegen. Orval generates two layers: (a) all request/response/bodies as **zod schemas in `generated/api.ts`**, which flow through `export * from "./generated/api"` at line 2 automatically — this covers `ListTasksQueryParams`, `ListTasksResponseItem`, `CreateTaskBody`, `CreateTaskResponse`, `UpdateTaskParams/Body/Response`, `DeleteTaskParams/Response` (these are the zod values the route file imports); (b) per-schema **types in `generated/types/`**, which require hand re-export.
+**First — remove the appended wildcard (codegen pitfall):** every `codegen` run appends `export * from './generated/types';` to the **end** of `lib/api-zod/src/index.ts` (verified on this repo twice — orval re-emits the file and preserves the curated list but adds the trailing line). That trailing star-export collides with `generated/api`'s re-exported zod values (`ListActionItemsParams` is defined in both) and fails `tsc` with TS2308. Delete it so the file again ends at `} from "./generated/types";` (this matches the state of every prior committed codegen round, e.g. `git show a068523:lib/api-zod/src/index.ts`).
 
-Add **only** these 12 generated type names to the `export { type … } from "./generated/types"` block (each will exist in a newly generated `types/task*.ts` file, mirroring `ActionItem*`) — insert alphabetically with the other entries:
+**Then — add the hand-curated task types:** add **only** these 12 generated type names to the `export { type … } from "./generated/types"` block (each now exists in a newly generated `types/task*.ts` file, mirroring `ActionItem*`), inserted with the other entries:
 
 ```
   type Task,
@@ -1170,7 +1170,7 @@ git commit -m "feat(tasks): Phase 4.2 complete — weekly/daily action-area task
 
 ## Notes for Implementer
 
-- **Codegen:** `bun run --filter @workspace/api-spec codegen` regenerates `generated/*` only; `lib/api-zod/src/index.ts` is hand-curated — add the 12 generated Task type names listed in Task 2 Step 6 (do NOT re-export zod-value-only names like `*Body`/`*Response`/`*Params` as types; those arrive via `export * from "./generated/api"`). Rebuild with `npx tsc --build lib/api-client-react`.
+- **Codegen:** `bun run --filter @workspace/api-spec codegen` regenerates `generated/*` and also appends `export * from './generated/types';` to `lib/api-zod/src/index.ts` — **remove that appended line before typechecking** (TS2308 otherwise). Then add the 12 named Task type types (Task 2 Step 6) and rebuild with `npx tsc --build lib/api-client-react`. Note the api-zod zod **values** (`ListTasksQueryParams`, `CreateTaskBody`, …) arrive automatically via `export * from "./generated/api"` — never re-export them as types.
 - **Body date coercion:** orval's zod config coerces `date` fields in bodies to `Date`; the DB columns are `date` string mode. Always normalize via `dayOnly()` before insert/update (mirrors `routes/actionItems.ts:88-92`).
 - **Audit union:** `writeAudit` requires `"task"` to be added to `AuditEntityType` in `artifacts/api-server/src/lib/audit.ts`, or the route fails typecheck.
 - **Read/write gates:** mounting `tasksRouter` after `requireWriteRole()` means reads work for any session and writes are gated to non-viewers — no in-handler gate needed (unlike `/users/assignable`).
