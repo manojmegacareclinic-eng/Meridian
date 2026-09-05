@@ -32,6 +32,7 @@ export * from "./organizations";
 export * from "./drStrategies";
 export * from "./meetingAgenda";
 export * from "./actionItems";
+export * from "./tasks";
 export {
   userTable as user,
   sessionTable as session,
