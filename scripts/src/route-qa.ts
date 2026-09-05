@@ -218,6 +218,20 @@ async function main() {
         await page.waitForSelector('[data-testid="button-add-news"]', { timeout: 15000 });
         check('news tab shows "Add news" button', true);
       }
+      if (tab.id === "tasks") {
+        await page.waitForSelector('[data-testid="button-add-task"]', { timeout: 15000 });
+        check('tasks tab shows "Add task" button', true);
+        await page.click('[data-testid="button-add-task"]');
+        await page.waitForSelector('[data-testid="select-task-action-area"]', { timeout: 15000 });
+        const taskAreaOptions = await page.locator('[data-testid="select-task-action-area"] option').count();
+        check("task modal action-area select lists five areas", taskAreaOptions === 5, `got ${taskAreaOptions}`);
+        const taskCadenceOptions = await page.locator('[data-testid="select-task-cadence"] option').count();
+        check("task modal cadence select lists daily + weekly", taskCadenceOptions === 2, `got ${taskCadenceOptions}`);
+        const taskStatusOptions = await page.locator('[data-testid="select-task-status"] option').count();
+        check("task modal status select lists three statuses", taskStatusOptions === 3, `got ${taskStatusOptions}`);
+        await page.click('[data-testid="button-cancel-task"]');
+        await page.waitForTimeout(200);
+      }
     }
 
     // Phase 3 — relationship strategies pipeline page
