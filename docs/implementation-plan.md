@@ -2,7 +2,7 @@
 
 **Status:** Foundation running; MVP implementation in progress  
 **Last updated:** 05 September 2026
-**Current next task:** Phase 4.2+ — deliverables/tasks, scorecards, and notifications.
+**Current next task:** Phase 4.3 — scorecards, completion percentage, response SLA, and failure analysis.
 **Source brief:** `attached_assets/Pasted--Global-Diplomatic-Relations-Government-Engagement-Plat_1787756992171.txt`
 
 This is a living delivery plan for the Global Diplomatic Relations (GDP) platform. It translates the enterprise blueprint into an incremental plan that matches the current Replit project instead of requiring a wholesale rewrite.
@@ -125,9 +125,9 @@ and cleanup (`ALL PASS, 26`); demo and real-auth route-qa push the audit page (`
 
 ### Phase 4 — Deliverables, tasks, and notifications
 
-**Status: `IN PROGRESS` — Phase 4.1 (country assignments) complete; deliverables/tasks, scorecards, and notifications remain.**
+**Status: `IN PROGRESS` — Phase 4.2 (action-area tasks) complete; scorecards and notifications remain.**
 
-1. Add weekly and daily deliverables tied to action areas. — not started
+1. Add weekly and daily deliverables tied to action areas. ✓ (Phase 4.2, this session: per-country `tasks` entity with action area + daily/weekly cadence, owner, status, next-due / last-completed; country Tasks tab grouped by action area; auth-qa 87/87 + route-qa 52/52 green)
 2. Add country assignments with primary owner, secondary owner, reviewer, and regional coordinator. ✓ (Phase 4.1, this session: four user-linked columns, `/users/assignable`, Overview Assignments block, edit-modal pickers, primary-owner card chip; auth-qa + route-qa green)
 3. Add failure analysis, completion percentage, response SLA, and country scorecards. — not started
 4. Add notifications for position changes, upcoming meetings, expiring agreements, overdue follow-ups, elections, and confidence changes. — not started (in-app first)

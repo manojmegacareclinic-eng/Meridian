@@ -20,7 +20,7 @@
 - Create: `lib/db/src/schema/tasks.ts`
 - Modify: `lib/db/src/schema/index.ts`
 
-- [ ] **Step 1: Create the schema file**
+- [x] **Step 1: Create the schema file**
 
 `lib/db/src/schema/tasks.ts` (models `ministries.ts`):
 
@@ -61,11 +61,11 @@ export type InsertTask = z.infer<typeof insertTaskSchema>;
 export type Task = typeof tasksTable.$inferSelect;
 ```
 
-- [ ] **Step 2: Export from the schema barrel**
+- [x] **Step 2: Export from the schema barrel**
 
 In `lib/db/src/schema/index.ts`, add `export * from "./tasks";` to the other `export * from "./…"` lines.
 
-- [ ] **Step 3: Push to the live database**
+- [x] **Step 3: Push to the live database**
 
 ```bash
 bun run --filter @workspace/db push
@@ -75,11 +75,11 @@ Expected: Drizzle reports creating table `tasks`. Verify:
 psql -d meridian -c "\d tasks" | rg "action_area|due_date|last_done_at"
 ```
 
-- [ ] **Step 4: Typecheck**
+- [x] **Step 4: Typecheck**
 
 Run: `bun run typecheck` — expected clean.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add lib/db/src/schema/tasks.ts lib/db/src/schema/index.ts
@@ -95,14 +95,14 @@ git commit -m "feat(db): tasks table (country x action-area cadence deliverables
 **Files:**
 - Modify: `lib/api-spec/openapi.yaml`
 
-- [ ] **Step 1: Add the `tasks` tag**
+- [x] **Step 1: Add the `tasks` tag**
 
 In the top-level `tags:` list (now ends with `- name: users`, ~line 28), add after `users`:
 ```yaml
 - name: tasks
 ```
 
-- [ ] **Step 2: Add the `TaskId` path parameter**
+- [x] **Step 2: Add the `TaskId` path parameter**
 
 In `components.parameters` (the block starting `MinistryId:` ~line 1622), add after one of the existing `*Id` entries:
 ```yaml
@@ -114,7 +114,7 @@ In `components.parameters` (the block starting `MinistryId:` ~line 1622), add af
         type: integer
 ```
 
-- [ ] **Step 3: Add the `/tasks` and `/tasks/{id}` paths**
+- [x] **Step 3: Add the `/tasks` and `/tasks/{id}` paths**
 
 Insert immediately before the `  /news:` path block (the `/news:` key, currently ~line 514 — paths are order-independent, so pick this single anchor).
 
@@ -227,7 +227,7 @@ Insert immediately before the `  /news:` path block (the `/news:` key, currently
                     type: integer
 ```
 
-- [ ] **Step 4: Add the `Task` / `TaskInput` / `TaskUpdate` schemas**
+- [x] **Step 4: Add the `Task` / `TaskInput` / `TaskUpdate` schemas**
 
 In `components.schemas` (alphabetical — after the `Position`/`Organization` block, anywhere in the block). Enums are declared so Orval generates `z.enum` validation:
 
@@ -384,14 +384,14 @@ In `components.schemas` (alphabetical — after the `Position`/`Organization` bl
           format: date
 ```
 
-- [ ] **Step 5: Run codegen**
+- [x] **Step 5: Run codegen**
 
 ```bash
 bun run --filter @workspace/api-spec codegen
 ```
 Expected: orval regenerates `lib/api-zod/src/generated/*` and `lib/api-client-react/src/generated/*`, then `patch-generated.ts` prints `patched getHeaders in …`.
 
-- [ ] **Step 6: Fix the codegen-appended wildcard, then add the task types to the curated barrel**
+- [x] **Step 6: Fix the codegen-appended wildcard, then add the task types to the curated barrel**
 
 **First — remove the appended wildcard (codegen pitfall):** every `codegen` run appends `export * from './generated/types';` to the **end** of `lib/api-zod/src/index.ts` (verified on this repo twice — orval re-emits the file and preserves the curated list but adds the trailing line). That trailing star-export collides with `generated/api`'s re-exported zod values (`ListActionItemsParams` is defined in both) and fails `tsc` with TS2308. Delete it so the file again ends at `} from "./generated/types";` (this matches the state of every prior committed codegen round, e.g. `git show a068523:lib/api-zod/src/index.ts`).
 
@@ -414,21 +414,21 @@ Expected: orval regenerates `lib/api-zod/src/generated/*` and `lib/api-client-re
 
 **Do NOT** add `ListTasksParams` (a `listTasksParams.ts` type file is generated, but by repo convention the curated block omits every `List*Params` type — check: `ListMinistriesParams` is not in it) and **do NOT** add `ListTasksQueryParams`, `*ResponseItem`, `ListTasksResponse`, `CreateTaskBody/Response`, `UpdateTask*Params/Body/Response`, `DeleteTaskParams/Response` as `type` re-exports — those exist only as zod **values** in `generated/api.ts`, and re-exporting them from `./generated/types` produces TS2305 ("has no exported member") and breaks the build.
 
-- [ ] **Step 7: Rebuild the react-client dist and typecheck**
+- [x] **Step 7: Rebuild the react-client dist and typecheck**
 
 ```bash
 npx tsc --build lib/api-client-react
 bun run typecheck
 ```
 
-- [ ] **Step 8: Verify the generated surface exists**
+- [x] **Step 8: Verify the generated surface exists**
 
 ```bash
 rg -n "useListTasks|useCreateTask|useUpdateTask|useDeleteTask|getListTasksQueryKey|ListTasksResponseItem|ListTasksQueryParams" lib/api-zod/src/generated lib/api-client-react/src/generated | head -30
 ```
 Expected: hooks `useListTasks`/`useCreateTask`/`useUpdateTask`/`useDeleteTask`, key fn `getListTasksQueryKey`, zod schemas `ListTasksResponseItem`/`ListTasksQueryParams` (these names are **values** in `lib/api-zod/src/generated/api.ts`, auto-exported — they are what the route file imports).
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
 ```bash
 git add lib/api-spec/openapi.yaml lib/api-zod/src lib/api-client-react/src
@@ -444,14 +444,14 @@ git commit -m "feat(api): openapi contract for per-country recurring tasks"
 **Files:**
 - Modify: `scripts/src/auth-qa.ts`
 
-- [ ] **Step 1: Import `tasksTable`**
+- [x] **Step 1: Import `tasksTable`**
 
 Change the `@workspace/db` import (line ~8) to add `tasksTable`:
 ```ts
 import { db, pool, activityTable, countriesTable, documentsTable, newsTable, userTable, meetingsTable, agreementsTable, drStrategiesTable, tasksTable } from "@workspace/db";
 ```
 
-- [ ] **Step 2: Insert the Phase 4.2 block**
+- [x] **Step 2: Insert the Phase 4.2 block**
 
 Insert immediately BEFORE the `// 25 (renumbered). Cleanup:` comment (line ~572). Note: `countryId` (number) is already in scope at line 288, and `adminJar`/`adminPostBody` are in scope from the 4.1 block:
 
@@ -536,14 +536,14 @@ Insert immediately BEFORE the `// 25 (renumbered). Cleanup:` comment (line ~572)
   check("task removed after delete", taskListAfter.status === 200 && !taskListAfterBody.some((t) => t.id === taskId), `count=${taskListAfterBody.length}`);
 ```
 
-- [ ] **Step 3: Extend the cleanup block**
+- [x] **Step 3: Extend the cleanup block**
 
 In the cleanup block (line ~577), add a tasks sweep BEFORE the `drStrategiesTable` delete so the FK can never block country deletion:
 ```ts
     await db.delete(tasksTable).where(eq(tasksTable.countryId, adminPostBody.id));
 ```
 
-- [ ] **Step 4: Run auth-qa and confirm the new checks FAIL (red)**
+- [x] **Step 4: Run auth-qa and confirm the new checks FAIL (red)**
 
 ```bash
 export DATABASE_URL="postgresql://localhost:5432/meridian"; export BETTER_AUTH_SECRET="$(openssl rand -base64 32)"; bun run --filter @workspace/scripts auth-qa > /var/folders/41/dlw_dftx72v3cxf9mnrw3bxc0000gn/T/opencode/qa42a.out 2>&1; tail -5 /var/folders/41/dlw_dftx72v3cxf9mnrw3bxc0000gn/T/opencode/qa42a.out
@@ -557,11 +557,11 @@ Expected: new `POST /api/tasks` checks fail (404/400 on the missing route) and t
 - Modify: `artifacts/api-server/src/lib/audit.ts`
 - Modify: `artifacts/api-server/src/routes/index.ts`
 
-- [ ] **Step 1: Add `"task"` to the audit entity-type union**
+- [x] **Step 1: Add `"task"` to the audit entity-type union**
 
 In `artifacts/api-server/src/lib/audit.ts`, add `| "task"` to the `AuditEntityType` union (after `| "deliverable"`). Without this, `writeAudit({ entityType: "task" })` fails typecheck.
 
-- [ ] **Step 2: Create `routes/tasks.ts`**
+- [x] **Step 2: Create `routes/tasks.ts`**
 
 Model on `routes/ministries.ts`, with the `countryName` join of `routes/platform.ts` meetings and the date normalization of `routes/actionItems.ts` (codegen coerces body dates to `Date`; the DB columns are `date` string mode):
 
@@ -714,22 +714,22 @@ router.delete("/tasks/:id", async (req, res): Promise<void> => {
 export default router;
 ```
 
-- [ ] **Step 3: Mount the router**
+- [x] **Step 3: Mount the router**
 
 In `artifacts/api-server/src/routes/index.ts`: add `import tasksRouter from "./tasks";` to the imports and `router.use(tasksRouter);` with the other resource routers (after `router.use(actionItemsRouter);`). The `requireWriteRole()` mount at line 31 then covers GETs-for-any-session and write-role-gated writes automatically.
 
-- [ ] **Step 4: Typecheck**
+- [x] **Step 4: Typecheck**
 
 Run: `bun run typecheck` — expected clean. If `ListTasksResponseItem`/`CreateTaskResponse`/etc. are not found, re-check the exact generated names from Task 2 Step 8 and fix the import list.
 
-- [ ] **Step 5: Run auth-qa to green**
+- [x] **Step 5: Run auth-qa to green**
 
 ```bash
 export DATABASE_URL="postgresql://localhost:5432/meridian"; export BETTER_AUTH_SECRET="$(openssl rand -base64 32)"; bun run --filter @workspace/scripts auth-qa > /var/folders/41/dlw_dftx72v3cxf9mnrw3bxc0000gn/T/opencode/qa42b.out 2>&1; tail -3 /var/folders/41/dlw_dftx72v3cxf9mnrw3bxc0000gn/T/opencode/qa42b.out
 ```
 Expected: `ALL PASS` with the previous 76 + ~12 new checks.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add artifacts/api-server/src/routes/tasks.ts artifacts/api-server/src/lib/audit.ts artifacts/api-server/src/routes/index.ts scripts/src/auth-qa.ts
@@ -745,7 +745,7 @@ git commit -m "feat(api): per-country recurring tasks CRUD + audit (auth-qa gree
 **Files:**
 - Modify: `scripts/src/route-qa.ts`
 
-- [ ] **Step 1: Add a `tasks` branch to the country-detail tab loop**
+- [x] **Step 1: Add a `tasks` branch to the country-detail tab loop**
 
 Inside the `for (const tab of COUNTRY_TABS)` loop in the demo branch, after the existing `news` branch (line ~217), add:
 
@@ -766,7 +766,7 @@ Inside the `for (const tab of COUNTRY_TABS)` loop in the demo branch, after the 
       }
 ```
 
-- [ ] **Step 2: Typecheck**
+- [x] **Step 2: Typecheck**
 
 Run: `bun run typecheck` — expected clean (assertions run only at runtime).
 
@@ -776,7 +776,7 @@ Run: `bun run typecheck` — expected clean (assertions run only at runtime).
 - Create: `artifacts/global-dr-platform/src/lib/tasks.ts`
 - Modify: `artifacts/global-dr-platform/src/App.tsx`
 
-- [ ] **Step 1: Create `src/lib/tasks.ts`**
+- [x] **Step 1: Create `src/lib/tasks.ts`**
 
 ```ts
 export const ACTION_AREAS = [
@@ -802,7 +802,7 @@ export const CADENCE_LABEL = Object.fromEntries(TASK_CADENCES.map((c) => [c.valu
 export const STATUS_LABEL = Object.fromEntries(TASK_STATUSES.map((s) => [s.value, s.label])) as Record<string, string>;
 ```
 
-- [ ] **Step 2: Lift the meeting dialog action-area options in `App.tsx`**
+- [x] **Step 2: Lift the meeting dialog action-area options in `App.tsx`**
 
 Add the import (with the other `@/` imports, ~line 129):
 ```ts
@@ -814,7 +814,7 @@ In `MeetingsPage`'s "Action area" select (the `data-testid="select-meeting-actio
 <option value="" disabled>What is this meeting for?</option>{ACTION_AREAS.map((area) => <option key={area}>{area}</option>)}
 ```
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add artifacts/global-dr-platform/src/lib/tasks.ts artifacts/global-dr-platform/src/App.tsx scripts/src/route-qa.ts
@@ -1036,7 +1036,7 @@ export function TasksTab({ countryId }: { countryId: number }) {
 }
 ```
 
-- [ ] **Step 1: Typecheck the component**
+- [x] **Step 1: Typecheck the component**
 
 Run: `bun run typecheck` — expected clean. If `task.dueDate` is typed `string | null` instead of `Date | null`, the `Date` branch of `toDateInput` is simply unused; if typed `Date | null`, `shortDate` still works.
 
@@ -1045,11 +1045,11 @@ Run: `bun run typecheck` — expected clean. If `task.dueDate` is typed `string 
 **Files:**
 - Modify: `artifacts/global-dr-platform/src/App.tsx`
 
-- [ ] **Step 1: Import `TasksTab`**
+- [x] **Step 1: Import `TasksTab`**
 
 Add with the other component imports (~line 131): `import { TasksTab } from '@/components/TasksTab';`
 
-- [ ] **Step 2: Replace the "Coming soon" branch**
+- [x] **Step 2: Replace the "Coming soon" branch**
 
 In `CountryDetailPage` (line ~1151), change:
 
@@ -1076,14 +1076,14 @@ to:
         )}
 ```
 
-- [ ] **Step 3: Typecheck + build**
+- [x] **Step 3: Typecheck + build**
 
 ```bash
 bun run typecheck && bun run --filter @workspace/global-dr-platform build
 ```
 Expected: clean; `✓ built` (≈2s).
 
-- [ ] **Step 4: Boot API + SPA and run route-qa (same invocation)**
+- [x] **Step 4: Boot API + SPA and run route-qa (same invocation)**
 
 ```bash
 export DATABASE_URL="postgresql://localhost:5432/meridian"; export BETTER_AUTH_SECRET="$(openssl rand -base64 32)"
@@ -1094,13 +1094,13 @@ bun run --filter @workspace/scripts route-qa > /var/folders/41/dlw_dftx72v3cxf9m
 ```
 Expected: `ALL PASS`, previous 48 + 4 new `tasks` checks. If the later meeting/agreement sections of route-qa fail on `card-meeting-`/`row-agreement-` timeouts, re-seed the demo rows (QA Meeting/QA Agreement for countries 10 and 19) first, as in the 4.1 round.
 
-- [ ] **Step 5: Kill servers**
+- [x] **Step 5: Kill servers**
 
 ```bash
 for p in 3000 5173; do lsof -ti tcp:$p | xargs kill 2>/dev/null; done
 ```
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add artifacts/global-dr-platform/src/App.tsx artifacts/global-dr-platform/src/components/TasksTab.tsx scripts/src/route-qa.ts
@@ -1117,7 +1117,7 @@ git commit -m "feat(spa): country Tasks tab grouped by action area (route-qa gre
 - Modify: `docs/implementation-plan.md`
 - Modify: `docs/superpowers/plans/2026-09-05-action-area-tasks.md` (this file — check the boxes)
 
-- [ ] **Step 1: `docs/implementation-plan.md` — Phase 4 status + checklist**
+- [x] **Step 1: `docs/implementation-plan.md` — Phase 4 status + checklist**
 
 Change line 128:
 `**Status: \`IN PROGRESS\` — Phase 4.1 (country assignments) complete; deliverables/tasks, scorecards, and notifications remain.**`
@@ -1134,9 +1134,9 @@ Change line 5 (`**Current next task:**`):
 to:
 `**Current next task:** Phase 4.3 — scorecards, completion percentage, response SLA, and failure analysis.`
 
-- [ ] **Step 2: Mark this plan's checkboxes** `- [ ]` → `- [x]` as each task completes.
+- [x] **Step 2: Mark this plan's checkboxes** `- [ ]` → `- [x]` as each task completes.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add docs
@@ -1145,21 +1145,21 @@ git commit -m "docs: Phase 4.2 action-area tasks status"
 
 ### Task 10: Final verification & commit
 
-- [ ] **Step 1: Full verification**
+- [x] **Step 1: Full verification**
 
 ```bash
 bun run typecheck && bun run --filter @workspace/global-dr-platform build
 ```
 Expected: clean.
 
-- [ ] **Step 2: Confirm nothing stray in git**
+- [x] **Step 2: Confirm nothing stray in git**
 
 ```bash
 git status
 ```
 Expected: only intended files.
 
-- [ ] **Step 3: Final commit**
+- [x] **Step 3: Final commit**
 
 ```bash
 git add -A
@@ -1175,6 +1175,6 @@ git commit -m "feat(tasks): Phase 4.2 complete — weekly/daily action-area task
 - **Audit union:** `writeAudit` requires `"task"` to be added to `AuditEntityType` in `artifacts/api-server/src/lib/audit.ts`, or the route fails typecheck.
 - **Read/write gates:** mounting `tasksRouter` after `requireWriteRole()` means reads work for any session and writes are gated to non-viewers — no in-handler gate needed (unlike `/users/assignable`).
 - **Hook shape:** `useListTasks({ countryId })` — the required query param is the first positional arg (like `useListMinistries({ countryId })`), NOT the single-arg `{ query }` form.
-- **route-qa specifics:** API + SPA dev servers must be booted in the SAME bash invocation as the route-qa run (background jobs don't survive across tool invocations). Use `/var/folders/41/dlw_dftx72v3cxf9mnrw3bxc0000gn/T/opencode/*.log` for logs (the `/tmp` cleanup already bit us). The demo DB needs the QA Meeting + QA Agreement rows (countries 10/19) or the meeting/agreement sections of route-qa time out — re-seed if missing.
+- **route-qa specifics:** API + SPA dev servers must be booted in the SAME bash invocation as the route-qa run (background jobs don't survive across tool invocations). Use `/var/folders/41/dlw_dftx72v3cxf9mnrw3bxc0000gn/T/opencode/*.log` for logs (the `/tmp` cleanup already bit us). The demo DB needs the QA Meeting + QA Agreement rows (countries 10/19) or the meeting/agreement sections of route-qa time out — re-seed if missing. **Port hygiene:** before booting, kill every listener on both 3000 and 5173 — a leftover `bun`/vite process can hold IPv6 `localhost:3000` while the API (node) binds IPv4 `*:3000`; curl/`localhost` resolution hits the wrong one and `/api/countries` returns HTML → `countries.map is not a function` renders a broken Countries page and route-qa times out on `header h1`.
 - **auth-qa dates:** don't assert `dueDate` string-equality (date normalization differs across codegen/DB); assert enum fields (`cadence`/`status`/`actionArea`) only. Note the audit-list response exposes `entityType`/`entityId`/`action`/`after` but NOT `countryId` (left-join yields `countryName` only) — assert on those.
 - **Empty-state each run:** demo data has no tasks, so route-qa sees `button-add-task` + the empty state; create/edit/delete flows are covered at the API level by auth-qa.
