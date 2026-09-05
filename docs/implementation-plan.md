@@ -1,8 +1,8 @@
 # Global Diplomatic Relations — Implementation Plan
 
 **Status:** Foundation running; MVP implementation in progress  
-**Last updated:** 04 September 2026  
-**Current next task:** Phase 4 — Deliverables, tasks, and notifications.  
+**Last updated:** 05 September 2026
+**Current next task:** Phase 4.2+ — deliverables/tasks, scorecards, and notifications.
 **Source brief:** `attached_assets/Pasted--Global-Diplomatic-Relations-Government-Engagement-Plat_1787756992171.txt`
 
 This is a living delivery plan for the Global Diplomatic Relations (GDP) platform. It translates the enterprise blueprint into an incremental plan that matches the current Replit project instead of requiring a wholesale rewrite.
@@ -125,13 +125,13 @@ and cleanup (`ALL PASS, 26`); demo and real-auth route-qa push the audit page (`
 
 ### Phase 4 — Deliverables, tasks, and notifications
 
-**Status: `PLANNED`**
+**Status: `IN PROGRESS` — Phase 4.1 (country assignments) complete; deliverables/tasks, scorecards, and notifications remain.**
 
-1. Add weekly and daily deliverables tied to action areas.
-2. Add country assignments with primary owner, secondary owner, reviewer, and regional coordinator.
-3. Add failure analysis, completion percentage, response SLA, and country scorecards.
-4. Add notifications for position changes, upcoming meetings, expiring agreements, overdue follow-ups, elections, and confidence changes.
-5. Add in-app notifications first; evaluate email, WhatsApp, Telegram, and Slack after the core workflow is stable.
+1. Add weekly and daily deliverables tied to action areas. — not started
+2. Add country assignments with primary owner, secondary owner, reviewer, and regional coordinator. ✓ (Phase 4.1, this session: four user-linked columns, `/users/assignable`, Overview Assignments block, edit-modal pickers, primary-owner card chip; auth-qa + route-qa green)
+3. Add failure analysis, completion percentage, response SLA, and country scorecards. — not started
+4. Add notifications for position changes, upcoming meetings, expiring agreements, overdue follow-ups, elections, and confidence changes. — not started (in-app first)
+5. Add in-app notifications first; evaluate email, WhatsApp, Telegram, and Slack after the core workflow is stable. — not started
 
 ### Phase 5 — Intelligence and source verification
 

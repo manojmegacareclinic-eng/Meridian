@@ -35,6 +35,9 @@ the user's role allows it.
   DR strategies, agenda/participants/transcripts, action items, deliverables, and the
   agreement lifecycle) require `role !== viewer` — the same `requireWriteRole()` guard
   in `routes/index.ts` covers every Phase 2/3 write endpoint.
+- `GET /api/users/assignable` (country assignment picker) enforces write-role **inside the
+  handler** — the shared `requireWriteRole()` middleware bypasses `GET`, so a bare mount
+  would leak the roster to viewers. It returns only id/name/role and excludes banned users.
 - Every request maps a verified session (or the dev `AUTH_PASSTHROUGH` session) to an
   actor `{ id, name, role }`; the actor name and id are stamped onto audit rows.
 
