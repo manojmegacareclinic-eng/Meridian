@@ -33,39 +33,41 @@ Today a mission lead can see every task, meeting, and action item — but cannot
 
 ## Metric definitions
 
-All computed per country, live, at request time. "Today" = the server's current calendar date, using the same `dayOnly()` date normalization used by the tasks and action-items routes (ISO `YYYY-MM-DD` string; timestamps compared by date portion only).
+All computed per country, live, at request time. "Today" = the server's current **UTC** calendar date, using the same `new Date(x).toISOString().split("T")[0]` normalization as the tasks and action-items routes (ISO `YYYY-MM-DD` strings; timestamps compared by date portion only).
 
 ### Pool (the denominator universe)
 
 Scoreable items for a country:
 
 - **Tasks**: `status = active | done` (paused excluded). Fields used: `dueDate` (date string, nullable), `lastDoneAt`, `cadence`, `actionArea`.
-- **Action items**: all rows for the country's meetings. Fields used: `status` (pending | done), `dueDate` (nullable), `updatedAt` (completion-time proxy), parent `meeting.actionArea`.
+- **Action items**: all rows for the country's meetings, `status = pending | in_progress | completed` (**cancelled excluded**). Fields used: `status`, `dueDate` (nullable), `updatedAt` (completion-time proxy — see the route-side rule below), parent `meeting.actionArea`.
 - **Meetings**: `status != cancelled`. Fields used: `status` (incl. `completed`), `date` (scheduled timestamp), `completedAt` (new, nullable), `actionArea`.
 
 Sub-sub-resources (`deliverables`) are excluded: too deeply nested to be meaningful at this level; phase scope stays to the three chosen pools.
 
 ### Completion
 
-- `done` = task `status = done`, action item `status = done`, meeting `status = completed`.
+- `done` = task `status = done`, action item `status = completed`, meeting `status = completed`.
 - `completionPct = done / pool` (0–100). When `pool = 0` → `null`.
 
 ### SLA on-time rate
 
 Only among **completed** items:
 
-- Task on-time: `lastDoneAt <= dueDate` (both date-only; a task with no `dueDate` is SLA-exempt).
-- Action item on-time: `updatedAt` (completion-time proxy) date <= `dueDate`; no `dueDate` → SLA-exempt.
-- Meeting on-time: `completedAt` date <= `date` (scheduled) date; no `completedAt` but status `completed` → **counted as late** (pessimistic, keeps the rate honest).
+- Task on-time: `lastDoneAt <= dueDate` (both date-only). A task with no `dueDate` is SLA-exempt.
+- Action item on-time: `updatedAt` (completion-time proxy — see route-side rule below) date <= `dueDate`; no `dueDate` → SLA-exempt.
+- Meeting on-time: `completedAt` date <= `date` (scheduled) date; no `dueDate` basis → n/a.
+- **Missing completion timestamp (pessimistic policy)**: a completed item that *has* a due date but no completion timestamp (task without `lastDoneAt`, action item without a bumped `updatedAt`, meeting without `completedAt`) is rated **not on-time** for SLA and appears in the failure board as **late** with `daysOver = null` (rendered "late — no date recorded"). Keeps the rate honest and is symmetric across all three types.
 - `slaRate = onTimeCompleted / completed` (0–100). When `completed = 0` → `null`.
 
 ### Failure analysis
 
 A failure item is **overdue-not-done** (date passed, not completed) or **completed-late** (completed after due):
 
-- Task overdue: `status != done` and `dueDate < today`. Task late: `lastDoneAt > dueDate`.
-- Action item overdue: `status != done` and `dueDate < today`. Late: completed-date (`updatedAt`) > `dueDate`.
-- Meeting overdue: `status != completed` and `date < today`. Meeting late: `completedAt` date > `date` date.
+- Task overdue: `status != done` and `dueDate < today`. Task late: `lastDoneAt > dueDate`, **or** done with `lastDoneAt = null` and a due date (pessimistic → late, `daysOver = null`).
+- Action item overdue: `status != completed` and `dueDate < today` (cancelled excluded from pool, so never failures). Action item late: completed-date (`updatedAt`) > `dueDate`, **or** `completed` with `updatedAt` unbumped (pessimistic → late, `daysOver = null`).
+- Meeting overdue: `status != completed` and `date < today`. Meeting late: `completedAt` date > `date` date, **or** `completed` with `completedAt = null` (pessimistic → late, `daysOver = null`).
+- Completed items with no due date are never overdue- or late-eligible (nothing to compare).
 
 Items with no relevant date can never fail (no due date → neither overdue nor late; a past meeting that can never be completed is still a failure while overdue).
 
@@ -94,13 +96,15 @@ Percentages/rates rounded to 1 decimal; score rounded to the nearest integer.
 completedAt: timestamp | null   — set to now() when a meeting's status transitions to "completed" (route-side)
 ```
 
-No other schema changes. Existing meetings in `completed` state without a `completedAt` are treated per the pessimistic SLA rule and will show in the failure board as late only once their scheduled date has passed *and* they have no completion evidence — they still count as completed for completion %.
+**Route-side timestamp rule (no new column):** the action-items PATCH route currently never touches `updatedAt`, so it equals the insert time for every row — unusable as a completion-time proxy. When an action item's status transitions to `completed` and no explicit timestamp is relevant, the route must set `updatedAt = now()` so the completion-time proxy is real.
+
+No other schema changes. Existing `completed`-state items lacking their timestamp follow the pessimistic policy above: they count as completed for completion % but are rated late for SLA and listed as late failures (null `daysOver`).
 
 ---
 
 ## API surface
 
-Two read-only endpoints (approach A — server-computed aggregation, mirroring `GET /api/dashboard/summary`). No auth role gate (read-only aggregation like dashboard/summary). No audit rows written for scorecard reads.
+Two read-only endpoints (approach A — server-computed aggregation, mirroring `GET /api/dashboard/summary`). Both are mounted inside the existing auth+write-role middleware wall in `routes/index.ts` (like `dashboard/summary`), so they inherit the session and `requireWriteRole()` guards — no separate gate of their own. No audit rows written for scorecard reads.
 
 ### `GET /api/scorecards`
 
@@ -166,7 +170,7 @@ States: `LoadingRows` while loading, `ErrorState` on error (retry), scorecard wh
 
 ### Overview strip on `/` (above the existing stats)
 
-A horizontally scrollable/grid strip of score cards, one per country, each showing: country name, action-area count, score ring (compact), completion+SLA line, mini completion bar; `null` score → `— No data` card. Hover: elevation; **click: navigate to `/country/:id?tab=analytics`** (the country's Analytics tab). Placed **above** the existing overview stat cards.
+A horizontally scrollable/grid strip of score cards, one per country, each showing: country name, action-area count, score ring (compact), completion+SLA line, mini completion bar; `null` score → `— No data` card. Hover: elevation; **click: navigate to `/country/:id?tab=analytics`** (the country's Analytics tab). Placed **above** the existing overview stat cards. The country page must honor the `?tab=` search param to set its initial `activeTab` (today it is unpinned local state) and keep it in sync on tab change — this makes the strip's click-through a true deep link.
 
 ---
 
@@ -186,7 +190,7 @@ A horizontally scrollable/grid strip of score cards, one per country, each showi
 
 ### auth-qa (API-level, DB-backed)
 
-New 4.3 section following the Phase 4.2 tasks pattern (seed country → controlled dataset → assertions → cleanup). Seeded datasets must span: on-time task, late task (`lastDoneAt` after `dueDate`), overdue-pending task, action item with dueDate (done + overdue), action item without dueDate, completed-on-time meeting (with `completedAt`), completed-late meeting, cancelled meeting (excluded), past-not-completed meeting (overdue), never-completed future meeting. Asserts exact:
+New 4.3 section following the Phase 4.2 tasks pattern (seed country → controlled dataset → assertions → cleanup). Seeded datasets must span: on-time task, late task (`lastDoneAt` after `dueDate`), done task with `lastDoneAt = null` (late, `daysOver = null`), overdue-pending task, action item with dueDate completed on time, (separately) action item with dueDate completed late (`updatedAt` after dueDate), completed action item with unbumped `updatedAt` (late, `daysOver = null`), overdue-pending action item, action item without dueDate, completed-on-time meeting (with `completedAt` equal to its date), completed-late meeting (`completedAt` after date), completed meeting with `completedAt = null` (late, `daysOver = null`), cancelled meeting (excluded — direct DB seed; no API path creates it), past-not-completed meeting (overdue), never-completed future meeting. Asserts exact:
 
 - `poolCount`, `done`, `completionPct`
 - `onTimeCount`, `completed`, `slaRate`
@@ -197,8 +201,8 @@ New 4.3 section following the Phase 4.2 tasks pattern (seed country → controll
 
 ### route-qa (SPA, Playwright)
 
-- Overview `/`: assert `overview-scorecard-strip` visible **above** the stat cards; assert a seeded country's known score text; click the card → lands on that country's Analytics tab.
-- Country Analytics tab (QA Land): assert `analytics-score-ring` shows the seeded score, tiles show seeded completion/SLA/failure values, failure-board rows render, one cluster row exists, and the `— No data` case renders for an empty country.
+- Overview `/`: assert `overview-scorecard-strip` visible **above** the stat cards; assert a seeded country's known score text; click the card → lands on **`/country/:id?tab=analytics`** with the Analytics tab active (deep-link honored).
+- Country Analytics tab (QA Land): assert `analytics-score-ring` shows the seeded score, tiles show seeded completion/SLA/failure values, failure-board rows render, one cluster row exists, and the `— No data` case renders for an empty country. Also verify a direct nav to `?tab=analytics` opens the tab from the overview link.
 - **Locked testids**: `overview-scorecard-strip`, `scorecard-card-<id>`, `analytics-score-ring`, `analytics-completion-pct`, `analytics-sla-rate`, `analytics-failure-index`, `analytics-failure-row-<n>`, `analytics-cluster-<key>`, `scorecard-no-data`.
 
 ### Conventions
@@ -209,8 +213,8 @@ New 4.3 section following the Phase 4.2 tasks pattern (seed country → controll
 
 ## Implementation chunks
 
-1. **DB**: nullable `completedAt` on meetings; set `completedAt = now()` when status → `completed` in the meetings route; `bun run --filter @workspace/db push`; existing auth-qa stays green.
+1. **DB**: nullable `completedAt` on meetings; set `completedAt = now()` when status → `completed` in the meetings route; set `updatedAt = now()` when an action item transitions to `completed`; `bun run --filter @workspace/db push`; existing auth-qa stays green.
 2. **Contract**: OpenAPI `GET /scorecards` + `GET /countries/{id}/scorecard` (paths, response schemas), codegen, curated barrel fix + typecheck/rebuild.
 3. **API**: scorecard computation module + both routes; auth-qa 4.3 section green.
-4. **SPA**: `ScorecardTab` (Layout A) replacing the Analytics placeholder + overview strip component wired above overview stats; route-qa 4.3 checks green.
+4. **SPA**: `ScorecardTab` (Layout A) replacing the Analytics placeholder + `?tab=` deep-link support on the country page + overview strip component wired above overview stats; route-qa 4.3 checks green (including deep-link arrival from a strip card click).
 5. **Docs + final verification**: docs/implementation-plan.md (status, evidence, current-next-task → Phase 4.4 notifications), mark plan checkboxes, final commit; push on user confirmation.
