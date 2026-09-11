@@ -2990,7 +2990,6 @@ components:
       properties:
         countryId:
           type: integer
-          format: int64
         countryName:
           type: string
         score:
@@ -3037,7 +3036,6 @@ components:
       properties:
         id:
           type: integer
-          format: int64
         type:
           type: string
           enum:

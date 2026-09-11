@@ -318,7 +318,8 @@ export const ListMeetingsResponseItem = zod.object({
   "status": zod.enum(['scheduled', 'completed', 'follow_up']),
   "participants": zod.int(),
   "actionArea": zod.string(),
-  "owner": zod.string().nullish()
+  "owner": zod.string().nullish(),
+  "completedAt": zod.coerce.date().nullish()
 })
 export const ListMeetingsResponse = zod.array(ListMeetingsResponseItem)
 
@@ -346,7 +347,8 @@ export const CreateMeetingResponse = zod.object({
   "status": zod.enum(['scheduled', 'completed', 'follow_up']),
   "participants": zod.int(),
   "actionArea": zod.string(),
-  "owner": zod.string().nullish()
+  "owner": zod.string().nullish(),
+  "completedAt": zod.coerce.date().nullish()
 })
 
 
@@ -377,7 +379,8 @@ export const UpdateMeetingResponse = zod.object({
   "status": zod.enum(['scheduled', 'completed', 'follow_up']),
   "participants": zod.int(),
   "actionArea": zod.string(),
-  "owner": zod.string().nullish()
+  "owner": zod.string().nullish(),
+  "completedAt": zod.coerce.date().nullish()
 })
 
 
@@ -735,6 +738,102 @@ export const DeleteTaskParams = zod.object({
 
 export const DeleteTaskResponse = zod.object({
   "id": zod.int()
+})
+
+
+/**
+ * @summary Platform-wide scorecard summaries, one per country, sorted by score descending
+ */
+export const ListScorecardsResponse = zod.object({
+  "items": zod.array(zod.object({
+  "countryId": zod.int(),
+  "countryName": zod.string(),
+  "score": zod.int().nullish(),
+  "completionPct": zod.number().nullish(),
+  "slaRate": zod.number().nullish(),
+  "failureRate": zod.number().nullish(),
+  "poolCount": zod.int().optional(),
+  "completedCount": zod.int().optional(),
+  "onTimeCount": zod.int().optional(),
+  "failureCount": zod.int().optional()
+}))
+})
+
+
+/**
+ * @summary Full scorecard breakdown for one country
+ */
+export const GetCountryScorecardParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+export const GetCountryScorecardResponse = zod.object({
+  "summary": zod.object({
+  "countryId": zod.int(),
+  "countryName": zod.string(),
+  "score": zod.int().nullish(),
+  "completionPct": zod.number().nullish(),
+  "slaRate": zod.number().nullish(),
+  "failureRate": zod.number().nullish(),
+  "poolCount": zod.int().optional(),
+  "completedCount": zod.int().optional(),
+  "onTimeCount": zod.int().optional(),
+  "failureCount": zod.int().optional()
+}),
+  "completion": zod.object({
+  "overallPct": zod.number().nullable(),
+  "byType": zod.array(zod.object({
+  "type": zod.enum(['task', 'actionItem', 'meeting']),
+  "done": zod.int(),
+  "total": zod.int(),
+  "pct": zod.number().nullable()
+})),
+  "byActionArea": zod.array(zod.object({
+  "actionArea": zod.string(),
+  "done": zod.int(),
+  "total": zod.int(),
+  "pct": zod.number().nullable()
+}))
+}),
+  "sla": zod.object({
+  "overallRate": zod.number().nullable(),
+  "byType": zod.array(zod.object({
+  "type": zod.enum(['task', 'actionItem', 'meeting']),
+  "onTime": zod.int(),
+  "completed": zod.int(),
+  "rate": zod.number().nullable()
+}))
+}),
+  "failures": zod.object({
+  "count": zod.int(),
+  "rate": zod.number().nullable(),
+  "rows": zod.array(zod.object({
+  "id": zod.int(),
+  "type": zod.enum(['task', 'actionItem', 'meeting']),
+  "title": zod.string(),
+  "actionArea": zod.string(),
+  "cadence": zod.enum(['daily', 'weekly']).nullish(),
+  "dueDate": zod.coerce.date().nullish(),
+  "scheduledAt": zod.coerce.date().nullish(),
+  "completedAt": zod.coerce.date().nullish(),
+  "daysOver": zod.int().nullable()
+})),
+  "byActionArea": zod.array(zod.object({
+  "actionArea": zod.string(),
+  "count": zod.int(),
+  "rate": zod.number()
+})),
+  "byCadence": zod.array(zod.object({
+  "cadence": zod.enum(['daily', 'weekly']),
+  "count": zod.int(),
+  "rate": zod.number()
+})),
+  "byType": zod.array(zod.object({
+  "type": zod.enum(['task', 'actionItem', 'meeting']),
+  "count": zod.int(),
+  "rate": zod.number()
+}))
+})
 })
 
 

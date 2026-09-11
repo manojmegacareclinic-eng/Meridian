@@ -286,6 +286,8 @@ export interface Meeting {
   actionArea: string;
   /** @nullable */
   owner?: string | null;
+  /** @nullable */
+  readonly completedAt?: string | null;
 }
 
 export interface MeetingInput {
@@ -797,6 +799,171 @@ export interface TaskUpdate {
   dueDate?: string | null;
   /** @nullable */
   lastDoneAt?: string | null;
+}
+
+export interface ScorecardSummary {
+  countryId: number;
+  countryName: string;
+  /** @nullable */
+  score?: number | null;
+  /** @nullable */
+  completionPct?: number | null;
+  /** @nullable */
+  slaRate?: number | null;
+  /** @nullable */
+  failureRate?: number | null;
+  poolCount?: number;
+  completedCount?: number;
+  onTimeCount?: number;
+  failureCount?: number;
+}
+
+export interface ScorecardList {
+  items: ScorecardSummary[];
+}
+
+export type ScorecardFailureRowType = typeof ScorecardFailureRowType[keyof typeof ScorecardFailureRowType];
+
+
+export const ScorecardFailureRowType = {
+  task: 'task',
+  actionItem: 'actionItem',
+  meeting: 'meeting',
+} as const;
+
+/**
+ * @nullable
+ */
+export type ScorecardFailureRowCadence = typeof ScorecardFailureRowCadence[keyof typeof ScorecardFailureRowCadence] | null;
+
+
+export const ScorecardFailureRowCadence = {
+  daily: 'daily',
+  weekly: 'weekly',
+} as const;
+
+export interface ScorecardFailureRow {
+  id: number;
+  type: ScorecardFailureRowType;
+  title: string;
+  actionArea: string;
+  /** @nullable */
+  cadence?: ScorecardFailureRowCadence;
+  /** @nullable */
+  dueDate?: string | null;
+  /** @nullable */
+  scheduledAt?: string | null;
+  /** @nullable */
+  completedAt?: string | null;
+  /** @nullable */
+  daysOver: number | null;
+}
+
+export interface ScorecardActionAreaCluster {
+  actionArea: string;
+  count: number;
+  rate: number;
+}
+
+export type ScorecardCadenceClusterCadence = typeof ScorecardCadenceClusterCadence[keyof typeof ScorecardCadenceClusterCadence];
+
+
+export const ScorecardCadenceClusterCadence = {
+  daily: 'daily',
+  weekly: 'weekly',
+} as const;
+
+export interface ScorecardCadenceCluster {
+  cadence: ScorecardCadenceClusterCadence;
+  count: number;
+  rate: number;
+}
+
+export type ScorecardTypeClusterType = typeof ScorecardTypeClusterType[keyof typeof ScorecardTypeClusterType];
+
+
+export const ScorecardTypeClusterType = {
+  task: 'task',
+  actionItem: 'actionItem',
+  meeting: 'meeting',
+} as const;
+
+export interface ScorecardTypeCluster {
+  type: ScorecardTypeClusterType;
+  count: number;
+  rate: number;
+}
+
+export type CompletionBreakdownByTypeItemType = typeof CompletionBreakdownByTypeItemType[keyof typeof CompletionBreakdownByTypeItemType];
+
+
+export const CompletionBreakdownByTypeItemType = {
+  task: 'task',
+  actionItem: 'actionItem',
+  meeting: 'meeting',
+} as const;
+
+export type CompletionBreakdownByTypeItem = {
+  type: CompletionBreakdownByTypeItemType;
+  done: number;
+  total: number;
+  /** @nullable */
+  pct: number | null;
+};
+
+export type CompletionBreakdownByActionAreaItem = {
+  actionArea: string;
+  done: number;
+  total: number;
+  /** @nullable */
+  pct: number | null;
+};
+
+export interface CompletionBreakdown {
+  /** @nullable */
+  overallPct: number | null;
+  byType: CompletionBreakdownByTypeItem[];
+  byActionArea: CompletionBreakdownByActionAreaItem[];
+}
+
+export type SlaBreakdownByTypeItemType = typeof SlaBreakdownByTypeItemType[keyof typeof SlaBreakdownByTypeItemType];
+
+
+export const SlaBreakdownByTypeItemType = {
+  task: 'task',
+  actionItem: 'actionItem',
+  meeting: 'meeting',
+} as const;
+
+export type SlaBreakdownByTypeItem = {
+  type: SlaBreakdownByTypeItemType;
+  onTime: number;
+  completed: number;
+  /** @nullable */
+  rate: number | null;
+};
+
+export interface SlaBreakdown {
+  /** @nullable */
+  overallRate: number | null;
+  byType: SlaBreakdownByTypeItem[];
+}
+
+export interface ScorecardFailures {
+  count: number;
+  /** @nullable */
+  rate: number | null;
+  rows: ScorecardFailureRow[];
+  byActionArea: ScorecardActionAreaCluster[];
+  byCadence: ScorecardCadenceCluster[];
+  byType: ScorecardTypeCluster[];
+}
+
+export interface CountryScorecard {
+  summary: ScorecardSummary;
+  completion: CompletionBreakdown;
+  sla: SlaBreakdown;
+  failures: ScorecardFailures;
 }
 
 export interface Position {

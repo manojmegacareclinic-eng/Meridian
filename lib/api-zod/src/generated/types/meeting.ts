@@ -17,4 +17,6 @@ export interface Meeting {
   actionArea: string;
   /** @nullable */
   owner?: string | null;
+  /** @nullable */
+  readonly completedAt?: Date | null;
 }

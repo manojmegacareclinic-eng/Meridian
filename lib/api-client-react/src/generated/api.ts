@@ -38,6 +38,7 @@ import type {
   ContactInput,
   Country,
   CountryInput,
+  CountryScorecard,
   CountryUpdate,
   CreateInvitationBody,
   DashboardSummary,
@@ -96,6 +97,7 @@ import type {
   Position,
   PositionInput,
   PositionUpdate,
+  ScorecardList,
   Task,
   TaskInput,
   TaskUpdate,
@@ -2182,6 +2184,160 @@ export const useDeleteTask = <TError = ErrorType<unknown>,
       > => {
       return useMutation(getDeleteTaskMutationOptions(options));
     }
+
+export const getListScorecardsUrl = () => {
+
+
+
+
+  return `/api/scorecards`
+}
+
+/**
+ * @summary Platform-wide scorecard summaries, one per country, sorted by score descending
+ */
+export const listScorecards = async ( options?: Parameters<typeof customFetch>[1]): Promise<ScorecardList> => {
+
+  return customFetch<ScorecardList>(getListScorecardsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListScorecardsQueryKey = () => {
+    return [
+    `/api/scorecards`
+    ] as const;
+    }
+
+
+export const getListScorecardsQueryOptions = <TData = Awaited<ReturnType<typeof listScorecards>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listScorecards>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListScorecardsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listScorecards>>> = ({ signal }) => listScorecards({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listScorecards>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListScorecardsQueryResult = NonNullable<Awaited<ReturnType<typeof listScorecards>>>
+export type ListScorecardsQueryError = ErrorType<void>
+
+
+/**
+ * @summary Platform-wide scorecard summaries, one per country, sorted by score descending
+ */
+
+export function useListScorecards<TData = Awaited<ReturnType<typeof listScorecards>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listScorecards>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListScorecardsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetCountryScorecardUrl = (id: number,) => {
+
+
+
+
+  return `/api/countries/${id}/scorecard`
+}
+
+/**
+ * @summary Full scorecard breakdown for one country
+ */
+export const getCountryScorecard = async (id: number, options?: Parameters<typeof customFetch>[1]): Promise<CountryScorecard> => {
+
+  return customFetch<CountryScorecard>(getGetCountryScorecardUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetCountryScorecardQueryKey = (id: number,) => {
+    return [
+    `/api/countries/${id}/scorecard`
+    ] as const;
+    }
+
+
+export const getGetCountryScorecardQueryOptions = <TData = Awaited<ReturnType<typeof getCountryScorecard>>, TError = ErrorType<void>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCountryScorecard>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetCountryScorecardQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getCountryScorecard>>> = ({ signal }) => getCountryScorecard(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getCountryScorecard>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetCountryScorecardQueryResult = NonNullable<Awaited<ReturnType<typeof getCountryScorecard>>>
+export type GetCountryScorecardQueryError = ErrorType<void>
+
+
+/**
+ * @summary Full scorecard breakdown for one country
+ */
+
+export function useGetCountryScorecard<TData = Awaited<ReturnType<typeof getCountryScorecard>>, TError = ErrorType<void>>(
+ id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCountryScorecard>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetCountryScorecardQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 
 export const getListNewsUrl = (params?: ListNewsParams,) => {
   const normalizedParams = new URLSearchParams();
