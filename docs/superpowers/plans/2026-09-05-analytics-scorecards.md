@@ -835,23 +835,23 @@ git commit -m "feat(api): per-country scorecards health score + completion + SLA
 **Files:**
 - Create: `artifacts/global-dr-platform/src/components/ScorecardTab.tsx`
 
-- [ ] **Step 1: Component skeleton** — follow the `TasksTab` conventions (React Query hook, loading/error/data states). Use `useGetCountryScorecard(countryId)`; render `<LoadingRows count={4}/>` while loading, `<ErrorState onRetry={refetch}/>` on error.
+- [x] **Step 1: Component skeleton** — follow the `TasksTab` conventions (React Query hook, loading/error/data states). Use `useGetCountryScorecard(countryId)`; render `<LoadingRows count={4}/>` while loading, `<ErrorState onRetry={refetch}/>` on error.
 
-- [ ] **Step 2: Score header ring**
+- [x] **Step 2: Score header ring**
 
 Outer section (testid `analytics-score-ring`) showing: the ring (SVG circle, stroke-dasharray proportional to `score`), "Engagement Health Score", the formula line `0.4·completion + 0.4·SLA + 0.2·failure-resistance`, and `poolCount` + `failureCount` captions. Color band: `score >= 70` green, `>= 40` amber, `< 40` red (use the same `hsl(...)` palette tokens the rest of the SPA uses). `score == null` → empty ring with `— No data` and testid `scorecard-no-data`.
 
-- [ ] **Step 3: Three metric tiles** — grid of three cards with a left color bar and a value bar:
+- [x] **Step 3: Three metric tiles** — grid of three cards with a left color bar and a value bar:
   - Completion (green): `<scorecard.completion.overallPct>` (testid `analytics-completion-pct`), caption `done/total` from `{completedCount}/{poolCount}`.
   - SLA on-time (violet): `<scorecard.sla.overallRate>` (testid `analytics-sla-rate`), caption `onTime/completed` from `{onTimeCount}/{completedCount}`.
   - Failure index (red): `<scorecard.failures.rate>` (testid `analytics-failure-index`), caption `overdue + late` from `{failureCount}`.
   - Null values render `—` (never `0`).
 
-- [ ] **Step 4: Failure board** (main column, `2/3` width) — list `failures.rows` as cards: type badge (`TASK`/`ACTION ITEM`/`MEETING`), title, `actionArea` + `cadence` when task, and right-aligned `Nd overdue` (amber) / `Nd late` (red) / `late — no date recorded` (red). Row testids `analytics-failure-row-${index}` (index = position in `rows`). Empty → `<EmptyState>` "No failures — all clear".
+- [x] **Step 4: Failure board** (main column, `2/3` width) — list `failures.rows` as cards: type badge (`TASK`/`ACTION ITEM`/`MEETING`), title, `actionArea` + `cadence` when task, and right-aligned `Nd overdue` (amber) / `Nd late` (red) / `late — no date recorded` (red). Row testids `analytics-failure-row-${index}` (index = position in `rows`). Empty → `<EmptyState>` "No failures — all clear".
 
-- [ ] **Step 5: "Where they fail" rail** (side column, `1/3` width) — for each of `byActionArea`, `byCadence`, `byType`: a labeled bar row with `count` + `rate%`. Testids `analytics-cluster-${key}` (key = actionArea/cadence/type value). SQL/aria-free; omit the rail entirely when `failureCount === 0`.
+- [x] **Step 5: "Where they fail" rail** (side column, `1/3` width) — for each of `byActionArea`, `byCadence`, `byType`: a labeled bar row with `count` + `rate%`. Testids `analytics-cluster-${key}` (key = actionArea/cadence/type value). SQL/aria-free; omit the rail entirely when `failureCount === 0`.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 ```bash
 git add artifacts/global-dr-platform/src/components/ScorecardTab.tsx
 git commit -m "feat(spa): country Analytics tab scorecard view (Layout A)"
@@ -863,9 +863,9 @@ git commit -m "feat(spa): country Analytics tab scorecard view (Layout A)"
 - Modify: `artifacts/global-dr-platform/src/App.tsx` (analytics branch ~1154-1159, `activeTab` at 908, TabButton onClick at 1140)
 - Modify: `artifacts/global-dr-platform/src/routes/country.$countryId.tsx` (add `validateSearch`)
 
-- [ ] **Step 1: Replace the analytics placeholder** — swap the `EmptyPlaceholder "Coming soon"` branch (App.tsx 1154-1159) for `<ScorecardTab countryId={id} />`. Import `ScorecardTab`.
+- [x] **Step 1: Replace the analytics placeholder** — swap the `EmptyPlaceholder "Coming soon"` branch (App.tsx 1154-1159) for `<ScorecardTab countryId={id} />`. Import `ScorecardTab`.
 
-- [ ] **Step 2: Deep-link search param** — in `country.$countryId.tsx` add:
+- [x] **Step 2: Deep-link search param** — in `country.$countryId.tsx` add:
 
 ```tsx
 import { z } from 'zod';
@@ -880,7 +880,7 @@ export const Route = createFileRoute('/country/$countryId')({
 });
 ```
 
-- [ ] **Step 3: Initialize `activeTab` from the search param** — in `CountryDetailPage` (App.tsx 898):
+- [x] **Step 3: Initialize `activeTab` from the search param** — in `CountryDetailPage` (App.tsx 898):
 
 ```tsx
 import { useSearch } from '@tanstack/react-router';
@@ -889,9 +889,9 @@ const search = useSearch({ from: '/country/$countryId', strict: true });
 
 Replace `const [activeTab, setActiveTab] = useState<TabId>('overview')` with an initializer that maps `search.tab` onto a valid `TabId` (else `'overview'`): `useState<TabId>(() => TABS.some((t) => t.id === search.tab) ? (search.tab as TabId) : 'overview')`. This makes `/country/:id?tab=analytics` a true deep link.
 
-- [ ] **Step 4: Keep the URL in sync on tab change** — change the `TabButton` onClick (App.tsx 1140) to also `router.navigate({ to: '/country/$countryId', params: { countryId: params.countryId }, search: { tab: tab.id === 'overview' ? undefined : tab.id }, replace: true })` via `useNavigate()`. (`overview` omits the param so the URL stays clean.)
+- [x] **Step 4: Keep the URL in sync on tab change** — change the `TabButton` onClick (App.tsx 1140) to also `router.navigate({ to: '/country/$countryId', params: { countryId: params.countryId }, search: { tab: tab.id === 'overview' ? undefined : tab.id }, replace: true })` via `useNavigate()`. (`overview` omits the param so the URL stays clean.)
 
-- [ ] **Step 5: Typecheck + build**
+- [x] **Step 5: Typecheck + build**
 
 `bun run --filter @workspace/global-dr-platform typecheck` (regenerates `routeTree.gen` via `tsr generate` — required after adding `validateSearch`) then `bun run --filter @workspace/global-dr-platform build`. Both exit 0.
 
@@ -901,11 +901,11 @@ Replace `const [activeTab, setActiveTab] = useState<TabId>('overview')` with an 
 - Create: `artifacts/global-dr-platform/src/components/ScorecardStrip.tsx`
 - Modify: `artifacts/global-dr-platform/src/App.tsx` (Dashboard render, after `<PageIntro>` at 380, before the stats grid at 381)
 
-- [ ] **Step 1: Component** — `useListScorecards()`. Wrapper `<section data-testid="overview-scorecard-strip">` styled as a horizontally scrollable grid. One card per `ScorecardSummary` (testid `scorecard-card-${countryId}`): country name, pool-item count (the available proxy for the spec's "action-area count"), `score` ring (compact), `completionPct` + `slaRate` line, mini completion bar. `score == null` → `— No data` badge (testid `scorecard-no-data`). Loading → `LoadingRows`. Click navigates `router.navigate({ to: '/country/$countryId', params: { countryId }, search: { tab: 'analytics' } })`.
+- [x] **Step 1: Component** — `useListScorecards()`. Wrapper `<section data-testid="overview-scorecard-strip">` styled as a horizontally scrollable grid. One card per `ScorecardSummary` (testid `scorecard-card-${countryId}`): country name, pool-item count (the available proxy for the spec's "action-area count"), `score` ring (compact), `completionPct` + `slaRate` line, mini completion bar. `score == null` → `— No data` badge (testid `scorecard-no-data`). Loading → `LoadingRows`. Click navigates `router.navigate({ to: '/country/$countryId', params: { countryId }, search: { tab: 'analytics' } })`.
 
-- [ ] **Step 2: Insert into Dashboard** — place `<ScorecardStrip />` directly after the `<PageIntro …>` element (App.tsx 380) and **above** the `mb-8 grid` stats div (381). Nothing else in Dashboard changes.
+- [x] **Step 2: Insert into Dashboard** — place `<ScorecardStrip />` directly after the `<PageIntro …>` element (App.tsx 380) and **above** the `mb-8 grid` stats div (381). Nothing else in Dashboard changes.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 ```bash
 git add artifacts/global-dr-platform/src/components/ScorecardStrip.tsx artifacts/global-dr-platform/src/App.tsx artifacts/global-dr-platform/src/routes/country.$countryId.tsx
 git commit -m "feat(spa): overview scorecard strip + ?tab analytics deep-link"
@@ -917,18 +917,18 @@ git commit -m "feat(spa): overview scorecard strip + ?tab analytics deep-link"
 - Create: `scripts/src/seed-scorecard.ts`
 - Modify: `scripts/package.json`, `scripts/src/route-qa.ts`
 
-- [ ] **Step 1: `seed-scorecard` script** — imports `scorecardFixture(today)`, creates/refreshes two well-known demo countries by code (`SCOR` "Scorecards Demo" and `SCER` "Scorecards Empty" — delete their existing tasks/meetings first, then insert the fixture rows into SCOR; SCER stays empty). Add `"seed-scorecard": "tsx ./src/seed-scorecard.ts"` to `scripts/package.json`. Idempotent. Prints the two country ids.
+- [x] **Step 1: `seed-scorecard` script** — imports `scorecardFixture(today)`, creates/refreshes two well-known demo countries by code (`SCOR` "Scorecards Demo" and `SCER` "Scorecards Empty" — delete their existing tasks/meetings first, then insert the fixture rows into SCOR; SCER stays empty). Add `"seed-scorecard": "tsx ./src/seed-scorecard.ts"` to `scripts/package.json`. Idempotent. Prints the two country ids.
 
-- [ ] **Step 2: route-qa overview strip check** — after the NAV_ROUTES loop (before the `/countries` section), on `baseURL + '/'`:
+- [x] **Step 2: route-qa overview strip check** — after the NAV_ROUTES loop (before the `/countries` section), on `baseURL + '/'`:
   - `[data-testid="overview-scorecard-strip"]` visible, and it renders **above** the stat cards (assert `document.querySelector('[data-testid="overview-scorecard-strip"]').compareDocumentPosition(statCard) & Node.DOCUMENT_POSITION_FOLLOWING`).
   - Locate the SCOR card via `page.locator('[data-testid^="scorecard-card-"]').filter({ hasText: 'Scorecards Demo' })`, read its id from the testid, and assert its score text equals `49`.
   - Click it → `page.waitForURL('**/country/**?tab=analytics')`, then assert `[data-testid="tab-analytics"]` is active and `[data-testid="analytics-score-ring"]` is visible (deep-link honored).
 
-- [ ] **Step 3: country Analytics assertions (SCOR)** — navigate `GET /country/${scorId}?tab=analytics`; assert ring, `analytics-completion-pct` text `64.3`, `analytics-sla-rate` `37.5`, `analytics-failure-index` `57.1`, ≥ 8 `analytics-failure-row-` on screen, and at least one `analytics-cluster-`. Then navigate to SCER's `?tab=analytics` and assert `scorecard-no-data` renders.
+- [x] **Step 3: country Analytics assertions (SCOR)** — navigate `GET /country/${scorId}?tab=analytics`; assert ring, `analytics-completion-pct` text `64.3`, `analytics-sla-rate` `37.5`, `analytics-failure-index` `57.1`, ≥ 8 `analytics-failure-row-` on screen, and at least one `analytics-cluster-`. Then navigate to SCER's `?tab=analytics` and assert `scorecard-no-data` renders.
 
-- [ ] **Step 4: Run both suites** — in one bash invocation (API `AUTH_PASSTHROUGH=true PORT=3000` + SPA `VITE_AUTH_DEMO=1 API_PROXY_TARGET=http://localhost:3000`, kill listeners on 3000/5173 first — see Chunk 5 note): run `seed-scorecard`, then `route-qa`. Expected: 52 prior checks + the new ones, `ALL PASS`. Also re-run auth-qa → still green.
+- [x] **Step 4: Run both suites** — in one bash invocation (API `AUTH_PASSTHROUGH=true PORT=3000` + SPA `VITE_AUTH_DEMO=1 API_PROXY_TARGET=http://localhost:3000`, kill listeners on 3000/5173 first — see Chunk 5 note): run `seed-scorecard`, then `route-qa`. Expected: 52 prior checks + the new ones, `ALL PASS`. Also re-run auth-qa → still green. **Result: route-qa 64/64 ALL PASS (12 scorecard checks on top of the 52 baseline); auth-qa 129/129 ALL PASS.**
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 ```bash
 git add scripts/src/seed-scorecard.ts scripts/package.json scripts/src/route-qa.ts
 git commit -m "feat(qa): deterministic scorecard seed + route-qa scorecard/deep-link checks"
