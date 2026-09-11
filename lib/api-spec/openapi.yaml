@@ -27,6 +27,7 @@ tags:
 - name: deliverables
 - name: users
 - name: tasks
+- name: scorecards
 paths:
   /healthz:
     get:
@@ -618,6 +619,38 @@ paths:
                 properties:
                   id:
                     type: integer
+  /scorecards:
+    get:
+      tags:
+      - scorecards
+      operationId: listScorecards
+      summary: Platform-wide scorecard summaries, one per country, sorted by score descending
+      responses:
+        '200':
+          description: Scorecard summaries sorted by score descending (null-score last)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScorecardList'
+        '404':
+          description: Not found
+  /countries/{id}/scorecard:
+    get:
+      tags:
+      - scorecards
+      operationId: getCountryScorecard
+      summary: Full scorecard breakdown for one country
+      parameters:
+      - $ref: '#/components/parameters/ScorecardId'
+      responses:
+        '200':
+          description: Full scorecard breakdown for one country
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CountryScorecard'
+        '404':
+          description: Unknown country
   /news:
     get:
       operationId: listNews
@@ -1816,6 +1849,12 @@ components:
       required: true
       schema:
         type: integer
+    ScorecardId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: integer
     MeetingIdQuery:
       name: meetingId
       in: query
@@ -2185,6 +2224,12 @@ components:
           type:
           - string
           - 'null'
+        completedAt:
+          type:
+          - string
+          - 'null'
+          format: date-time
+          readOnly: true
     MeetingInput:
       type: object
       required:
@@ -2937,6 +2982,281 @@ components:
           - string
           - 'null'
           format: date
+    ScorecardSummary:
+      type: object
+      required:
+      - countryId
+      - countryName
+      properties:
+        countryId:
+          type: integer
+          format: int64
+        countryName:
+          type: string
+        score:
+          type:
+          - integer
+          - 'null'
+        completionPct:
+          type:
+          - number
+          - 'null'
+        slaRate:
+          type:
+          - number
+          - 'null'
+        failureRate:
+          type:
+          - number
+          - 'null'
+        poolCount:
+          type: integer
+        completedCount:
+          type: integer
+        onTimeCount:
+          type: integer
+        failureCount:
+          type: integer
+    ScorecardList:
+      type: object
+      required:
+      - items
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ScorecardSummary'
+    ScorecardFailureRow:
+      type: object
+      required:
+      - id
+      - type
+      - title
+      - actionArea
+      - daysOver
+      properties:
+        id:
+          type: integer
+          format: int64
+        type:
+          type: string
+          enum:
+          - task
+          - actionItem
+          - meeting
+        title:
+          type: string
+        actionArea:
+          type: string
+        cadence:
+          type:
+          - string
+          - 'null'
+          enum:
+          - daily
+          - weekly
+        dueDate:
+          type:
+          - string
+          - 'null'
+          format: date
+        scheduledAt:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        completedAt:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        daysOver:
+          type:
+          - integer
+          - 'null'
+    ScorecardActionAreaCluster:
+      type: object
+      required:
+      - actionArea
+      - count
+      - rate
+      properties:
+        actionArea:
+          type: string
+        count:
+          type: integer
+        rate:
+          type: number
+    ScorecardCadenceCluster:
+      type: object
+      required:
+      - cadence
+      - count
+      - rate
+      properties:
+        cadence:
+          type: string
+          enum:
+          - daily
+          - weekly
+        count:
+          type: integer
+        rate:
+          type: number
+    ScorecardTypeCluster:
+      type: object
+      required:
+      - type
+      - count
+      - rate
+      properties:
+        type:
+          type: string
+          enum:
+          - task
+          - actionItem
+          - meeting
+        count:
+          type: integer
+        rate:
+          type: number
+    CompletionBreakdown:
+      type: object
+      required:
+      - overallPct
+      - byType
+      - byActionArea
+      properties:
+        overallPct:
+          type:
+          - number
+          - 'null'
+        byType:
+          type: array
+          items:
+            type: object
+            required:
+            - type
+            - done
+            - total
+            - pct
+            properties:
+              type:
+                type: string
+                enum:
+                - task
+                - actionItem
+                - meeting
+              done:
+                type: integer
+              total:
+                type: integer
+              pct:
+                type:
+                - number
+                - 'null'
+        byActionArea:
+          type: array
+          items:
+            type: object
+            required:
+            - actionArea
+            - done
+            - total
+            - pct
+            properties:
+              actionArea:
+                type: string
+              done:
+                type: integer
+              total:
+                type: integer
+              pct:
+                type:
+                - number
+                - 'null'
+    SlaBreakdown:
+      type: object
+      required:
+      - overallRate
+      - byType
+      properties:
+        overallRate:
+          type:
+          - number
+          - 'null'
+        byType:
+          type: array
+          items:
+            type: object
+            required:
+            - type
+            - onTime
+            - completed
+            - rate
+            properties:
+              type:
+                type: string
+                enum:
+                - task
+                - actionItem
+                - meeting
+              onTime:
+                type: integer
+              completed:
+                type: integer
+              rate:
+                type:
+                - number
+                - 'null'
+    ScorecardFailures:
+      type: object
+      required:
+      - count
+      - rate
+      - rows
+      - byActionArea
+      - byCadence
+      - byType
+      properties:
+        count:
+          type: integer
+        rate:
+          type:
+          - number
+          - 'null'
+        rows:
+          type: array
+          items:
+            $ref: '#/components/schemas/ScorecardFailureRow'
+        byActionArea:
+          type: array
+          items:
+            $ref: '#/components/schemas/ScorecardActionAreaCluster'
+        byCadence:
+          type: array
+          items:
+            $ref: '#/components/schemas/ScorecardCadenceCluster'
+        byType:
+          type: array
+          items:
+            $ref: '#/components/schemas/ScorecardTypeCluster'
+    CountryScorecard:
+      type: object
+      required:
+      - summary
+      - completion
+      - sla
+      - failures
+      properties:
+        summary:
+          $ref: '#/components/schemas/ScorecardSummary'
+        completion:
+          $ref: '#/components/schemas/CompletionBreakdown'
+        sla:
+          $ref: '#/components/schemas/SlaBreakdown'
+        failures:
+          $ref: '#/components/schemas/ScorecardFailures'
     Position:
       type: object
       required:
