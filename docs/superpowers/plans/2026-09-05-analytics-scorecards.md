@@ -36,7 +36,7 @@
 **Files:**
 - Modify: `lib/db/src/schema/meetings.ts` (insert after the `status` column, after line 11)
 
-- [ ] **Step 1: Edit the schema**
+- [x] **Step 1: Edit the schema**
 
 In `lib/db/src/schema/meetings.ts`, after the `status` line, add the nullable `completedAt` column:
 
@@ -46,12 +46,12 @@ In `lib/db/src/schema/meetings.ts`, after the `status` line, add the nullable `c
 
 The `timestamp` import is already present (line 1). No new import needed.
 
-- [ ] **Step 2: Typecheck**
+- [x] **Step 2: Typecheck**
 
 Run: `bun run typecheck`
 Expected: `@workspace/db` (tsc `--build`) and all workspaces exit 0.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add lib/db/src/schema/meetings.ts
@@ -63,7 +63,7 @@ git commit -m "feat(db): nullable completedAt column on meetings"
 **Files:**
 - (none — DB only)
 
-- [ ] **Step 1: Push**
+- [x] **Step 1: Push**
 
 Run:
 ```bash
@@ -71,19 +71,19 @@ DATABASE_URL="postgresql://localhost:5432/meridian" bun run --filter @workspace/
 ```
 Expected: drizzle-kit reports the new `completed_at` column added to `meetings`.
 
-- [ ] **Step 2: Verify in the live DB**
+- [x] **Step 2: Verify in the live DB**
 
 Run: `psql postgresql://localhost:5432/meridian -c '\d meetings'`
 Expected: `completed_at | timestamp with time zone |` present (nullable — no `not null`).
 
-- [ ] **Step 3: Commit** (skip — schema change already committed in Task 1; this is a runtime artifact). If `git status --short` shows nothing new, do nothing.
+- [x] **Step 3: Commit** (skip — schema change already committed in Task 1; this is a runtime artifact). If `git status --short` shows nothing new, do nothing.
 
 ### Task 3: Meetings PATCH sets `completedAt` on transition to completed
 
 **Files:**
 - Modify: `artifacts/api-server/src/routes/platform.ts:337-350` (the PATCH handler)
 
-- [ ] **Step 1: Restructure the PATCH handler**
+- [x] **Step 1: Restructure the PATCH handler**
 
 Current code (`platform.ts:337-350`) builds `values` *before* selecting `existing`:
 
@@ -126,7 +126,7 @@ router.patch("/meetings/:id", async (req, res): Promise<void> => {
 
 The rest of the handler (country select, diffFields, writeAudit, response) stays unchanged. Note: `completedAt: undefined` is omitted by drizzle's `.set()`, so repeat PATCHes to `completed` and transitions away do not mutate it.
 
-- [ ] **Step 2: Typecheck**
+- [x] **Step 2: Typecheck**
 
 Run: `bun run typecheck`
 Expected: exit 0.
@@ -136,7 +136,7 @@ Expected: exit 0.
 **Files:**
 - Modify: `artifacts/api-server/src/routes/actionItems.ts:149-153`
 
-- [ ] **Step 1: Edit the update object**
+- [x] **Step 1: Edit the update object**
 
 Current code (`actionItems.ts:149-153`):
 
@@ -161,7 +161,7 @@ Replace with a version that stamps `updatedAt` on the exact transition to `compl
 
 The rest of the handler stays unchanged. This makes `updatedAt` a real completion-time proxy for the scorecard SLA/failure math.
 
-- [ ] **Step 2: Typecheck**
+- [x] **Step 2: Typecheck**
 
 Run: `bun run typecheck`
 Expected: exit 0.
@@ -171,7 +171,7 @@ Expected: exit 0.
 **Files:**
 - Modify: `scripts/src/auth-qa.ts` (import line 8, plus a new section inserted after the Phase 4.2 tasks section ends at line 649, before the cleanup banner at line 651)
 
-- [ ] **Step 1: Add the table import**
+- [x] **Step 1: Add the table import**
 
 Change the `@workspace/db` import at `auth-qa.ts:8` to include `actionItemsTable`:
 
@@ -179,7 +179,7 @@ Change the `@workspace/db` import at `auth-qa.ts:8` to include `actionItemsTable
 import { db, pool, activityTable, countriesTable, documentsTable, newsTable, userTable, meetingsTable, agreementsTable, drStrategiesTable, tasksTable, actionItemsTable } from "@workspace/db";
 ```
 
-- [ ] **Step 2: Insert the timestamp checks section**
+- [x] **Step 2: Insert the timestamp checks section**
 
 Insert after line 649 (the last 4.2 tasks `check`), before the cleanup banner:
 
@@ -224,7 +224,7 @@ Insert after line 649 (the last 4.2 tasks `check`), before the cleanup banner:
 
 (The `meetingId` const from the Phase 3 section — `auth-qa.ts:375` — is still in scope at this point in `main()`.)
 
-- [ ] **Step 3: Run auth-qa — must stay fully green**
+- [x] **Step 3: Run auth-qa — must stay fully green**
 
 Run:
 ```bash
@@ -232,7 +232,7 @@ DATABASE_URL="postgresql://localhost:5432/meridian" BETTER_AUTH_SECRET="$(openss
 ```
 Expected: `ALL PASS (92 passed)` (previous 87 + the 5 new checks in the 4.3-0 section). Any FAIL is a blocker — do not proceed.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add artifacts/api-server/src/routes/platform.ts artifacts/api-server/src/routes/actionItems.ts scripts/src/auth-qa.ts
@@ -248,7 +248,7 @@ git commit -m "feat(api): stamp completion timestamps — meetings.completedAt +
 **Files:**
 - Modify: `lib/api-spec/openapi.yaml`
 
-- [ ] **Step 1: Add the scorecards tag**
+- [x] **Step 1: Add the scorecards tag**
 
 Locate the `tags:` list entries (the `- name: users`/`- name: tasks` block). Add after the last tag entry:
 
@@ -256,7 +256,7 @@ Locate the `tags:` list entries (the `- name: users`/`- name: tasks` block). Add
 - name: scorecards
 ```
 
-- [ ] **Step 2: Add the two paths**
+- [x] **Step 2: Add the two paths**
 
 Insert both paths immediately before the `/   news:` path key (previously anchored at line 514 — verify the current line with `rg -n "^  /news:" lib/api-spec/openapi.yaml`). The scorecard paths don't collide with any existing `/scorecards` or `/countries/{id}/scorecard` key — confirm with `rg -n "scorecard" lib/api-spec/openapi.yaml` (expect no matches before this edit).
 
@@ -289,7 +289,7 @@ Insert both paths immediately before the `/   news:` path key (previously anchor
           description: Unknown country.
 ```
 
-- [ ] **Step 3: Add the `ScorecardId` path parameter**
+- [x] **Step 3: Add the `ScorecardId` path parameter**
 
 Find the `parameters:` component block that defines `MinistryId`/`TaskId` (`rg -n "MinistryId:" lib/api-spec/openapi.yaml`). Add after the actual **last** `...Id` definition — more follow `TaskId` (`PositionId`, `TermId`, `OrganizationId`, …) — so run `rg -n "^    [A-Za-z]+Id:" lib/api-spec/openapi.yaml` and anchor on the final one:
 
@@ -304,7 +304,7 @@ Find the `parameters:` component block that defines `MinistryId`/`TaskId` (`rg -
 
 Match the exact indentation of the `MinistryId` block.
 
-- [ ] **Step 4: Add `completedAt` to the `Meeting` schema**
+- [x] **Step 4: Add `completedAt` to the `Meeting` schema**
 
 Find the `Meeting:` component schema in the same `components.schemas` block that holds `MeetingUpdate`. Add a nullable `completedAt` (read-only output field, never in `MeetingInput`/`MeetingUpdate`), matching this file's 3.1.0 nullability convention — block-style `type: [string, 'null']`, NOT `nullable: true` (see sibling `Meeting.owner`):
 
@@ -319,7 +319,7 @@ Find the `Meeting:` component schema in the same `components.schemas` block that
 
 Align indentation with sibling fields (properties keys at 8 spaces, nested keys at 10). Verify `MeetingInput`/`MeetingUpdate` do NOT gain this field (only the output `Meeting` schema).
 
-- [ ] **Step 5: Add the scorecard response schemas**
+- [x] **Step 5: Add the scorecard response schemas**
 
 Insert after the `MeetingUpdate` schema / before the `Position` schema (or at the end of the `MinistryUpdate`-style output-schema cluster; keep with the aggregate output schemas such as `DashboardSummary`). All ten:
 
@@ -543,9 +543,9 @@ Insert after the `MeetingUpdate` schema / before the `Position` schema (or at th
           $ref: "#/components/schemas/ScorecardFailures"
 ```
 
-- [ ] **Step 6: Sanity-check the YAML** — ensure the file parses. If `bunx yaml-lint` is unavailable, run the codegen step next and rely on its parse errors.
+- [x] **Step 6: Sanity-check the YAML** — ensure the file parses. If `bunx yaml-lint` is unavailable, run the codegen step next and rely on its parse errors.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add lib/api-spec/openapi.yaml
@@ -557,18 +557,18 @@ git commit -m "feat(api): openapi contract for country scorecards"
 **Files:**
 - Modify: `lib/api-zod/src/index.ts` (remove one appended line; add curated type re-exports)
 
-- [ ] **Step 1: Run codegen**
+- [x] **Step 1: Run codegen**
 
 Run: `bun run --filter @workspace/api-spec codegen`
 Expected: orval regenerates `lib/api-client-react/src/generated/*` and `lib/api-zod/src/generated/*`; schema count increases.
 
-- [ ] **Step 2: Remove the auto-appended wildcard**
+- [x] **Step 2: Remove the auto-appended wildcard**
 
 **Known pitfall:** every codegen run appends `export * from "./generated/types";` to the *end* of the hand-curated `lib/api-zod/src/index.ts`. This collides with `generated/api` exports (TS2308). Remove that trailing line (keep the curated named-type block above it as-is).
 
 Verify with: `tail -5 lib/api-zod/src/index.ts` — the last line must be the curated `} from "./generated/types";` closing brace, NOT a bare `export * from "./generated/types";`.
 
-- [ ] **Step 3: Verify generated zod values for the new endpoints**
+- [x] **Step 3: Verify generated zod values for the new endpoints**
 
 Check `lib/api-zod/src/generated/api.ts` contains (search `ListScorecards` / `CountryScorecard`):
 - `ListScorecardsResponse` (parses `{ items: ScorecardSummary[] }`)
@@ -578,11 +578,11 @@ Check `lib/api-zod/src/generated/api.ts` contains (search `ListScorecards` / `Co
 
 If any generated name differs from the above, adjust Task 3 of Chunk 3 to the actual name.
 
-- [ ] **Step 4: Verify generated types files**
+- [x] **Step 4: Verify generated types files**
 
 Confirm `lib/api-zod/src/generated/types/` gained `scorecardSummary.ts`/`countryScorecard.ts` (etc.) — the `ScorecardSummary`, `CountryScorecard` interfaces with `score: number | null`, `completionPct: number | null`, `slaRate: number | null`, `failureRate: number | null`, and `daysOver: number | null`.
 
-- [ ] **Step 5: Add curated type re-exports**
+- [x] **Step 5: Add curated type re-exports**
 
 In `lib/api-zod/src/index.ts`, inside the curated named-type block (alphabetical position: after the `Position*` names, before `Task`/`SlaBreakdown`-style names as fit), add:
 
@@ -596,7 +596,7 @@ In `lib/api-zod/src/index.ts`, inside the curated named-type block (alphabetical
 
 And in the same block add `CountryScorecard`, `CompletionBreakdown`, `SlaBreakdown`, `ScorecardFailures` if the convention re-exports nested-entity interfaces (match what `Task`/`Position` do — task types were all individually re-exported; follow the same generosity so the type names resolve). After this step, typecheck will confirm exactly which names must be present.
 
-- [ ] **Step 6: Typecheck + regenerate the SPA contract**
+- [x] **Step 6: Typecheck + regenerate the SPA contract**
 
 Run: `bun run typecheck`
 Expected: exit 0 (this is the first real check of the curated list). If TS2308 appears again, a wildcard line slipped back in — remove it (Step 2) and re-run.
@@ -604,14 +604,14 @@ Expected: exit 0 (this is the first real check of the curated list). If TS2308 a
 Then run: `bun run --filter @workspace/global-dr-platform typecheck`
 Expected: exit 0 — confirms `@workspace/api-client-react` typings picked up `useListScorecards`/`useGetCountryScorecard`.
 
-- [ ] **Step 7: Verify the generated SPA hooks exist**
+- [x] **Step 7: Verify the generated SPA hooks exist**
 
 Confirm `lib/api-client-react/src/generated/api.ts` defines:
 - `useListScorecards` + `getListScorecardsQueryKey()`
 - `useGetCountryScorecard` + `getGetCountryScorecardQueryKey({ id })`
 - `ListScorecardsResponse`-shaped data (`{ items: ScorecardSummary[] }`) and `GetCountryScorecardResponse`
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add lib/api-zod/src/index.ts lib/api-spec lib/api-zod/src/generated lib/api-client-react/src/generated
@@ -943,16 +943,16 @@ git commit -m "feat(qa): deterministic scorecard seed + route-qa scorecard/deep-
 **Files:**
 - Modify: `docs/implementation-plan.md`
 
-- [ ] **Step 1** — line 5: `**Current next task:** Phase 4.4 — notifications (in-app first; position changes, upcoming meetings, expiring agreements, overdue follow-ups, elections, confidence changes)`.
-- [ ] **Step 2** — line 128: `**Status: \`IN PROGRESS\` — Phase 4.3 (country scorecards) complete; notifications remain.**`
-- [ ] **Step 3** — line 132 (item 3 scorecards): mark `✓` and record evidence: per-country scorecard (health score, completion %, SLA on-time rate, failure board + clustering), overview strip with deep-links, analytics tab; the one schema addition (`meetings.completedAt`); **auth-qa <N>/<N>** and **route-qa <M>/<M>** green (fill in the actual passing counts from Chunk 4's final run).
-- [ ] **Step 4** — line 133 (item 4 notifications): mark as `NEXT`/in progress only if the user starts Phase 4.4; otherwise leave `— not started`.
+- [x] **Step 1** — line 5: `**Current next task:** Phase 4.4 — notifications (in-app first; position changes, upcoming meetings, expiring agreements, overdue follow-ups, elections, confidence changes)`.
+- [x] **Step 2** — line 128: `**Status: \`IN PROGRESS\` — Phase 4.3 (country scorecards) complete; notifications remain.**`
+- [x] **Step 3** — line 132 (item 3 scorecards): mark `✓` and record evidence: per-country scorecard (health score, completion %, SLA on-time rate, failure board + clustering), overview strip with deep-links, analytics tab; the one schema addition (`meetings.completedAt`); **auth-qa 129/129** and **route-qa 64/64** green.
+- [x] **Step 4** — line 133 (item 4 notifications): mark as `NEXT`/in progress only if the user starts Phase 4.4; otherwise leave `— not started`. (Left as `— not started`; line 5 names it as the next task instead.)
 
 ### Task 2: Full verification
 
-- [ ] **Step 1: Kill ports** — this environment reaps background processes between tool calls, and a stale listener on 3000/5173 silently shadows the real API (caused `countries.map is not a function` in 4.2). Before booting: `lsof -ti tcp:3000 | xargs kill -9 2>/dev/null; lsof -ti tcp:5173 | xargs kill -9 2>/dev/null; true`.
-- [ ] **Step 2: One invocation, both suites** — in a single bash call boot API (`AUTH_PASSTHROUGH=true PORT=3000 bun ...`) + SPA (`VITE_AUTH_DEMO=1 API_PROXY_TARGET=http://localhost:3000 bun ...`), wait for readiness (`/api/healthz`), run `seed-scorecard`, run `route-qa`, run auth-qa (separate DB creds), capture both `ALL PASS` lines and the exact passing counts.
-- [ ] **Step 3: typecheck + build** — `bun run typecheck`, `bun run --filter @workspace/global-dr-platform build`, `bun run --filter @workspace/scripts typecheck` — all exit 0. `git status` shows only intended files.
+- [x] **Step 1: Kill ports** — this environment reaps background processes between tool calls, and a stale listener on 3000/5173 silently shadows the real API (caused `countries.map is not a function` in 4.2). Before booting: `lsof -ti tcp:3000 | xargs kill -9 2>/dev/null; lsof -ti tcp:5173 | xargs kill -9 2>/dev/null; true`.
+- [x] **Step 2: One invocation, both suites** — in a single bash call boot API (`AUTH_PASSTHROUGH=true PORT=3000 bun ...`) + SPA (`VITE_AUTH_DEMO=1 API_PROXY_TARGET=http://localhost:3000 bun ...`), wait for readiness (`/api/healthz`), run `seed-scorecard`, run `route-qa`, run auth-qa (separate DB creds), capture both `ALL PASS` lines and the exact passing counts. **Result: route-qa 64/64, auth-qa 129/129 — both `ALL PASS`.**
+- [x] **Step 3: typecheck + build** — `bun run typecheck`, `bun run --filter @workspace/global-dr-platform build`, `bun run --filter @workspace/scripts typecheck` — all exit 0. `git status` shows only intended files. (api-server, scripts, global-dr-platform, mockup-sandbox typechecks all exit 0; SPA build ✓; git status clean except the two docs.)
 - [ ] **Step 4 (only after user confirms push): commit + push** — the plan file carries the final chunks; commit any remaining docs/plan changes. Push `origin/main` only after the user explicitly says to (repo convention — 4.1/4.2 pushed only on request; the final commit for your own repo follows the same norm).
 
-- [ ] **Step 5: Verify the plan file** — every task in this plan now has its checkboxes marked done, and the Chunk 5 status section reflects reality. This plan is the handoff document for `docs/superpowers/plans/2026-09-05-analytics-scorecards.md`.
+- [x] **Step 5: Verify the plan file** — every task in this plan now has its checkboxes marked done, and the Chunk 5 status section reflects reality. This plan is the handoff document for `docs/superpowers/plans/2026-09-05-analytics-scorecards.md`.
