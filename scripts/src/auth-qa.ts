@@ -5,7 +5,7 @@ import http from "node:http";
 import { once } from "node:events";
 import { betterAuth } from "better-auth";
 import { eq, inArray } from "drizzle-orm";
-import { db, pool, activityTable, countriesTable, documentsTable, newsTable, userTable, meetingsTable, agreementsTable, drStrategiesTable, tasksTable } from "@workspace/db";
+import { db, pool, activityTable, countriesTable, documentsTable, newsTable, userTable, meetingsTable, agreementsTable, drStrategiesTable, tasksTable, actionItemsTable } from "@workspace/db";
 import {
   buildAuthOptions,
   createAccount,
@@ -647,6 +647,43 @@ async function main() {
   const taskListAfter = await fetch(`${origin}/api/tasks?countryId=${countryId}`, { headers: { cookie: adminJar.header() } });
   const taskListAfterBody = (await taskListAfter.json().catch(() => [])) as { id: number }[];
   check("task removed after delete", taskListAfter.status === 200 && !taskListAfterBody.some((t) => t.id === taskId), `count=${taskListAfterBody.length}`);
+
+  // 4.3-0 timestamps (Phase 4.3 chunk 1). A meeting's transition to completed
+  // stamps completedAt; an action item's transition stamps updatedAt.
+  const stampMeeting = await fetch(`${origin}/api/meetings`, {
+    method: "POST",
+    headers: { "content-type": "application/json", cookie: adminJar.header() },
+    body: JSON.stringify({ title: "QA completion stamp", countryId, date: new Date().toISOString(), actionArea: "Trade & investment" }),
+  });
+  const stampMeetingBody = (await stampMeeting.json().catch(() => ({}))) as { id?: number };
+  check("4.3-0 POST /api/meetings seeded for completion stamp", stampMeeting.status === 201 && typeof stampMeetingBody.id === "number", `status=${stampMeeting.status}`);
+  const stampTransition = await fetch(`${origin}/api/meetings/${stampMeetingBody.id}`, {
+    method: "PATCH",
+    headers: { "content-type": "application/json", cookie: adminJar.header() },
+    body: JSON.stringify({ status: "completed" }),
+  });
+  check("4.3-0 PATCH meeting -> completed accepts", stampTransition.status === 200, `status=${stampTransition.status}`);
+  const [stampedMeeting] = await db.select({ completedAt: meetingsTable.completedAt }).from(meetingsTable).where(eq(meetingsTable.id, stampMeetingBody.id as number));
+  check("4.3-0 meeting completedAt stamped on completion", stampedMeeting?.completedAt != null, JSON.stringify(stampedMeeting));
+
+  const stampItem = await fetch(`${origin}/api/meetings/${meetingId}/action-items`, {
+    method: "POST",
+    headers: { "content-type": "application/json", cookie: adminJar.header() },
+    body: JSON.stringify({ meetingId, description: "QA updatedAt proxy", assignee: "QA User" }),
+  });
+  const stampItemBody = (await stampItem.json().catch(() => ({}))) as { id?: number };
+  check("4.3-0 POST action item seeded for updatedAt bump", stampItem.status === 201 && typeof stampItemBody.id === "number", `status=${stampItem.status}`);
+  await fetch(`${origin}/api/action-items/${stampItemBody.id}`, {
+    method: "PATCH",
+    headers: { "content-type": "application/json", cookie: adminJar.header() },
+    body: JSON.stringify({ status: "completed" }),
+  });
+  const [bumpedItem] = await db.select({ createdAt: actionItemsTable.createdAt, updatedAt: actionItemsTable.updatedAt }).from(actionItemsTable).where(eq(actionItemsTable.id, stampItemBody.id as number));
+  check(
+    "4.3-0 action item updatedAt bumped on completion",
+    bumpedItem != null && new Date(bumpedItem.updatedAt).getTime() > new Date(bumpedItem.createdAt).getTime(),
+    JSON.stringify(bumpedItem),
+  );
 
   // 25 (renumbered). Cleanup: remove disposable users (cascades accounts/sessions/members)
   //     and the disposable country row (with its activity trail).

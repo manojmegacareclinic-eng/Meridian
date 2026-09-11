@@ -338,15 +338,16 @@ router.patch("/meetings/:id", async (req, res): Promise<void> => {
   const params = UpdateMeetingParams.safeParse(req.params);
   const parsed = UpdateMeetingBody.safeParse(req.body);
   if (!params.success || !parsed.success) { res.status(400).json({ error: "Invalid meeting update." }); return; }
-  const values = {
-    ...parsed.data,
-    date: parsed.data.date ? new Date(parsed.data.date) : undefined,
-  };
   const [existing] = await db.select({
     id: meetingsTable.id, title: meetingsTable.title, status: meetingsTable.status, date: meetingsTable.date,
     actionArea: meetingsTable.actionArea, owner: meetingsTable.owner,
   }).from(meetingsTable).where(eq(meetingsTable.id, params.data.id));
   if (!existing) { res.status(404).json({ error: "Meeting not found." }); return; }
+  const values = {
+    ...parsed.data,
+    date: parsed.data.date ? new Date(parsed.data.date) : undefined,
+    completedAt: parsed.data.status === "completed" && existing.status !== "completed" ? new Date() : undefined,
+  };
   const [row] = await db.update(meetingsTable).set(values).where(eq(meetingsTable.id, params.data.id)).returning();
   const [country] = await db.select({ name: countriesTable.name }).from(countriesTable).where(eq(countriesTable.id, row.countryId));
   const diff = diffFields(existing as unknown as Record<string, unknown>, { ...row, date: row.date }, ["title", "status", "date", "actionArea", "owner"]);

@@ -150,6 +150,7 @@ router.patch("/action-items/:actionItemId", async (req, res): Promise<void> => {
   const updateData = {
     ...parsed.data,
     dueDate: dueDateStr,
+    ...(parsed.data.status === "completed" && existing.status !== "completed" ? { updatedAt: new Date() } : {}),
   };
   const [row] = await db.update(actionItemsTable).set(updateData).where(eq(actionItemsTable.id, params.data.actionItemId)).returning();
   const diff = diffFields(existing, row, ["description", "assignee", "assigneeContactId", "dueDate", "status", "deliverableId"]);
