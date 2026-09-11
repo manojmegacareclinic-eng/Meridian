@@ -9,6 +9,7 @@ export const meetingsTable = pgTable("meetings", {
   countryId: integer("country_id").notNull().references(() => countriesTable.id),
   date: timestamp("date", { withTimezone: true }).notNull(),
   status: text("status").notNull().default("scheduled"),
+  completedAt: timestamp("completed_at", { withTimezone: true }),
   participants: integer("participants").notNull().default(1),
   actionArea: text("action_area").notNull(),
   owner: text("owner"),
