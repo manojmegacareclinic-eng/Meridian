@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import {
   Activity as ActivityIcon,
   ArrowLeft,
-  BarChart2,
   Building2,
   Bell,
   CalendarDays,
@@ -125,7 +124,7 @@ import type {
   News,
   NewsInput,
 } from '@workspace/api-client-react';
-import { Link, useLocation, useParams } from '@tanstack/react-router';
+import { Link, useLocation, useNavigate, useParams, useSearch } from '@tanstack/react-router';
 import { queryClient } from '@/lib/query';
 import { authDemoEnabled, roleLabel, useSessionInfo } from '@/lib/auth';
 import {
@@ -137,6 +136,8 @@ import { ACTION_AREAS } from '@/lib/tasks';
 import { OrganizationsTab } from '@/components/OrganizationsTab';
 import { GovernmentTab } from '@/components/GovernmentTab';
 import { TasksTab } from '@/components/TasksTab';
+import { ScorecardTab } from '@/components/ScorecardTab';
+import { ScorecardStrip } from '@/components/ScorecardStrip';
 import { StrategyPipeline } from '@/components/StrategyPipeline';
 import { MeetingDetailPage } from '@/components/MeetingDetail';
 import './index.css';
@@ -378,6 +379,7 @@ export function Dashboard() {
   if (summaryQuery.isError) return <ErrorState onRetry={refresh} />;
   return <div className="animate-rise-in">
     <PageIntro eyebrow="Executive brief · 06 February 2025" title="A clear view of the room." description="Your diplomatic portfolio, distilled for the decisions ahead." action={<PrimaryButton testId="button-log-engagement" onClick={() => window.dispatchEvent(new CustomEvent('open-quick-add'))}><Plus size={16} /> Log an engagement</PrimaryButton>} />
+    <ScorecardStrip />
     <div className="mb-8 grid grid-cols-2 gap-3 lg:grid-cols-5">
       {[
         { label: 'Countries', value: summary?.countries ?? 0, icon: Globe2, note: 'across 6 regions', accent: 'text-[hsl(190_54%_38%)]' },
@@ -898,6 +900,8 @@ function ActivityRow({ row }: { row: { id: number; kind: string; title: string; 
 export function CountryDetailPage() {
   const params = useParams({ from: '/country/$countryId', strict: true });
   const id = Number(params.countryId);
+  const navigate = useNavigate();
+  const search = useSearch({ from: '/country/$countryId', strict: true });
   const countryQuery = useGetCountry(id);
   const country = countryQuery.data;
   const activityQuery = useListActivity({ countryId: id });
@@ -905,7 +909,7 @@ export function CountryDetailPage() {
   const meetingsQuery = useListMeetings({ countryId: id });
   const agreementsQuery = useListAgreements({ countryId: id });
   const documentsQuery = useListDocuments({ countryId: id });
-  const [activeTab, setActiveTab] = useState<TabId>('overview');
+  const [activeTab, setActiveTab] = useState<TabId>(() => (TABS.some((t) => t.id === search.tab) ? (search.tab as TabId) : 'overview'));
   const [editOpen, setEditOpen] = useState(false);
   const [editValues, setEditValues] = useState({
     language: '',
@@ -1137,7 +1141,7 @@ export function CountryDetailPage() {
       />
       <div className="mb-5 flex flex-col gap-3 lg:flex-row overflow-x-auto">
         {TABS.map((tab) => (
-          <TabButton key={tab.id} id={tab.id} label={tab.label} active={activeTab === tab.id} onClick={() => setActiveTab(tab.id)} />
+          <TabButton key={tab.id} id={tab.id} label={tab.label} active={activeTab === tab.id} onClick={() => { setActiveTab(tab.id); void navigate({ to: '/country/$countryId', params: { countryId: params.countryId }, search: { tab: tab.id === 'overview' ? undefined : tab.id }, replace: true }); }} />
         ))}
       </div>
       <div className="space-y-5">
@@ -1151,13 +1155,7 @@ export function CountryDetailPage() {
         {activeTab === 'organizations' && <OrganizationsTab countryId={id} />}
         {activeTab === 'strategies' && <StrategyPipeline countryId={id} />}
         {activeTab === 'tasks' && <TasksTab countryId={id} />}
-        {activeTab === 'analytics' && (
-          <EmptyPlaceholder
-            icon={BarChart2}
-            title="Coming soon"
-            description={`The ${TABS.find((t) => t.id === activeTab)?.label} tab is not yet implemented.`}
-          />
-        )}
+        {activeTab === 'analytics' && <ScorecardTab countryId={id} />}
       </div>
     </div>
   );
