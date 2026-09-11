@@ -302,7 +302,7 @@ router.post("/contacts", async (req, res): Promise<void> => {
 router.get("/meetings", async (req, res): Promise<void> => {
   const parsed = ListMeetingsQueryParams.safeParse(req.query);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
-  const filters = [];
+  const filters = [inArray(meetingsTable.status, ["scheduled", "completed", "follow_up"])];
   if (parsed.data.countryId) filters.push(eq(meetingsTable.countryId, parsed.data.countryId));
   if (parsed.data.status) filters.push(eq(meetingsTable.status, parsed.data.status));
   const rows = await db.select({
