@@ -139,6 +139,56 @@ async function main() {
       check(`${path} nav item highlighted as active`, className.includes("bg-[hsl(var(--sidebar-accent))]"), "active class missing");
     }
 
+    // Phase 4.3 — overview scorecard strip (requires prior seed-scorecard run)
+    const demoCountries = (await fetch(`${baseURL}/api/countries`, { headers: { accept: "application/json" } }).then((r) => (r.ok ? r.json() : [])).catch(() => [])) as { id: number; code: string; name: string }[];
+    const scor = demoCountries.find((c) => c.code === "SCOR");
+    const scer = demoCountries.find((c) => c.code === "SCER");
+
+    if (scor && scer) {
+      await page.goto(`${baseURL}/`, { waitUntil: "load" });
+      await page.waitForSelector('[data-testid="overview-scorecard-strip"]', { timeout: 15000 });
+      check("overview scorecard strip visible", await page.isVisible('[data-testid="overview-scorecard-strip"]'));
+      const statCard = page.locator('[data-testid="metric-countries"]');
+      if (await statCard.count()) {
+        const stripBox = await page.locator('[data-testid="overview-scorecard-strip"]').boundingBox();
+        const metricBox = await statCard.boundingBox();
+        const stripAbove = stripBox && metricBox && stripBox.y < metricBox.y && stripBox.y + stripBox.height <= metricBox.y + 1;
+        check("scorecard strip renders above stat cards", stripAbove === true, `strip.y=${stripBox?.y} metric.y=${metricBox?.y}`);
+      }
+
+      const scorCard = page.locator('[data-testid^="scorecard-card-"]').filter({ hasText: "Scorecards Demo" }).first();
+      await scorCard.waitFor({ state: "visible", timeout: 15000 });
+      const scorCardText = (await scorCard.textContent()) ?? "";
+      check("SCOR card shows score 49", /49/.test(scorCardText), `got "${scorCardText.replaceAll("\n", " ").trim()}"`);
+      await scorCard.click();
+      await page.waitForURL(`**/country/${scor.id}?tab=analytics`, { timeout: 15000 });
+      check("strip click deep-links to ?tab=analytics", true);
+      await page.waitForSelector('[data-testid="tab-analytics"]', { timeout: 15000 });
+      const tabClass = (await page.locator('[data-testid="tab-analytics"]').getAttribute("class")) ?? "";
+      check("analytics tab active after deep-link", tabClass.includes("bg-[hsl(var(--primary))]"), "active class missing");
+      await page.waitForSelector('[data-testid="analytics-score-ring"]', { timeout: 15000 });
+      check("analytics score ring renders", await page.isVisible('[data-testid="analytics-score-ring"]'));
+
+      // Country analytics assertions on SCOR
+      const scorPct = ((await page.locator('[data-testid="analytics-completion-pct"]').textContent()) ?? "").trim();
+      const scorSla = ((await page.locator('[data-testid="analytics-sla-rate"]').textContent()) ?? "").trim();
+      const scorFailure = ((await page.locator('[data-testid="analytics-failure-index"]').textContent()) ?? "").trim();
+      check("SCOR completion 64.3", scorPct === "64.3%", `got "${scorPct}"`);
+      check("SCOR sla 37.5", scorSla === "37.5%", `got "${scorSla}"`);
+      check("SCOR failure index 57.1", scorFailure === "57.1%", `got "${scorFailure}"`);
+      const failureRows = await page.locator('[data-testid^="analytics-failure-row-"]').count();
+      check("SCOR failure board has >= 8 rows", failureRows >= 8, `got ${failureRows}`);
+      const clusterCount = await page.locator('[data-testid^="analytics-cluster-"]').count();
+      check("SCOR clustering rail renders", clusterCount > 0, `got ${clusterCount}`);
+
+      // SCER (empty) shows No data
+      await page.goto(`${baseURL}/country/${scer.id}?tab=analytics`, { waitUntil: "load" });
+      await page.waitForSelector('[data-testid="scorecard-no-data"]', { timeout: 15000 });
+      check("SCER renders No data badge", await page.isVisible('[data-testid="scorecard-no-data"]'));
+    } else {
+      console.log("  SKIP scorecard strip flow (run seed-scorecard first)");
+    }
+
     // Country workspace detail page (read-only tab checks)
     await page.goto(`${baseURL}/countries`, { waitUntil: "load" });
     await page.waitForSelector('[data-testid^="card-country-"]', { timeout: 15000 });
