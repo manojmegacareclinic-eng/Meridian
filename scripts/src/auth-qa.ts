@@ -6,6 +6,7 @@ import { once } from "node:events";
 import { betterAuth } from "better-auth";
 import { eq, inArray } from "drizzle-orm";
 import { db, pool, activityTable, countriesTable, documentsTable, newsTable, userTable, meetingsTable, agreementsTable, drStrategiesTable, tasksTable, actionItemsTable } from "@workspace/db";
+import { scorecardFixture } from "./scorecard-fixture";
 import {
   buildAuthOptions,
   createAccount,
@@ -685,6 +686,141 @@ async function main() {
     JSON.stringify(bumpedItem),
   );
 
+  // 4.3 scorecards (Phase 4.3 chunk 3). Deterministic fixture inserted directly
+  // into the DB; exact-math assertions against both scorecard endpoints.
+  const fixture = scorecardFixture(new Date().toISOString().split("T")[0]);
+  const qcCode = `QC${Math.floor(1 + Math.random() * 9)}`;
+  const qdCode = `QD${Math.floor(1 + Math.random() * 9)}`;
+  const scCountryPost = await fetch(`${origin}/api/countries`, {
+    method: "POST",
+    headers: { "content-type": "application/json", cookie: adminJar.header() },
+    body: JSON.stringify({ name: "QA Scorecard", code: qcCode, region: "QA", status: "leads", riskLevel: "medium" }),
+  });
+  const scCountryBody = (await scCountryPost.json().catch(() => ({}))) as { id?: number };
+  check("4.3 scorecard country created", scCountryPost.status === 201 && typeof scCountryBody.id === "number", `status=${scCountryPost.status}`);
+  const scCountryId = typeof scCountryBody.id === "number" ? scCountryBody.id : -1;
+
+  let taskIdByKey = new Map<string, number>();
+  let aiIdByKey = new Map<string, number>();
+  let meetingIdByKey = new Map<string, number>();
+  const insertedMeetings = await db.insert(meetingsTable).values(fixture.meetings.map((m) => ({ ...m.payload, countryId: scCountryId }))).returning({ id: meetingsTable.id });
+  meetingIdByKey = new Map(fixture.meetings.map((m, i) => [m.key, insertedMeetings[i]?.id ?? -1]));
+  const hostMeetingId = meetingIdByKey.get(fixture.hostMeetingKey);
+  if (typeof hostMeetingId === "number") {
+    const insertedAis = await db.insert(actionItemsTable).values(fixture.actionItems.map((a) => ({ ...a.payload, meetingId: hostMeetingId }))).returning({ id: actionItemsTable.id });
+    aiIdByKey = new Map(fixture.actionItems.map((a, i) => [a.key, insertedAis[i]?.id ?? -1]));
+  }
+  const insertedTasks = await db.insert(tasksTable).values(fixture.tasks.map((t) => ({ ...t.payload, countryId: scCountryId }))).returning({ id: tasksTable.id });
+  taskIdByKey = new Map(fixture.tasks.map((t, i) => [t.key, insertedTasks[i]?.id ?? -1]));
+
+  const scRes = await fetch(`${origin}/api/countries/${scCountryId}/scorecard`, { headers: { cookie: adminJar.header() } });
+  const scBody = (await scRes.json().catch(() => ({}))) as Record<string, unknown>;
+  const summaryPick = (scBody.summary as Record<string, unknown>) ?? {};
+  check("4.3 GET /countries/:id/scorecard -> 200", scRes.status === 200, `status=${scRes.status}`);
+  check("4.3 summary poolCount = 14", summaryPick.poolCount === 14, JSON.stringify(summaryPick.poolCount));
+  check("4.3 summary completedCount = 9", summaryPick.completedCount === 9, JSON.stringify(summaryPick.completedCount));
+  check("4.3 summary completionPct = 64.3", summaryPick.completionPct === 64.3, JSON.stringify(summaryPick.completionPct));
+  check("4.3 summary onTimeCount = 3", summaryPick.onTimeCount === 3, JSON.stringify(summaryPick.onTimeCount));
+  check("4.3 summary slaRate = 37.5", summaryPick.slaRate === 37.5, JSON.stringify(summaryPick.slaRate));
+  check("4.3 summary failureCount = 8", summaryPick.failureCount === 8, JSON.stringify(summaryPick.failureCount));
+  check("4.3 summary failureRate = 57.1", summaryPick.failureRate === 57.1, JSON.stringify(summaryPick.failureRate));
+  check("4.3 summary score = 49", summaryPick.score === 49, JSON.stringify(summaryPick.score));
+
+  const completionPick = (scBody.completion as Record<string, unknown>) ?? {};
+  const compByType = (completionPick.byType as { type: string; done: number; total: number; pct: number | null }[]) ?? [];
+  const compTask = compByType.find((b) => b.type === "task");
+  const compAi = compByType.find((b) => b.type === "actionItem");
+  const compMeeting = compByType.find((b) => b.type === "meeting");
+  check("4.3 completion.byType task 4/5 80.0", compTask?.done === 4 && compTask?.total === 5 && compTask?.pct === 80.0, JSON.stringify(compTask));
+  check("4.3 completion.byType actionItem 2/4 50.0", compAi?.done === 2 && compAi?.total === 4 && compAi?.pct === 50.0, JSON.stringify(compAi));
+  check("4.3 completion.byType meeting 3/5 60.0", compMeeting?.done === 3 && compMeeting?.total === 5 && compMeeting?.pct === 60.0, JSON.stringify(compMeeting));
+  const compByActionArea = (completionPick.byActionArea as { actionArea: string; done: number; total: number; pct: number | null }[]) ?? [];
+  const compSd = compByActionArea.find((b) => b.actionArea === "Security dialogue");
+  const compTrade = compByActionArea.find((b) => b.actionArea === "Trade & investment");
+  check("4.3 completion.byActionArea Security dialogue 7/9 77.8", compSd?.done === 7 && compSd?.total === 9 && compSd?.pct === 77.8, JSON.stringify(compSd));
+  check("4.3 completion.byActionArea Trade 2/5 40.0", compTrade?.done === 2 && compTrade?.total === 5 && compTrade?.pct === 40.0, JSON.stringify(compTrade));
+
+  const slaPick = (scBody.sla as Record<string, unknown>) ?? {};
+  const slaByType = (slaPick.byType as { type: string; onTime: number; completed: number; rate: number | null }[]) ?? [];
+  const slaTask = slaByType.find((b) => b.type === "task");
+  const slaAi = slaByType.find((b) => b.type === "actionItem");
+  const slaMeeting = slaByType.find((b) => b.type === "meeting");
+  check("4.3 sla.byType task 1/3 33.3", slaTask?.onTime === 1 && slaTask?.completed === 3 && slaTask?.rate === 33.3, JSON.stringify(slaTask));
+  check("4.3 sla.byType actionItem 1/2 50.0", slaAi?.onTime === 1 && slaAi?.completed === 2 && slaAi?.rate === 50.0, JSON.stringify(slaAi));
+  check("4.3 sla.byType meeting 1/3 33.3", slaMeeting?.onTime === 1 && slaMeeting?.completed === 3 && slaMeeting?.rate === 33.3, JSON.stringify(slaMeeting));
+
+  const failuresPick = (scBody.failures as Record<string, unknown>) ?? {};
+  const failureRows = (failuresPick.rows as { id: number; type: string; daysOver: number | null }[]) ?? [];
+  check("4.3 failures.count = 8", failuresPick.count === 8, JSON.stringify(failuresPick.count));
+  const expectedById: Record<string, number> = {};
+  for (const f of fixture.expected.failures) {
+    const idMap = f.kind === "task" ? taskIdByKey : f.kind === "actionItem" ? aiIdByKey : meetingIdByKey;
+    expectedById[`${f.kind}:${idMap.get(f.key)}`] = f.daysOver as number;
+  }
+  const expectedIdForKind = (kind: string, key: string) => {
+    const idMap = kind === "task" ? taskIdByKey : kind === "actionItem" ? aiIdByKey : meetingIdByKey;
+    return idMap.get(key);
+  };
+  for (const f of fixture.expected.failures) {
+    const id = expectedIdForKind(f.kind, f.key);
+    const row = failureRows.find((r) => r.type === f.kind && r.id === id);
+    check(`4.3 failure ${f.key} (${f.kind}) daysOver=${f.daysOver}`, row !== undefined && row.daysOver === f.daysOver, JSON.stringify({ id, row }));
+  }
+  const clustersEqual = (got: { key: string; count: number; rate: number }[], want: [string, number, number][]) =>
+    got.length === want.length && want.every(([key, count, rate], i) => got[i]?.key === key && got[i]?.count === count && got[i]?.rate === rate);
+  check(
+    "4.3 failures.byActionArea clusters",
+    clustersEqual((failuresPick.byActionArea as { actionArea: string; count: number; rate: number }[] ?? []).map(({ actionArea: key, ...rest }) => ({ key, ...rest })), fixture.expected.byActionArea),
+    JSON.stringify(failuresPick.byActionArea),
+  );
+  check(
+    "4.3 failures.byCadence clusters",
+    clustersEqual((failuresPick.byCadence as { cadence: string; count: number; rate: number }[] ?? []).map(({ cadence: key, ...rest }) => ({ key, ...rest })), fixture.expected.byCadence),
+    JSON.stringify(failuresPick.byCadence),
+  );
+  check(
+    "4.3 failures.byType clusters",
+    clustersEqual((failuresPick.byType as { type: string; count: number; rate: number }[] ?? []).map(({ type: key, ...rest }) => ({ key, ...rest })), fixture.expected.byType),
+    JSON.stringify(failuresPick.byType),
+  );
+
+  const listRes = await fetch(`${origin}/api/scorecards`, { headers: { cookie: adminJar.header() } });
+  const listBody = (await listRes.json().catch(() => ({}))) as Record<string, unknown>;
+  const items = (listBody.items as { countryId: number; score: number | null }[]) ?? [];
+  const myItem = items.find((s) => s.countryId === scCountryId);
+  check("4.3 GET /scorecards -> 200", listRes.status === 200, `status=${listRes.status}`);
+  check("4.3 list has my country score 49", myItem?.score === 49, JSON.stringify(myItem));
+  const scores = items.map((s) => s.score);
+  const nonNull = scores.filter((s): s is number => s != null);
+  const nullsLast = scores.slice(nonNull.length).every((s) => s == null);
+  const sortedDesc = nonNull.every((s, i) => i === 0 || (nonNull[i - 1] as number) >= s);
+  check("4.3 list sorted desc with nulls last", sortedDesc && nullsLast, `items=${items.length} nulls=${scores.length - nonNull.length}`);
+
+  const zdCountryPost = await fetch(`${origin}/api/countries`, {
+    method: "POST",
+    headers: { "content-type": "application/json", cookie: adminJar.header() },
+    body: JSON.stringify({ name: "QA Scorecard Empty", code: qdCode, region: "QA", status: "leads", riskLevel: "medium" }),
+  });
+  const zdCountryBody = (await zdCountryPost.json().catch(() => ({}))) as { id?: number };
+  const zdId = typeof zdCountryBody.id === "number" ? zdCountryBody.id : -1;
+  const emptyRes = await fetch(`${origin}/api/countries/${zdId}/scorecard`, { headers: { cookie: adminJar.header() } });
+  const emptyBody = (await emptyRes.json().catch(() => ({}))) as Record<string, unknown>;
+  const emptySummary = (emptyBody.summary as Record<string, unknown>) ?? {};
+  check("4.3 empty country scorecard -> 200", emptyRes.status === 200, `status=${emptyRes.status}`);
+  check(
+    "4.3 empty scorecard all null",
+    emptySummary.poolCount === 0 && emptySummary.score === null && emptySummary.completionPct === null && emptySummary.slaRate === null && emptySummary.failureRate === null,
+    JSON.stringify(emptySummary),
+  );
+  const missingRes = await fetch(`${origin}/api/countries/999999/scorecard`, { headers: { cookie: adminJar.header() } });
+  check("4.3 unknown country -> 404", missingRes.status === 404, `status=${missingRes.status}`);
+  const badIdRes = await fetch(`${origin}/api/countries/abc/scorecard`, { headers: { cookie: adminJar.header() } });
+  check("4.3 non-numeric id -> 404", badIdRes.status === 404, `status=${badIdRes.status}`);
+
+  await db.delete(meetingsTable).where(inArray(meetingsTable.countryId, [scCountryId, zdId]));
+  await db.delete(tasksTable).where(inArray(tasksTable.countryId, [scCountryId, zdId]));
+  await db.delete(activityTable).where(inArray(activityTable.countryId, [scCountryId, zdId]));
+  await db.delete(countriesTable).where(inArray(countriesTable.code, [qcCode, qdCode]));
   // 25 (renumbered). Cleanup: remove disposable users (cascades accounts/sessions/members)
   //     and the disposable country row (with its activity trail).
   await db.delete(userTable).where(inArray(userTable.email, QA_EMAILS));

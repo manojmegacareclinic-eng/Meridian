@@ -628,7 +628,7 @@ git commit -m "feat(api): codegen for scorecards contract + curated zod index"
 - Create: `artifacts/api-server/src/lib/scorecard.ts` (pure computation, no Express imports)
 - Modify: `artifacts/api-server/src/routes/scorecards.ts` (create) and `artifacts/api-server/src/routes/index.ts` (mount)
 
-- [ ] **Step 1: Define the normalized input row**
+- [x] **Step 1: Define the normalized input row**
 
 ```ts
 export type ScorecardKind = "task" | "actionItem" | "meeting";
@@ -646,7 +646,7 @@ export type ScorecardRow = {
 };
 ```
 
-- [ ] **Step 2: Reuse the `dayOnly` normalization**
+- [x] **Step 2: Reuse the `dayOnly` normalization**
 
 Copy the exact helper from `tasks.ts:20`:
 ```ts
@@ -654,14 +654,14 @@ const dayOnly = (value?: Date | string | null) => (value ? new Date(value).toISO
 ```
 and `export const today = dayOnly(new Date())`. All comparisons in this module are date-only ISO string comparisons (lexicographic `<=` works on `YYYY-MM-DD`). Days-over is integer calendar days: `Math.round((Date.parse(b) - Date.parse(a)) / 86_400_000)`.
 
-- [ ] **Step 3: Loader — fetch all pool rows per type**
+- [x] **Step 3: Loader — fetch all pool rows per type**
 
 Export `loadScorecardRows(db)`. It returns the union of three queries (each selects `id, countryId, actionArea, cadence, due, evidence, evidenceRaw, completed, pool`):
 - **tasks**: `status IN ('active','done')` (paused excluded → `pool:false` rows are simply not returned; a task is `completed = status === 'done'`), `due = dueDate`, `evidence = dayOnly(lastDoneAt)`, `evidenceRaw = lastDoneAt`.
 - **action items**: joined to `meetingsTable` for `countryId` + `actionArea` (`innerJoin(meetingsTable, eq(actionItemsTable.meetingId, meetingsTable.id))`); `status IN ('pending','in_progress','completed')`; `completed = status === 'completed'`; `due = dueDate`; `evidence = dayOnly(updatedAt)`, `evidenceRaw = updatedAt`.
 - **meetings**: `status IN ('scheduled','completed','follow_up')` (a directly-seeded `cancelled` row is excluded, matching the spec — the OpenAPI enum has no `cancelled`, so the pool filter is what enforces it); `completed = status === 'completed'`; `due = dayOnly(date)`, `scheduledAt = date`; `evidence = dayOnly(completedAt)`, `evidenceRaw = completedAt`.
 
-- [ ] **Step 4: Pure metric functions**
+- [x] **Step 4: Pure metric functions**
 
 Export three pure helpers (all take `today: string` and rows):
 - `round1 = (x: number) => Math.round(x * 10) / 10`
@@ -674,7 +674,7 @@ Export three pure helpers (all take `today: string` and rows):
   - Zero pool → all metrics `null` (no `0`, no `NaN`).
 - `computeBreakdown(countryId, rows, today)` → `{ completion: { overallPct, byType, byActionArea }, sla: { overallRate, byType }, failures: { count, rate, rows, byActionArea, byCadence, byType } }` (per-type arrays are `{type, done, total, pct}` / `{type, onTime, completed, rate}` over `["task","actionItem","meeting"]` fixed order with zero-filled entries; byActionArea groups by `actionArea` over all pool rows).
 
-- [ ] **Step 5: Failure classification**
+- [x] **Step 5: Failure classification**
 
 For each country's pool row, it is a failure if:
 - **Overdue-not-done**: `!completed && due && due < today` → `daysOver = days(today, due)`.
@@ -690,7 +690,7 @@ Clusters (= `failures` breakdown):
 - Sort each: `count` desc, then key asc, then `id` asc. Zero-count clusters omitted.
 - `failureCount === 0` → empty arrays (rates would divide by zero).
 
-- [ ] **Step 6: Unit sanity check (optional but cheap)** — add a tiny `if ((import.meta as { main?: boolean }).main)` block in the module **or simply run a throwaway `bun artifacts/api-server/src/lib/scorecard.ts` print from a scratch file** (api-server's tsconfig has `"types": ["node"]`, no bun types — deleted cleanly). Feed a hard-coded 5-row fixture (2 done 1 late 1 overdue 1 no-due) and confirm the percentages/score math before wiring routes. Delete afterwards — the module must compile under the repo typecheck at Task 2 Step 5.
+- [x] **Step 6: Unit sanity check (optional but cheap)** — add a tiny `if ((import.meta as { main?: boolean }).main)` block in the module **or simply run a throwaway `bun artifacts/api-server/src/lib/scorecard.ts` print from a scratch file** (api-server's tsconfig has `"types": ["node"]`, no bun types — deleted cleanly). Feed a hard-coded 5-row fixture (2 done 1 late 1 overdue 1 no-due) and confirm the percentages/score math before wiring routes. Delete afterwards — the module must compile under the repo typecheck at Task 2 Step 5.
 
 ### Task 2: Wire the two endpoints
 
@@ -698,7 +698,7 @@ Clusters (= `failures` breakdown):
 - Create: `artifacts/api-server/src/routes/scorecards.ts`
 - Modify: `artifacts/api-server/src/routes/index.ts`
 
-- [ ] **Step 1: Create the router** (pattern-matched to `platform.ts`):
+- [x] **Step 1: Create the router** (pattern-matched to `platform.ts`):
 
 ```ts
 import { Router, type IRouter } from "express";
@@ -712,17 +712,17 @@ const router: IRouter = Router();
 export default router;
 ```
 
-- [ ] **Step 2: `GET /scorecards`**
+- [x] **Step 2: `GET /scorecards`**
 
 Load all rows once, load all countries, then for every country compute `computeSummary` and build `ScorecardSummary` items. Sort `score` descending with `null` scores last (`score == null` sorts after every numeric score, tie-break `countryName` asc). Respond `ListScorecardsResponse.parse({ items })`.
 
-- [ ] **Step 3: `GET /countries/:id/scorecard`**
+- [x] **Step 3: `GET /countries/:id/scorecard`**
 
 `GetCountryScorecardParams.safeParse(req.params)`; non-numeric/absent id → 404. Look up the country (`countriesTable.id`); unknown → 404 (same wording as `platform.ts` meeting pattern). Otherwise `computeSummary` + `computeBreakdown` for that id and respond `CountryScorecard.parse({ summary, ...breakdown })`. **No audit rows written** for scorecard reads (read-only, mirrors `dashboard/summary`'s write-role inheritance without the audit write).
 
-- [ ] **Step 4: Mount** in `routes/index.ts` after `tasksRouter` (line 49): `import scorecardsRouter from "./scorecards";` + `router.use(scorecardsRouter);`. The router definitions use absolute paths (`/scorecards`, `/countries/:id/scorecard`), so mount at root like the other resource routers — do **not** prefix.
+- [x] **Step 4: Mount** in `routes/index.ts` after `tasksRouter` (line 49): `import scorecardsRouter from "./scorecards";` + `router.use(scorecardsRouter);`. The router definitions use absolute paths (`/scorecards`, `/countries/:id/scorecard`), so mount at root like the other resource routers — do **not** prefix.
 
-- [ ] **Step 5: Typecheck** — `bun run typecheck` exits 0. This also proves the generated zod values (`CountryScorecard`, `ListScorecardsResponse`, `GetCountryScorecardParams`) satisfy the payload shapes.
+- [x] **Step 5: Typecheck** — `bun run typecheck` exits 0. This also proves the generated zod values (`CountryScorecard`, `ListScorecardsResponse`, `GetCountryScorecardParams`) satisfy the payload shapes.
 
 ### Task 3: Shared deterministic fixture module
 
@@ -731,7 +731,7 @@ Load all rows once, load all countries, then for every country compute `computeS
 
 A single source of truth for the QA datasets (auth-qa + route-qa + seed) so neither harness duplicates the row definitions or the expected numbers.
 
-- [ ] **Step 1: Export `scorecardFixture()`**
+- [x] **Step 1: Export `scorecardFixture()`**
 
 ```ts
 export type Fixture = { tasks: [...]; actionItems: [...]; meetings: [...]; expected: {...} };
@@ -761,7 +761,7 @@ Build the dataset with `today`-relative dates (via a helper `const d = (offset: 
 
 Rows t1-t5 + m1-m4 are `actionArea` "Security dialogue"; m5 and all action items are "Trade & investment" (AIs are hosted by m5). t2 cadence `daily`, t3 + t4 cadence `weekly`.
 
-- [ ] **Step 2: Export the expected values as literals with an invariance note**
+- [x] **Step 2: Export the expected values as literals with an invariance note**
 
 ```ts
 expected: {
@@ -786,7 +786,7 @@ These numbers are **date-invariant** — every offset is relative to `today`, so
 
 The fixture returns `{ rows, expected, hostMeetingIndex }` where `rows` is the ordered insert list (each row carrying its own insert payload) and also exposes per-row generated ids back via a small resolved map (the `id` placeholders above are filled by the harness after insert).
 
-- [ ] **Step 3: Add the `seed-scorecard` wiring note** — this module is imported by auth-qa (Chunk 3 Task 4) and route-qa/seed (Chunk 4), not run standalone. No `scripts/package.json` change needed yet; Chunk 4 adds the `seed-scorecard` script.
+- [x] **Step 3: Add the `seed-scorecard` wiring note** — this module is imported by auth-qa (Chunk 3 Task 4) and route-qa/seed (Chunk 4), not run standalone. No `scripts/package.json` change needed yet; Chunk 4 adds the `seed-scorecard` script.
 
 ### Task 4: auth-qa 4.3 section — exact-math assertions
 
@@ -795,23 +795,23 @@ The fixture returns `{ rows, expected, hostMeetingIndex }` where `rows` is the o
 
 Insert a new 4.3 block **after the 4.2 tasks block's DELETE checks (after line 649) and before the cleanup banner** (the 4.3-0 timestamp checks from Chunk 1 already sit at the top, before the 4.1/4.2 sections). Uses the existing `adminJar`, `check`, and creates its OWN disposable country (code e.g. `QC${digit}`) so it is self-contained.
 
-- [ ] **Step 1: Create a disposable country + meetings/action items/tasks from the fixture**
+- [x] **Step 1: Create a disposable country + meetings/action items/tasks from the fixture**
 
 Create the country via `POST /admin/countries` (same pattern as the 4.1 section, capture `id`). Insert the fixture rows **directly into the DB** (`db.insert(tasksTable/actionItemsTable/meetingsTable)`) — direct inserts are required because several cases (paused task, cancelled meeting, a completed meeting with `completedAt = null`, a completed timestampless task, controlled `updatedAt` for the on-time/late action items) cannot be produced through the public API. For action items pass `meetingId = <m5 host row id>` and `updatedAt` explicitly. Captured ids populate the fixtures' expected `failures` entries.
 
-- [ ] **Step 2: Assert `GET /api/countries/:id/scorecard` matches the fixture exactly**
+- [x] **Step 2: Assert `GET /api/countries/:id/scorecard` matches the fixture exactly**
 
 `check` for each of: `poolCount === 14`, `completedCount === 9`, `completionPct === 64.3`, `onTimeCount === 3`, `slaRate === 37.5`, `failureCount === 8`, `failureRate === 57.1`, `score === 49`. Then the breakdown: `completion.byType` (task 80.0 / actionItem 50.0 / meeting 60.0), `completion.byActionArea` (77.8 / 40.0), `sla.byType` (33.3 / 50.0 / 33.3 — task/actionItem/meeting), each fixture failure row present with its exact `daysOver` (match by `kind` + `id`; 8 checks), and the three cluster arrays match the fixture (compare `count`/`rate` per key; order per spec = count desc then key asc).
 
-- [ ] **Step 3: Assert `GET /api/scorecards`**
+- [x] **Step 3: Assert `GET /api/scorecards`**
 
 The disposable country's `ScorecardSummary` is present with `score === 49` and correct `completionPct/slaRate/failureRate/counts`. Also assert the summary list sorts scores descending with nulls last: every non-null score appears before any `null` score.
 
-- [ ] **Step 4: Zero-pool + unknown country cases**
+- [x] **Step 4: Zero-pool + unknown country cases**
 
 Create a second disposable country (`QD${digit}`) with **no rows**. Its scorecard responds with all metrics `null` and `score: null`. `GET /api/countries/999999/scorecard` → 404; `GET /api/countries/abc/scorecard` (non-numeric) → 404.
 
-- [ ] **Step 5: Cleanup + run**
+- [x] **Step 5: Cleanup + run**
 
 Delete the two disposable countries' rows (meetings first — they cascade action items — then tasks), the countries, and the audit rows (same sweep as the existing cleanup at lines 651-682, but scoped to the 4.3 codes). Run:
 ```bash
@@ -819,7 +819,7 @@ DATABASE_URL="postgresql://localhost:5432/meridian" BETTER_AUTH_SECRET="$(openss
 ```
 Expected: `ALL PASS` — count = previous 92 + the number of `check()` calls written in this block (Step 2 ≈ 27, Step 3 ≈ 4, Step 4 ≈ 7, so ≈ 130 total; the exact number is whatever you wrote — the run prints it). Any FAIL is a blocker.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add artifacts/api-server/src/lib/scorecard.ts artifacts/api-server/src/routes/scorecards.ts artifacts/api-server/src/routes/index.ts scripts/src/scorecard-fixture.ts scripts/src/auth-qa.ts
