@@ -28,6 +28,7 @@ tags:
 - name: users
 - name: tasks
 - name: scorecards
+- name: notifications
 paths:
   /healthz:
     get:
@@ -1745,6 +1746,61 @@ paths:
           description: Invalid transition
         '404':
           description: Agreement not found
+  /notifications:
+    get:
+      operationId: listNotifications
+      tags:
+      - notifications
+      summary: List the current user's notifications (reconciles alerts first)
+      parameters:
+      - $ref: '#/components/parameters/NotificationLimit'
+      - name: unread
+        in: query
+        schema:
+          type: string
+          enum:
+          - only
+      responses:
+        '200':
+          description: Notification feed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListNotificationsResponse'
+    post:
+      operationId: markAllNotificationsRead
+      tags:
+      - notifications
+      summary: Mark all of the current user's notifications read
+      responses:
+        '200':
+          description: Marked read
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MarkAllNotificationsResponse'
+  /notifications/{id}/read:
+    patch:
+      operationId: markNotificationRead
+      tags:
+      - notifications
+      summary: Mark a single notification read
+      parameters:
+      - $ref: '#/components/parameters/NotificationId'
+      responses:
+        '200':
+          description: Marked read
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - ok
+                properties:
+                  ok:
+                    type: boolean
+        '404':
+          description: Notification not found
 components:
   parameters:
     Search:
@@ -1855,6 +1911,19 @@ components:
       required: true
       schema:
         type: integer
+    NotificationId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+    NotificationLimit:
+      name: limit
+      in: query
+      schema:
+        type: integer
+        default: 50
+        maximum: 200
     MeetingIdQuery:
       name: meetingId
       in: query
@@ -4015,3 +4084,73 @@ components:
           - approved
           - signed
           - archived
+    Notification:
+      type: object
+      required:
+      - id
+      - kind
+      - title
+      - body
+      - entityType
+      - entityId
+      - isRead
+      - createdAt
+      properties:
+        id:
+          type: integer
+        kind:
+          type: string
+          enum:
+          - position_change
+          - meeting_upcoming
+          - agreement_expiring
+          - follow_up_overdue
+          - election_approaching
+        title:
+          type: string
+        body:
+          type: string
+        countryId:
+          type:
+          - integer
+          - 'null'
+        entityType:
+          type: string
+          enum:
+          - office_term
+          - meeting
+          - agreement
+          - task
+          - country
+        entityId:
+          type: integer
+        isRead:
+          type: boolean
+        readAt:
+          type:
+          - string
+          - 'null'
+        createdAt:
+          type: string
+    ListNotificationsResponse:
+      type: object
+      required:
+      - unreadCount
+      - items
+      properties:
+        unreadCount:
+          type: integer
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Notification'
+    MarkAllNotificationsResponse:
+      type: object
+      required:
+      - ok
+      - updated
+      properties:
+        ok:
+          type: boolean
+        updated:
+          type: integer
