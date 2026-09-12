@@ -5,6 +5,164 @@
  * Global Diplomatic Relations platform API
  * OpenAPI spec version: 0.1.0
  */
+export interface IntelligenceSource {
+  id: number;
+  name: string;
+  kind: string;
+  tier: number;
+  baseUrl: string;
+  /** @nullable */
+  notes?: string | null;
+  status: string;
+  createdAt: string;
+}
+
+export interface ListIntelligenceSourcesResponse {
+  items: IntelligenceSource[];
+}
+
+export interface CreateIntelligenceSourceBody {
+  name: string;
+  baseUrl: string;
+  kind: string;
+  tier?: number;
+  /** @nullable */
+  notes?: string | null;
+  status?: string;
+}
+
+export type CreateIntelligenceSourceResponse = IntelligenceSource;
+
+export interface UpdateIntelligenceSourceBody {
+  name?: string;
+  baseUrl?: string;
+  kind?: string;
+  tier?: number;
+  /** @nullable */
+  notes?: string | null;
+  status?: string;
+}
+
+export type UpdateIntelligenceSourceResponse = IntelligenceSource;
+
+export interface IntelligenceFinding {
+  id: number;
+  sourceId: number;
+  /** @nullable */
+  sourceName?: string | null;
+  /** @nullable */
+  sourceTier?: number | null;
+  topic: string;
+  headline: string;
+  /** @nullable */
+  url?: string | null;
+  /** @nullable */
+  summary?: string | null;
+  confidence: number;
+  /** @nullable */
+  targetType?: string | null;
+  /** @nullable */
+  targetId?: number | null;
+  /** @nullable */
+  field?: string | null;
+  /** @nullable */
+  value?: string | null;
+  stage: string;
+  /** @nullable */
+  reviewNote?: string | null;
+  applied: boolean;
+  /** @nullable */
+  reviewedByUserId?: string | null;
+  /** @nullable */
+  reviewedAt?: string | null;
+  createdAt: string;
+}
+
+export interface ListIntelligenceFindingsResponse {
+  items: IntelligenceFinding[];
+}
+
+export interface CreateIntelligenceFindingBody {
+  sourceId: number;
+  topic: string;
+  headline: string;
+  /** @nullable */
+  url?: string | null;
+  /** @nullable */
+  summary?: string | null;
+  confidence?: number;
+  /** @nullable */
+  targetType?: string | null;
+  /** @nullable */
+  targetId?: number | null;
+  /** @nullable */
+  field?: string | null;
+  /** @nullable */
+  value?: string | null;
+}
+
+export type CreateIntelligenceFindingResponse = IntelligenceFinding;
+
+export type GetIntelligenceFindingResponse = IntelligenceFinding;
+
+export interface ApproveIntelligenceFindingBody {
+  apply?: boolean;
+  /** @nullable */
+  reviewNote?: string | null;
+}
+
+export interface ApproveIntelligenceFindingResponse {
+  id: number;
+  stage: string;
+  applied: boolean;
+  /** @nullable */
+  changeEventId?: number | null;
+  /** @nullable */
+  reviewedByUserId?: string | null;
+  /** @nullable */
+  reviewedAt?: string | null;
+}
+
+export interface RejectIntelligenceFindingBody {
+  /** @nullable */
+  reviewNote?: string | null;
+}
+
+export interface RejectIntelligenceFindingResponse {
+  id: number;
+  stage: string;
+  /** @nullable */
+  reviewedByUserId?: string | null;
+  /** @nullable */
+  reviewedAt?: string | null;
+}
+
+export interface ChangeEvent {
+  id: number;
+  findingId: number;
+  /** @nullable */
+  entityType?: string | null;
+  /** @nullable */
+  entityId?: number | null;
+  /** @nullable */
+  field?: string | null;
+  /** @nullable */
+  beforeValue?: string | null;
+  /** @nullable */
+  afterValue?: string | null;
+  applied: boolean;
+  /** @nullable */
+  sourceUrl?: string | null;
+  /** @nullable */
+  reviewedByUserId?: string | null;
+  reviewedAt: string;
+  createdAt: string;
+}
+
+export interface ListChangeEventsResponse {
+  items: ChangeEvent[];
+}
+
 export interface HealthStatus {
   status: string;
 }
@@ -1575,6 +1733,8 @@ export type NotificationLimitParameter = number;
 
 export type MeetingIdQueryParameter = number;
 
+export type IntelligenceLimitParameter = number;
+
 export type ListCountriesParams = {
 search?: SearchParameter;
 region?: string;
@@ -1776,4 +1936,62 @@ export const ListNotificationsUnread = {
 export type MarkNotificationRead200 = {
   ok: boolean;
 };
+
+export type ListIntelligenceFindingsParams = {
+topic?: ListIntelligenceFindingsTopic;
+stage?: ListIntelligenceFindingsStage;
+sourceId?: number;
+targetType?: ListIntelligenceFindingsTargetType;
+minConfidence?: number;
+/**
+ * @maximum 200
+ */
+limit?: IntelligenceLimitParameter;
+};
+
+export type ListIntelligenceFindingsTopic = typeof ListIntelligenceFindingsTopic[keyof typeof ListIntelligenceFindingsTopic];
+
+
+export const ListIntelligenceFindingsTopic = {
+  government_change: 'government_change',
+  election: 'election',
+  diplomatic_news: 'diplomatic_news',
+  religious_affairs: 'religious_affairs',
+  ngo_news: 'ngo_news',
+  university_news: 'university_news',
+  other: 'other',
+} as const;
+
+export type ListIntelligenceFindingsStage = typeof ListIntelligenceFindingsStage[keyof typeof ListIntelligenceFindingsStage];
+
+
+export const ListIntelligenceFindingsStage = {
+  open: 'open',
+  approved: 'approved',
+  rejected: 'rejected',
+} as const;
+
+export type ListIntelligenceFindingsTargetType = typeof ListIntelligenceFindingsTargetType[keyof typeof ListIntelligenceFindingsTargetType];
+
+
+export const ListIntelligenceFindingsTargetType = {
+  country: 'country',
+  organization: 'organization',
+  contact: 'contact',
+} as const;
+
+export type ListChangeEventsParams = {
+entityType?: ListChangeEventsEntityType;
+entityId?: number;
+findingId?: number;
+};
+
+export type ListChangeEventsEntityType = typeof ListChangeEventsEntityType[keyof typeof ListChangeEventsEntityType];
+
+
+export const ListChangeEventsEntityType = {
+  country: 'country',
+  organization: 'organization',
+  contact: 'contact',
+} as const;
 

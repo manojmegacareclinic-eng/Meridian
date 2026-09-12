@@ -2156,3 +2156,251 @@ export const MarkNotificationReadResponse = zod.object({
 })
 
 
+/**
+ * @summary List intelligence sources, ordered by tier then name
+ */
+export const ListIntelligenceSourcesResponse = zod.object({
+  "items": zod.array(zod.object({
+  "id": zod.int(),
+  "name": zod.string(),
+  "kind": zod.string(),
+  "tier": zod.int(),
+  "baseUrl": zod.string(),
+  "notes": zod.string().nullish(),
+  "status": zod.string(),
+  "createdAt": zod.string()
+}))
+})
+
+
+/**
+ * @summary Create an intelligence source (tier defaults from kind)
+ */
+export const CreateIntelligenceSourceBody = zod.object({
+  "name": zod.string(),
+  "baseUrl": zod.string(),
+  "kind": zod.string(),
+  "tier": zod.int().optional(),
+  "notes": zod.string().nullish(),
+  "status": zod.string().optional()
+})
+
+export const CreateIntelligenceSourceResponse = zod.object({
+  "id": zod.int(),
+  "name": zod.string(),
+  "kind": zod.string(),
+  "tier": zod.int(),
+  "baseUrl": zod.string(),
+  "notes": zod.string().nullish(),
+  "status": zod.string(),
+  "createdAt": zod.string()
+})
+
+
+/**
+ * @summary Update an intelligence source
+ */
+export const UpdateIntelligenceSourceParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+export const UpdateIntelligenceSourceBody = zod.object({
+  "name": zod.string().optional(),
+  "baseUrl": zod.string().optional(),
+  "kind": zod.string().optional(),
+  "tier": zod.int().optional(),
+  "notes": zod.string().nullish(),
+  "status": zod.string().optional()
+})
+
+export const UpdateIntelligenceSourceResponse = zod.object({
+  "id": zod.int(),
+  "name": zod.string(),
+  "kind": zod.string(),
+  "tier": zod.int(),
+  "baseUrl": zod.string(),
+  "notes": zod.string().nullish(),
+  "status": zod.string(),
+  "createdAt": zod.string()
+})
+
+
+/**
+ * @summary List the findings queue (open first, then newest)
+ */
+export const listIntelligenceFindingsQueryLimitDefault = 200;
+export const listIntelligenceFindingsQueryLimitMax = 200;
+
+
+
+export const ListIntelligenceFindingsQueryParams = zod.object({
+  "topic": zod.enum(['government_change', 'election', 'diplomatic_news', 'religious_affairs', 'ngo_news', 'university_news', 'other']).optional(),
+  "stage": zod.enum(['open', 'approved', 'rejected']).optional(),
+  "sourceId": zod.coerce.number().int().optional(),
+  "targetType": zod.enum(['country', 'organization', 'contact']).optional(),
+  "minConfidence": zod.coerce.number().int().optional(),
+  "limit": zod.coerce.number().int().max(listIntelligenceFindingsQueryLimitMax).default(listIntelligenceFindingsQueryLimitDefault)
+})
+
+export const ListIntelligenceFindingsResponse = zod.object({
+  "items": zod.array(zod.object({
+  "id": zod.int(),
+  "sourceId": zod.int(),
+  "sourceName": zod.string().nullish(),
+  "sourceTier": zod.int().nullish(),
+  "topic": zod.string(),
+  "headline": zod.string(),
+  "url": zod.string().nullish(),
+  "summary": zod.string().nullish(),
+  "confidence": zod.int(),
+  "targetType": zod.string().nullish(),
+  "targetId": zod.int().nullish(),
+  "field": zod.string().nullish(),
+  "value": zod.string().nullish(),
+  "stage": zod.string(),
+  "reviewNote": zod.string().nullish(),
+  "applied": zod.boolean(),
+  "reviewedByUserId": zod.string().nullish(),
+  "reviewedAt": zod.string().nullish(),
+  "createdAt": zod.string()
+}))
+})
+
+
+/**
+ * @summary Create a finding (refresh an open duplicate in place, 409 if already decided)
+ */
+export const CreateIntelligenceFindingBody = zod.object({
+  "sourceId": zod.int(),
+  "topic": zod.string(),
+  "headline": zod.string(),
+  "url": zod.string().nullish(),
+  "summary": zod.string().nullish(),
+  "confidence": zod.int().optional(),
+  "targetType": zod.string().nullish(),
+  "targetId": zod.int().nullish(),
+  "field": zod.string().nullish(),
+  "value": zod.string().nullish()
+})
+
+export const CreateIntelligenceFindingResponse = zod.object({
+  "id": zod.int(),
+  "sourceId": zod.int(),
+  "sourceName": zod.string().nullish(),
+  "sourceTier": zod.int().nullish(),
+  "topic": zod.string(),
+  "headline": zod.string(),
+  "url": zod.string().nullish(),
+  "summary": zod.string().nullish(),
+  "confidence": zod.int(),
+  "targetType": zod.string().nullish(),
+  "targetId": zod.int().nullish(),
+  "field": zod.string().nullish(),
+  "value": zod.string().nullish(),
+  "stage": zod.string(),
+  "reviewNote": zod.string().nullish(),
+  "applied": zod.boolean(),
+  "reviewedByUserId": zod.string().nullish(),
+  "reviewedAt": zod.string().nullish(),
+  "createdAt": zod.string()
+})
+
+
+/**
+ * @summary Get a single finding with source attribution
+ */
+export const GetIntelligenceFindingParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+export const GetIntelligenceFindingResponse = zod.object({
+  "id": zod.int(),
+  "sourceId": zod.int(),
+  "sourceName": zod.string().nullish(),
+  "sourceTier": zod.int().nullish(),
+  "topic": zod.string(),
+  "headline": zod.string(),
+  "url": zod.string().nullish(),
+  "summary": zod.string().nullish(),
+  "confidence": zod.int(),
+  "targetType": zod.string().nullish(),
+  "targetId": zod.int().nullish(),
+  "field": zod.string().nullish(),
+  "value": zod.string().nullish(),
+  "stage": zod.string(),
+  "reviewNote": zod.string().nullish(),
+  "applied": zod.boolean(),
+  "reviewedByUserId": zod.string().nullish(),
+  "reviewedAt": zod.string().nullish(),
+  "createdAt": zod.string()
+})
+
+
+/**
+ * @summary Approve a finding, optionally applying an allowlisted proposed change
+ */
+export const ApproveIntelligenceFindingParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+export const ApproveIntelligenceFindingBody = zod.object({
+  "apply": zod.boolean().optional(),
+  "reviewNote": zod.string().nullish()
+})
+
+export const ApproveIntelligenceFindingResponse = zod.object({
+  "id": zod.int(),
+  "stage": zod.string(),
+  "applied": zod.boolean(),
+  "changeEventId": zod.int().nullish(),
+  "reviewedByUserId": zod.string().nullish(),
+  "reviewedAt": zod.string().nullish()
+})
+
+
+/**
+ * @summary Reject a finding
+ */
+export const RejectIntelligenceFindingParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+export const RejectIntelligenceFindingBody = zod.object({
+  "reviewNote": zod.string().nullish()
+})
+
+export const RejectIntelligenceFindingResponse = zod.object({
+  "id": zod.int(),
+  "stage": zod.string(),
+  "reviewedByUserId": zod.string().nullish(),
+  "reviewedAt": zod.string().nullish()
+})
+
+
+/**
+ * @summary List applied change events (provenance ledger)
+ */
+export const ListChangeEventsQueryParams = zod.object({
+  "entityType": zod.enum(['country', 'organization', 'contact']).optional(),
+  "entityId": zod.coerce.number().int().optional(),
+  "findingId": zod.coerce.number().int().optional()
+})
+
+export const ListChangeEventsResponse = zod.object({
+  "items": zod.array(zod.object({
+  "id": zod.int(),
+  "findingId": zod.int(),
+  "entityType": zod.string().nullish(),
+  "entityId": zod.int().nullish(),
+  "field": zod.string().nullish(),
+  "beforeValue": zod.string().nullish(),
+  "afterValue": zod.string().nullish(),
+  "applied": zod.boolean(),
+  "sourceUrl": zod.string().nullish(),
+  "reviewedByUserId": zod.string().nullish(),
+  "reviewedAt": zod.string(),
+  "createdAt": zod.string()
+}))
+})
+
+

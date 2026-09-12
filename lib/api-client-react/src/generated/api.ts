@@ -32,6 +32,8 @@ import type {
   AgreementInput,
   AgreementLifecycleUpdate,
   AgreementUpdate,
+  ApproveIntelligenceFindingBody,
+  ApproveIntelligenceFindingResponse,
   AssignableUser,
   AuditEntry,
   Contact,
@@ -40,6 +42,8 @@ import type {
   CountryInput,
   CountryScorecard,
   CountryUpdate,
+  CreateIntelligenceFindingBody,
+  CreateIntelligenceSourceBody,
   CreateInvitationBody,
   DashboardSummary,
   DeleteResponse,
@@ -55,16 +59,23 @@ import type {
   DrStrategyStage,
   DrStrategyUpdate,
   HealthStatus,
+  IntelligenceFinding,
+  IntelligenceSource,
   InvitationCreation,
   ListActionItemsParams,
   ListActivityParams,
   ListAgreementsParams,
   ListAuditParams,
+  ListChangeEventsParams,
+  ListChangeEventsResponse,
   ListContactsParams,
   ListCountriesParams,
   ListDeliverablesParams,
   ListDocumentsParams,
   ListDrStrategiesParams,
+  ListIntelligenceFindingsParams,
+  ListIntelligenceFindingsResponse,
+  ListIntelligenceSourcesResponse,
   ListMeetingsParams,
   ListMinistriesParams,
   ListNewsParams,
@@ -101,10 +112,13 @@ import type {
   Position,
   PositionInput,
   PositionUpdate,
+  RejectIntelligenceFindingBody,
+  RejectIntelligenceFindingResponse,
   ScorecardList,
   Task,
   TaskInput,
   TaskUpdate,
+  UpdateIntelligenceSourceBody,
   UpdateUserRoleBody,
   UpdateUserRoleResponse
 } from './api.schemas';
@@ -7019,4 +7033,749 @@ export const useMarkNotificationRead = <TError = ErrorType<void>,
       > => {
       return useMutation(getMarkNotificationReadMutationOptions(options));
     }
+
+export const getListIntelligenceSourcesUrl = () => {
+
+
+
+
+  return `/api/intelligence/sources`
+}
+
+/**
+ * @summary List intelligence sources, ordered by tier then name
+ */
+export const listIntelligenceSources = async ( options?: Parameters<typeof customFetch>[1]): Promise<ListIntelligenceSourcesResponse> => {
+
+  return customFetch<ListIntelligenceSourcesResponse>(getListIntelligenceSourcesUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListIntelligenceSourcesQueryKey = () => {
+    return [
+    `/api/intelligence/sources`
+    ] as const;
+    }
+
+
+export const getListIntelligenceSourcesQueryOptions = <TData = Awaited<ReturnType<typeof listIntelligenceSources>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listIntelligenceSources>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListIntelligenceSourcesQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listIntelligenceSources>>> = ({ signal }) => listIntelligenceSources({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listIntelligenceSources>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListIntelligenceSourcesQueryResult = NonNullable<Awaited<ReturnType<typeof listIntelligenceSources>>>
+export type ListIntelligenceSourcesQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List intelligence sources, ordered by tier then name
+ */
+
+export function useListIntelligenceSources<TData = Awaited<ReturnType<typeof listIntelligenceSources>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listIntelligenceSources>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListIntelligenceSourcesQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateIntelligenceSourceUrl = () => {
+
+
+
+
+  return `/api/intelligence/sources`
+}
+
+/**
+ * @summary Create an intelligence source (tier defaults from kind)
+ */
+export const createIntelligenceSource = async (createIntelligenceSourceBody: CreateIntelligenceSourceBody, options?: Parameters<typeof customFetch>[1]): Promise<IntelligenceSource> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) {
+      const out: Record<string, string> = {};
+      h.forEach((value, key) => {
+        out[key] = value;
+      });
+      return out;
+    }
+    if (Array.isArray(h)) return Object.fromEntries(h);
+    return h;
+  };
+return customFetch<IntelligenceSource>(getCreateIntelligenceSourceUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(createIntelligenceSourceBody)
+  }
+);}
+
+
+
+
+
+export const getCreateIntelligenceSourceMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createIntelligenceSource>>, TError,CreateIntelligenceSourceMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createIntelligenceSource>>, TError,CreateIntelligenceSourceMutationVariables, TContext> => {
+
+const mutationKey = ['createIntelligenceSource'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createIntelligenceSource>>, CreateIntelligenceSourceMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  createIntelligenceSource(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateIntelligenceSourceMutationResult = NonNullable<Awaited<ReturnType<typeof createIntelligenceSource>>>
+    export type CreateIntelligenceSourceMutationBody = BodyType<CreateIntelligenceSourceBody>
+    export type CreateIntelligenceSourceMutationError = ErrorType<void>
+    export type CreateIntelligenceSourceMutationVariables = {data: BodyType<CreateIntelligenceSourceBody>}
+
+    /**
+ * @summary Create an intelligence source (tier defaults from kind)
+ */
+export const useCreateIntelligenceSource = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createIntelligenceSource>>, TError,CreateIntelligenceSourceMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createIntelligenceSource>>,
+        TError,
+        CreateIntelligenceSourceMutationVariables,
+        TContext
+      > => {
+      return useMutation(getCreateIntelligenceSourceMutationOptions(options));
+    }
+
+export const getUpdateIntelligenceSourceUrl = (id: number,) => {
+
+
+
+
+  return `/api/intelligence/sources/${id}`
+}
+
+/**
+ * @summary Update an intelligence source
+ */
+export const updateIntelligenceSource = async (id: number,
+    updateIntelligenceSourceBody: UpdateIntelligenceSourceBody, options?: Parameters<typeof customFetch>[1]): Promise<IntelligenceSource> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) {
+      const out: Record<string, string> = {};
+      h.forEach((value, key) => {
+        out[key] = value;
+      });
+      return out;
+    }
+    if (Array.isArray(h)) return Object.fromEntries(h);
+    return h;
+  };
+return customFetch<IntelligenceSource>(getUpdateIntelligenceSourceUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(updateIntelligenceSourceBody)
+  }
+);}
+
+
+
+
+
+export const getUpdateIntelligenceSourceMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateIntelligenceSource>>, TError,UpdateIntelligenceSourceMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateIntelligenceSource>>, TError,UpdateIntelligenceSourceMutationVariables, TContext> => {
+
+const mutationKey = ['updateIntelligenceSource'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateIntelligenceSource>>, UpdateIntelligenceSourceMutationVariables> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updateIntelligenceSource(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateIntelligenceSourceMutationResult = NonNullable<Awaited<ReturnType<typeof updateIntelligenceSource>>>
+    export type UpdateIntelligenceSourceMutationBody = BodyType<UpdateIntelligenceSourceBody>
+    export type UpdateIntelligenceSourceMutationError = ErrorType<void>
+    export type UpdateIntelligenceSourceMutationVariables = {id: number;data: BodyType<UpdateIntelligenceSourceBody>}
+
+    /**
+ * @summary Update an intelligence source
+ */
+export const useUpdateIntelligenceSource = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateIntelligenceSource>>, TError,UpdateIntelligenceSourceMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateIntelligenceSource>>,
+        TError,
+        UpdateIntelligenceSourceMutationVariables,
+        TContext
+      > => {
+      return useMutation(getUpdateIntelligenceSourceMutationOptions(options));
+    }
+
+export const getListIntelligenceFindingsUrl = (params?: ListIntelligenceFindingsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/intelligence/findings?${stringifiedParams}` : `/api/intelligence/findings`
+}
+
+/**
+ * @summary List the findings queue (open first, then newest)
+ */
+export const listIntelligenceFindings = async (params?: ListIntelligenceFindingsParams, options?: Parameters<typeof customFetch>[1]): Promise<ListIntelligenceFindingsResponse> => {
+
+  return customFetch<ListIntelligenceFindingsResponse>(getListIntelligenceFindingsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListIntelligenceFindingsQueryKey = (params?: ListIntelligenceFindingsParams,) => {
+    return [
+    `/api/intelligence/findings`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getListIntelligenceFindingsQueryOptions = <TData = Awaited<ReturnType<typeof listIntelligenceFindings>>, TError = ErrorType<unknown>>(params?: ListIntelligenceFindingsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listIntelligenceFindings>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListIntelligenceFindingsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listIntelligenceFindings>>> = ({ signal }) => listIntelligenceFindings(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listIntelligenceFindings>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListIntelligenceFindingsQueryResult = NonNullable<Awaited<ReturnType<typeof listIntelligenceFindings>>>
+export type ListIntelligenceFindingsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List the findings queue (open first, then newest)
+ */
+
+export function useListIntelligenceFindings<TData = Awaited<ReturnType<typeof listIntelligenceFindings>>, TError = ErrorType<unknown>>(
+ params?: ListIntelligenceFindingsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listIntelligenceFindings>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListIntelligenceFindingsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateIntelligenceFindingUrl = () => {
+
+
+
+
+  return `/api/intelligence/findings`
+}
+
+/**
+ * @summary Create a finding (refresh an open duplicate in place, 409 if already decided)
+ */
+export const createIntelligenceFinding = async (createIntelligenceFindingBody: CreateIntelligenceFindingBody, options?: Parameters<typeof customFetch>[1]): Promise<IntelligenceFinding> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) {
+      const out: Record<string, string> = {};
+      h.forEach((value, key) => {
+        out[key] = value;
+      });
+      return out;
+    }
+    if (Array.isArray(h)) return Object.fromEntries(h);
+    return h;
+  };
+return customFetch<IntelligenceFinding>(getCreateIntelligenceFindingUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(createIntelligenceFindingBody)
+  }
+);}
+
+
+
+
+
+export const getCreateIntelligenceFindingMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createIntelligenceFinding>>, TError,CreateIntelligenceFindingMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createIntelligenceFinding>>, TError,CreateIntelligenceFindingMutationVariables, TContext> => {
+
+const mutationKey = ['createIntelligenceFinding'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createIntelligenceFinding>>, CreateIntelligenceFindingMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  createIntelligenceFinding(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateIntelligenceFindingMutationResult = NonNullable<Awaited<ReturnType<typeof createIntelligenceFinding>>>
+    export type CreateIntelligenceFindingMutationBody = BodyType<CreateIntelligenceFindingBody>
+    export type CreateIntelligenceFindingMutationError = ErrorType<void>
+    export type CreateIntelligenceFindingMutationVariables = {data: BodyType<CreateIntelligenceFindingBody>}
+
+    /**
+ * @summary Create a finding (refresh an open duplicate in place, 409 if already decided)
+ */
+export const useCreateIntelligenceFinding = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createIntelligenceFinding>>, TError,CreateIntelligenceFindingMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createIntelligenceFinding>>,
+        TError,
+        CreateIntelligenceFindingMutationVariables,
+        TContext
+      > => {
+      return useMutation(getCreateIntelligenceFindingMutationOptions(options));
+    }
+
+export const getGetIntelligenceFindingUrl = (id: number,) => {
+
+
+
+
+  return `/api/intelligence/findings/${id}`
+}
+
+/**
+ * @summary Get a single finding with source attribution
+ */
+export const getIntelligenceFinding = async (id: number, options?: Parameters<typeof customFetch>[1]): Promise<IntelligenceFinding> => {
+
+  return customFetch<IntelligenceFinding>(getGetIntelligenceFindingUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetIntelligenceFindingQueryKey = (id: number,) => {
+    return [
+    `/api/intelligence/findings/${id}`
+    ] as const;
+    }
+
+
+export const getGetIntelligenceFindingQueryOptions = <TData = Awaited<ReturnType<typeof getIntelligenceFinding>>, TError = ErrorType<void>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getIntelligenceFinding>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetIntelligenceFindingQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getIntelligenceFinding>>> = ({ signal }) => getIntelligenceFinding(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getIntelligenceFinding>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetIntelligenceFindingQueryResult = NonNullable<Awaited<ReturnType<typeof getIntelligenceFinding>>>
+export type GetIntelligenceFindingQueryError = ErrorType<void>
+
+
+/**
+ * @summary Get a single finding with source attribution
+ */
+
+export function useGetIntelligenceFinding<TData = Awaited<ReturnType<typeof getIntelligenceFinding>>, TError = ErrorType<void>>(
+ id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getIntelligenceFinding>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetIntelligenceFindingQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getApproveIntelligenceFindingUrl = (id: number,) => {
+
+
+
+
+  return `/api/intelligence/findings/${id}/approve`
+}
+
+/**
+ * @summary Approve a finding, optionally applying an allowlisted proposed change
+ */
+export const approveIntelligenceFinding = async (id: number,
+    approveIntelligenceFindingBody?: ApproveIntelligenceFindingBody, options?: Parameters<typeof customFetch>[1]): Promise<ApproveIntelligenceFindingResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) {
+      const out: Record<string, string> = {};
+      h.forEach((value, key) => {
+        out[key] = value;
+      });
+      return out;
+    }
+    if (Array.isArray(h)) return Object.fromEntries(h);
+    return h;
+  };
+return customFetch<ApproveIntelligenceFindingResponse>(getApproveIntelligenceFindingUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(approveIntelligenceFindingBody)
+  }
+);}
+
+
+
+
+
+export const getApproveIntelligenceFindingMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof approveIntelligenceFinding>>, TError,ApproveIntelligenceFindingMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof approveIntelligenceFinding>>, TError,ApproveIntelligenceFindingMutationVariables, TContext> => {
+
+const mutationKey = ['approveIntelligenceFinding'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof approveIntelligenceFinding>>, ApproveIntelligenceFindingMutationVariables> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  approveIntelligenceFinding(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ApproveIntelligenceFindingMutationResult = NonNullable<Awaited<ReturnType<typeof approveIntelligenceFinding>>>
+    export type ApproveIntelligenceFindingMutationBody = BodyType<ApproveIntelligenceFindingBody> | undefined
+    export type ApproveIntelligenceFindingMutationError = ErrorType<void>
+    export type ApproveIntelligenceFindingMutationVariables = {id: number;data?: BodyType<ApproveIntelligenceFindingBody>}
+
+    /**
+ * @summary Approve a finding, optionally applying an allowlisted proposed change
+ */
+export const useApproveIntelligenceFinding = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof approveIntelligenceFinding>>, TError,ApproveIntelligenceFindingMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof approveIntelligenceFinding>>,
+        TError,
+        ApproveIntelligenceFindingMutationVariables,
+        TContext
+      > => {
+      return useMutation(getApproveIntelligenceFindingMutationOptions(options));
+    }
+
+export const getRejectIntelligenceFindingUrl = (id: number,) => {
+
+
+
+
+  return `/api/intelligence/findings/${id}/reject`
+}
+
+/**
+ * @summary Reject a finding
+ */
+export const rejectIntelligenceFinding = async (id: number,
+    rejectIntelligenceFindingBody?: RejectIntelligenceFindingBody, options?: Parameters<typeof customFetch>[1]): Promise<RejectIntelligenceFindingResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) {
+      const out: Record<string, string> = {};
+      h.forEach((value, key) => {
+        out[key] = value;
+      });
+      return out;
+    }
+    if (Array.isArray(h)) return Object.fromEntries(h);
+    return h;
+  };
+return customFetch<RejectIntelligenceFindingResponse>(getRejectIntelligenceFindingUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(rejectIntelligenceFindingBody)
+  }
+);}
+
+
+
+
+
+export const getRejectIntelligenceFindingMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof rejectIntelligenceFinding>>, TError,RejectIntelligenceFindingMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof rejectIntelligenceFinding>>, TError,RejectIntelligenceFindingMutationVariables, TContext> => {
+
+const mutationKey = ['rejectIntelligenceFinding'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof rejectIntelligenceFinding>>, RejectIntelligenceFindingMutationVariables> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  rejectIntelligenceFinding(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RejectIntelligenceFindingMutationResult = NonNullable<Awaited<ReturnType<typeof rejectIntelligenceFinding>>>
+    export type RejectIntelligenceFindingMutationBody = BodyType<RejectIntelligenceFindingBody> | undefined
+    export type RejectIntelligenceFindingMutationError = ErrorType<void>
+    export type RejectIntelligenceFindingMutationVariables = {id: number;data?: BodyType<RejectIntelligenceFindingBody>}
+
+    /**
+ * @summary Reject a finding
+ */
+export const useRejectIntelligenceFinding = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof rejectIntelligenceFinding>>, TError,RejectIntelligenceFindingMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof rejectIntelligenceFinding>>,
+        TError,
+        RejectIntelligenceFindingMutationVariables,
+        TContext
+      > => {
+      return useMutation(getRejectIntelligenceFindingMutationOptions(options));
+    }
+
+export const getListChangeEventsUrl = (params?: ListChangeEventsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/intelligence/change-events?${stringifiedParams}` : `/api/intelligence/change-events`
+}
+
+/**
+ * @summary List applied change events (provenance ledger)
+ */
+export const listChangeEvents = async (params?: ListChangeEventsParams, options?: Parameters<typeof customFetch>[1]): Promise<ListChangeEventsResponse> => {
+
+  return customFetch<ListChangeEventsResponse>(getListChangeEventsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListChangeEventsQueryKey = (params?: ListChangeEventsParams,) => {
+    return [
+    `/api/intelligence/change-events`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getListChangeEventsQueryOptions = <TData = Awaited<ReturnType<typeof listChangeEvents>>, TError = ErrorType<unknown>>(params?: ListChangeEventsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listChangeEvents>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListChangeEventsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listChangeEvents>>> = ({ signal }) => listChangeEvents(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listChangeEvents>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListChangeEventsQueryResult = NonNullable<Awaited<ReturnType<typeof listChangeEvents>>>
+export type ListChangeEventsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List applied change events (provenance ledger)
+ */
+
+export function useListChangeEvents<TData = Awaited<ReturnType<typeof listChangeEvents>>, TError = ErrorType<unknown>>(
+ params?: ListChangeEventsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listChangeEvents>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListChangeEventsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 

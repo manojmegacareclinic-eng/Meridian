@@ -29,6 +29,7 @@ tags:
 - name: tasks
 - name: scorecards
 - name: notifications
+- name: intelligence
 paths:
   /healthz:
     get:
@@ -1802,6 +1803,234 @@ paths:
                     type: boolean
         '404':
           description: Notification not found
+  /intelligence/sources:
+    get:
+      operationId: listIntelligenceSources
+      tags:
+      - intelligence
+      summary: List intelligence sources, ordered by tier then name
+      responses:
+        '200':
+          description: Sources
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListIntelligenceSourcesResponse'
+    post:
+      operationId: createIntelligenceSource
+      tags:
+      - intelligence
+      summary: Create an intelligence source (tier defaults from kind)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateIntelligenceSourceBody'
+      responses:
+        '200':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateIntelligenceSourceResponse'
+        '400':
+          description: Invalid source
+  /intelligence/sources/{id}:
+    patch:
+      operationId: updateIntelligenceSource
+      tags:
+      - intelligence
+      summary: Update an intelligence source
+      parameters:
+      - $ref: '#/components/parameters/IntelligenceSourceId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateIntelligenceSourceBody'
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UpdateIntelligenceSourceResponse'
+        '404':
+          description: Source not found
+  /intelligence/findings:
+    get:
+      operationId: listIntelligenceFindings
+      tags:
+      - intelligence
+      summary: List the findings queue (open first, then newest)
+      parameters:
+      - name: topic
+        in: query
+        schema:
+          type: string
+          enum:
+          - government_change
+          - election
+          - diplomatic_news
+          - religious_affairs
+          - ngo_news
+          - university_news
+          - other
+      - name: stage
+        in: query
+        schema:
+          type: string
+          enum:
+          - open
+          - approved
+          - rejected
+      - name: sourceId
+        in: query
+        schema:
+          type: integer
+      - name: targetType
+        in: query
+        schema:
+          type: string
+          enum:
+          - country
+          - organization
+          - contact
+      - name: minConfidence
+        in: query
+        schema:
+          type: integer
+      - $ref: '#/components/parameters/IntelligenceLimit'
+      responses:
+        '200':
+          description: Findings queue
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListIntelligenceFindingsResponse'
+    post:
+      operationId: createIntelligenceFinding
+      tags:
+      - intelligence
+      summary: Create a finding (refresh an open duplicate in place, 409 if already decided)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateIntelligenceFindingBody'
+      responses:
+        '200':
+          description: Created or refreshed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateIntelligenceFindingResponse'
+        '400':
+          description: Invalid finding
+        '409':
+          description: A decided finding with this fingerprint exists
+  /intelligence/findings/{id}:
+    get:
+      operationId: getIntelligenceFinding
+      tags:
+      - intelligence
+      summary: Get a single finding with source attribution
+      parameters:
+      - $ref: '#/components/parameters/IntelligenceFindingId'
+      responses:
+        '200':
+          description: Finding
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetIntelligenceFindingResponse'
+        '404':
+          description: Finding not found
+  /intelligence/findings/{id}/approve:
+    post:
+      operationId: approveIntelligenceFinding
+      tags:
+      - intelligence
+      summary: Approve a finding, optionally applying an allowlisted proposed change
+      parameters:
+      - $ref: '#/components/parameters/IntelligenceFindingId'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ApproveIntelligenceFindingBody'
+      responses:
+        '200':
+          description: Approved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApproveIntelligenceFindingResponse'
+        '400':
+          description: Not applicable or already-decided conflict
+        '404':
+          description: Finding not found
+        '409':
+          description: Finding already decided
+  /intelligence/findings/{id}/reject:
+    post:
+      operationId: rejectIntelligenceFinding
+      tags:
+      - intelligence
+      summary: Reject a finding
+      parameters:
+      - $ref: '#/components/parameters/IntelligenceFindingId'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RejectIntelligenceFindingBody'
+      responses:
+        '200':
+          description: Rejected
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RejectIntelligenceFindingResponse'
+        '404':
+          description: Finding not found
+        '409':
+          description: Finding already decided
+  /intelligence/change-events:
+    get:
+      operationId: listChangeEvents
+      tags:
+      - intelligence
+      summary: List applied change events (provenance ledger)
+      parameters:
+      - name: entityType
+        in: query
+        schema:
+          type: string
+          enum:
+          - country
+          - organization
+          - contact
+      - name: entityId
+        in: query
+        schema:
+          type: integer
+      - name: findingId
+        in: query
+        schema:
+          type: integer
+      responses:
+        '200':
+          description: Change events
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListChangeEventsResponse'
 components:
   parameters:
     Search:
@@ -1931,7 +2160,345 @@ components:
       required: true
       schema:
         type: integer
+    IntelligenceSourceId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+    IntelligenceFindingId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+    IntelligenceLimit:
+      name: limit
+      in: query
+      schema:
+        type: integer
+        default: 200
+        maximum: 200
   schemas:
+    IntelligenceSource:
+      type: object
+      required:
+      - id
+      - name
+      - kind
+      - tier
+      - baseUrl
+      - status
+      - createdAt
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        kind:
+          type: string
+        tier:
+          type: integer
+        baseUrl:
+          type: string
+        notes:
+          type:
+          - string
+          - 'null'
+        status:
+          type: string
+        createdAt:
+          type: string
+    ListIntelligenceSourcesResponse:
+      type: object
+      required:
+      - items
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/IntelligenceSource'
+    CreateIntelligenceSourceBody:
+      type: object
+      required:
+      - name
+      - baseUrl
+      - kind
+      properties:
+        name:
+          type: string
+        baseUrl:
+          type: string
+        kind:
+          type: string
+        tier:
+          type: integer
+        notes:
+          type:
+          - string
+          - 'null'
+        status:
+          type: string
+    CreateIntelligenceSourceResponse:
+      $ref: '#/components/schemas/IntelligenceSource'
+    UpdateIntelligenceSourceBody:
+      type: object
+      properties:
+        name:
+          type: string
+        baseUrl:
+          type: string
+        kind:
+          type: string
+        tier:
+          type: integer
+        notes:
+          type:
+          - string
+          - 'null'
+        status:
+          type: string
+    UpdateIntelligenceSourceResponse:
+      $ref: '#/components/schemas/IntelligenceSource'
+    IntelligenceFinding:
+      type: object
+      required:
+      - id
+      - sourceId
+      - topic
+      - headline
+      - confidence
+      - stage
+      - applied
+      - createdAt
+      properties:
+        id:
+          type: integer
+        sourceId:
+          type: integer
+        sourceName:
+          type:
+          - string
+          - 'null'
+        sourceTier:
+          type:
+          - integer
+          - 'null'
+        topic:
+          type: string
+        headline:
+          type: string
+        url:
+          type:
+          - string
+          - 'null'
+        summary:
+          type:
+          - string
+          - 'null'
+        confidence:
+          type: integer
+        targetType:
+          type:
+          - string
+          - 'null'
+        targetId:
+          type:
+          - integer
+          - 'null'
+        field:
+          type:
+          - string
+          - 'null'
+        value:
+          type:
+          - string
+          - 'null'
+        stage:
+          type: string
+        reviewNote:
+          type:
+          - string
+          - 'null'
+        applied:
+          type: boolean
+        reviewedByUserId:
+          type:
+          - string
+          - 'null'
+        reviewedAt:
+          type:
+          - string
+          - 'null'
+        createdAt:
+          type: string
+    ListIntelligenceFindingsResponse:
+      type: object
+      required:
+      - items
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/IntelligenceFinding'
+    CreateIntelligenceFindingBody:
+      type: object
+      required:
+      - sourceId
+      - topic
+      - headline
+      properties:
+        sourceId:
+          type: integer
+        topic:
+          type: string
+        headline:
+          type: string
+        url:
+          type:
+          - string
+          - 'null'
+        summary:
+          type:
+          - string
+          - 'null'
+        confidence:
+          type: integer
+        targetType:
+          type:
+          - string
+          - 'null'
+        targetId:
+          type:
+          - integer
+          - 'null'
+        field:
+          type:
+          - string
+          - 'null'
+        value:
+          type:
+          - string
+          - 'null'
+    CreateIntelligenceFindingResponse:
+      $ref: '#/components/schemas/IntelligenceFinding'
+    GetIntelligenceFindingResponse:
+      $ref: '#/components/schemas/IntelligenceFinding'
+    ApproveIntelligenceFindingBody:
+      type: object
+      properties:
+        apply:
+          type: boolean
+        reviewNote:
+          type:
+          - string
+          - 'null'
+    ApproveIntelligenceFindingResponse:
+      type: object
+      required:
+      - id
+      - stage
+      - applied
+      properties:
+        id:
+          type: integer
+        stage:
+          type: string
+        applied:
+          type: boolean
+        changeEventId:
+          type:
+          - integer
+          - 'null'
+        reviewedByUserId:
+          type:
+          - string
+          - 'null'
+        reviewedAt:
+          type:
+          - string
+          - 'null'
+    RejectIntelligenceFindingBody:
+      type: object
+      properties:
+        reviewNote:
+          type:
+          - string
+          - 'null'
+    RejectIntelligenceFindingResponse:
+      type: object
+      required:
+      - id
+      - stage
+      properties:
+        id:
+          type: integer
+        stage:
+          type: string
+        reviewedByUserId:
+          type:
+          - string
+          - 'null'
+        reviewedAt:
+          type:
+          - string
+          - 'null'
+    ChangeEvent:
+      type: object
+      required:
+      - id
+      - findingId
+      - applied
+      - reviewedAt
+      - createdAt
+      properties:
+        id:
+          type: integer
+        findingId:
+          type: integer
+        entityType:
+          type:
+          - string
+          - 'null'
+        entityId:
+          type:
+          - integer
+          - 'null'
+        field:
+          type:
+          - string
+          - 'null'
+        beforeValue:
+          type:
+          - string
+          - 'null'
+        afterValue:
+          type:
+          - string
+          - 'null'
+        applied:
+          type: boolean
+        sourceUrl:
+          type:
+          - string
+          - 'null'
+        reviewedByUserId:
+          type:
+          - string
+          - 'null'
+        reviewedAt:
+          type: string
+        createdAt:
+          type: string
+    ListChangeEventsResponse:
+      type: object
+      required:
+      - items
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ChangeEvent'
     HealthStatus:
       type: object
       properties:
