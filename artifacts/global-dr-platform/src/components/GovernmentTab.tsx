@@ -88,7 +88,7 @@ function PositionItem({ position, ministryId, onEdit, onDelete, onAddTerm, onEdi
 
   return (
     <div className="rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-4">
-      <button onClick={() => setExpanded((prev) => !prev)} className="w-full text-left hover:bg-[hsl(var(--muted)/.38)] rounded-xl p-2">
+      <div role="button" tabIndex={0} onClick={() => setExpanded((prev) => !prev)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setExpanded((prev) => !prev); } }} className="w-full cursor-pointer text-left hover:bg-[hsl(var(--muted)/.38)] rounded-xl p-2">
         <div className="flex items-center gap-3">
           <User className="text-[hsl(var(--muted-foreground))]" size={20} />
           <div className="flex-1 min-w-0">
@@ -102,7 +102,7 @@ function PositionItem({ position, ministryId, onEdit, onDelete, onAddTerm, onEdi
             {expanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
           </div>
         </div>
-      </button>
+      </div>
 
       {expanded && (
         <div className="mt-3 ml-8 border-l-2 border-[hsl(var(--border))] pl-4 space-y-3">
@@ -143,7 +143,7 @@ function MinistryItem({ ministry, onEdit, onDelete, onAddPosition, onEditPositio
 
   return (
     <div className="rounded-2xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] overflow-hidden">
-      <button onClick={() => setExpanded((prev) => !prev)} className="w-full text-left p-4 hover:bg-[hsl(var(--muted)/.38)]">
+      <div role="button" tabIndex={0} onClick={() => setExpanded((prev) => !prev)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setExpanded((prev) => !prev); } }} className="w-full cursor-pointer text-left p-4 hover:bg-[hsl(var(--muted)/.38)]">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Building className="text-[hsl(var(--primary))]" size={22} />
@@ -158,7 +158,7 @@ function MinistryItem({ ministry, onEdit, onDelete, onAddPosition, onEditPositio
             <span>{expanded ? "▼" : "▶"}</span>
           </div>
         </div>
-      </button>
+      </div>
 
       {expanded && (
         <div className="border-t border-[hsl(var(--border))] pl-8">
