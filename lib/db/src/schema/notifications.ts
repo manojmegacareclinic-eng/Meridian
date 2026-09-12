@@ -10,6 +10,7 @@ export const notificationKinds = [
   "agreement_expiring",
   "follow_up_overdue",
   "election_approaching",
+  "new_finding",
 ] as const;
 
 export const notificationsTable = pgTable(

@@ -24,6 +24,7 @@ export * from "./agreements";
 export * from "./documents";
 export * from "./news";
 export * from "./notifications";
+export * from "./intelligence";
 export * from "./activity";
 export * from "./auth";
 export * from "./ministries";
