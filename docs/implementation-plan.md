@@ -2,7 +2,7 @@
 
 **Status:** Foundation running; MVP implementation in progress  
 **Last updated:** 12 September 2026
-**Current next task:** Phase 4.4 — notifications (in-app first; position changes, upcoming meetings, expiring agreements, overdue follow-ups, elections, confidence changes)
+**Current next task:** Phase 5 — Intelligence and source verification
 **Source brief:** `attached_assets/Pasted--Global-Diplomatic-Relations-Government-Engagement-Plat_1787756992171.txt`
 
 This is a living delivery plan for the Global Diplomatic Relations (GDP) platform. It translates the enterprise blueprint into an incremental plan that matches the current Replit project instead of requiring a wholesale rewrite.
@@ -125,12 +125,12 @@ and cleanup (`ALL PASS, 26`); demo and real-auth route-qa push the audit page (`
 
 ### Phase 4 — Deliverables, tasks, and notifications
 
-**Status: `IN PROGRESS` — Phase 4.3 (country scorecards) complete; notifications remain.**
+**Status: `IN PROGRESS` — Phase 4.4 (notifications) complete; Phase 5 next.**
 
 1. Add weekly and daily deliverables tied to action areas. ✓ (Phase 4.2, this session: per-country `tasks` entity with action area + daily/weekly cadence, owner, status, next-due / last-completed; country Tasks tab grouped by action area; auth-qa 87/87 + route-qa 52/52 green)
 2. Add country assignments with primary owner, secondary owner, reviewer, and regional coordinator. ✓ (Phase 4.1, this session: four user-linked columns, `/users/assignable`, Overview Assignments block, edit-modal pickers, primary-owner card chip; auth-qa + route-qa green)
 3. Add failure analysis, completion percentage, response SLA, and country scorecards. ✓ (Phase 4.3, this session: per-country scorecard — health score, completion %, SLA on-time rate, failure board + clustering — via `GET /scorecards` + `GET /countries/:id/scorecard`; overview strip on `/` with deep-links into each country's Analytics tab; one schema addition, `meetings.completedAt`; completion timestamps stamped on meeting completion and action-item `updatedAt`; auth-qa 129/129 + route-qa 64/64 green)
-4. Add notifications for position changes, upcoming meetings, expiring agreements, overdue follow-ups, elections, and confidence changes. — not started (in-app first)
+4. Add notifications for position changes, upcoming meetings, expiring agreements, overdue follow-ups, elections, and confidence changes. ✓ (Phase 4.4, this session: `notifications` table + idempotent reconcile-on-read in `GET /api/notifications` (per-user, assignment-aware audience, sentinel guarantee in demo mode), `PATCH :id/read` + `POST /read-all`, OpenAPI + codegen; header bell with unread badge, notifications panel with mark-all-read and entity deep-links, deterministic `seed-notify` demo seed; auth-qa 163/163 + route-qa 75/75 green. Two real defects surfaced and fixed: OpenAPI declared mark-all-read as `POST /notifications` while the server implements `/notifications/read-all` (regenerated client), and GovernmentTab collapsible headers used `<button>` containing block elements — raised by React console when POSN gov data rendered)
 
 ### Phase 5 — Intelligence and source verification
 

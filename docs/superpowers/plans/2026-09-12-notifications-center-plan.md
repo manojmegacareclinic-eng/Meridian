@@ -231,14 +231,14 @@ git commit -m "feat(qa): deterministic notifications seed + route-qa bell/panel 
 **Files:**
 - Modify: `docs/implementation-plan.md`
 
-- [ ] **Step 1** — line 5: `**Current next task:** Phase 5 — Intelligence and source verification`.
-- [ ] **Step 2** — line 128: `**Status: \`IN PROGRESS\` — Phase 4.4 (notifications) complete; Phase 5 next.**`
-- [ ] **Step 3** — line 133 (item 4 notifications): mark `✓` and record evidence: five in-app alert kinds via reconcile-on-read, header bell + unread badge + mark-all-read + deep links; auth-qa and route-qa counts.
+- [x] **Step 1** — line 5: `**Current next task:** Phase 5 — Intelligence and source verification`.
+- [x] **Step 2** — line 128: `**Status: \`IN PROGRESS\` — Phase 4.4 (notifications) complete; Phase 5 next.**`
+- [x] **Step 3** — line 133 (item 4 notifications): mark `✓` and record evidence: five in-app alert kinds via reconcile-on-read, header bell + unread badge + mark-all-read + deep links; auth-qa and route-qa counts.
 
 ### Task 2: Full verification
 
-- [ ] **Step 1: Kill ports** — `lsof -ti tcp:3000 | xargs kill -9 2>/dev/null; lsof -ti tcp:5173 | xargs kill -9 2>/dev/null; true`.
-- [ ] **Step 2: One invocation, both suites** — boot API + SPA, wait `/api/healthz`, run `seed-notify`, `route-qa`, auth-qa; capture both `ALL PASS` lines and the exact counts.
-- [ ] **Step 3: typecheck + build** — `bun run typecheck`, SPA build — all exit 0; `git status` shows only intended files.
+- [x] **Step 1: Kill ports** — `lsof -ti tcp:3000 | xargs kill -9 2>/dev/null; lsof -ti tcp:5173 | xargs kill -9 2>/dev/null; true`.
+- [x] **Step 2: One invocation, both suites** — boot API + SPA, wait `/api/healthz`, run `seed-notify`, `route-qa`, auth-qa; capture both `ALL PASS` lines and the exact counts. **Result: route-qa 75/75, auth-qa 163/163 — both `ALL PASS`.** (Also confirmed auth-qa stays green with POSN demo data present, its 4.4 assertions being relative to scoped fixtures; seed-notify resets its 5 fingerprints to unread each run so the feed is deterministic across repeat runs.)
+- [x] **Step 3: typecheck + build** — `bun run typecheck`, SPA build — all exit 0; `git status` shows only intended files. (Root typecheck ✓ incl. scripts; SPA build `✓ built`; `git status` clean except the two docs below.)
 - [ ] **Step 4 (only after user confirms push): commit + push** — final docs/plan commit; push `origin/main` only on explicit user confirmation (repo convention).
-- [ ] **Step 5: Verify the plan file** — every checkbox in this plan is marked done; the Chunk 5 status reflects reality. This plan is the handoff document for `docs/superpowers/plans/2026-09-12-notifications-center-plan.md`.
+- [x] **Step 5: Verify the plan file** — every task in this *Phase 4.4* plan (Chunks 1–5, Tasks 1–2 of the three chunks) has its checkboxes marked done, with the exception of the push-only step (Step 4 above), which by convention waits for the user. This plan is the handoff document for `docs/superpowers/plans/2026-09-12-notifications-center-plan.md`; the sibling Phase 4.3 plan (`2026-09-05-analytics-scorecards.md`) is likewise fully ticked except its own push-only Step 4 (line 956).
