@@ -9,6 +9,7 @@
     "route-qa": "tsx ./src/route-qa.ts",
     "seed-scorecard": "tsx ./src/seed-scorecard.ts",
     "seed-notify": "tsx ./src/seed-notify.ts",
+    "seed-intelligence": "tsx ./src/seed-intelligence.ts",
     "create-user": "tsx ./src/create-user.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
