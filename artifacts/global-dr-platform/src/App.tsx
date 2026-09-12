@@ -46,6 +46,7 @@ import {
   getListMeetingsQueryKey,
   getListNewsQueryKey,
   getListMinistriesQueryKey,
+  getListNotificationsQueryKey,
   getListPositionsQueryKey,
   getListOfficeTermsQueryKey,
   getListOrganizationsQueryKey,
@@ -79,6 +80,7 @@ import {
   useListMeetings,
   useListMinistries,
   useListNews,
+  useListNotifications,
   useListOfficeTerms,
   useListOrganizations,
   useListPositions,
@@ -140,6 +142,7 @@ import { ScorecardTab } from '@/components/ScorecardTab';
 import { ScorecardStrip } from '@/components/ScorecardStrip';
 import { StrategyPipeline } from '@/components/StrategyPipeline';
 import { MeetingDetailPage } from '@/components/MeetingDetail';
+import { NotificationsPanel } from '@/components/NotificationsPanel';
 import './index.css';
 
 const navItems = [
@@ -288,9 +291,16 @@ export function Shell({ children }: { children: React.ReactNode }) {
   const pathname = useLocation().pathname;
   const { user } = useSessionInfo();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const notificationsQuery = useListNotifications();
+  const unreadCount = notificationsQuery.data?.unreadCount ?? 0;
   const isAdmin = user?.role === 'global_admin' && !authDemoEnabled();
   const allNavItems = isAdmin ? [...navItems, adminItem] : navItems;
   const pageName = pathname === '/' ? 'Overview' : allNavItems.find((item) => item.href === pathname)?.label ?? 'Workspace';
+  const closeNotifications = () => {
+    setNotificationsOpen(false);
+    void queryClient.invalidateQueries({ queryKey: getListNotificationsQueryKey() });
+  };
   return <div className="min-h-[100dvh] bg-[hsl(var(--background))] text-[hsl(var(--foreground))]">
     <aside className={`fixed inset-y-0 left-0 z-40 flex w-[260px] flex-col bg-[hsl(var(--sidebar))] px-5 py-6 text-[hsl(var(--sidebar-foreground))] shadow-xl transition-transform duration-300 lg:translate-x-0 ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}`}>
       <div className="mb-10 flex items-center justify-between px-2">
@@ -324,7 +334,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
     <main className="lg:pl-[260px]">
       <header className="sticky top-0 z-20 flex h-[74px] items-center justify-between border-b border-[hsl(var(--border))] bg-[hsl(var(--background)/.9)] px-5 backdrop-blur-md sm:px-8 lg:px-10">
         <div className="flex items-center gap-3"><button className="rounded-lg p-2 hover:bg-[hsl(var(--muted))] lg:hidden" onClick={() => setMobileOpen(true)} aria-label="Open navigation" data-testid="button-open-navigation"><Menu size={20} /></button><div><p className="text-[10px] font-bold uppercase tracking-[.18em] text-[hsl(var(--muted-foreground))]">Meridian workspace</p><h1 className="mt-0.5 font-serif text-[21px]">{pageName}</h1></div></div>
-        <div className="flex items-center gap-2 sm:gap-4"><button className="relative rounded-xl p-2.5 text-[hsl(var(--muted-foreground))] hover:bg-[hsl(var(--muted))] hover:text-[hsl(var(--foreground))]" aria-label="Notifications" data-testid="button-notifications"><Bell size={18} /><span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-[hsl(4_64%_48%)] ring-2 ring-[hsl(var(--background))]" /></button><div className="hidden h-7 w-px bg-[hsl(var(--border))] sm:block" /><div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2 sm:gap-4"><div className="relative"><button className="relative rounded-xl p-2.5 text-[hsl(var(--muted-foreground))] hover:bg-[hsl(var(--muted))] hover:text-[hsl(var(--foreground))]" aria-label="Notifications" data-testid="button-notifications" onClick={() => { if (!notificationsOpen) void notificationsQuery.refetch(); setNotificationsOpen(!notificationsOpen); }}><Bell size={18} />{unreadCount > 0 ? <span className="absolute right-1 top-1 flex h-[15px] min-w-[15px] items-center justify-center rounded-full bg-[hsl(4_64%_48%)] px-1 text-[9px] font-bold text-white ring-2 ring-[hsl(var(--background))]" data-testid="notifications-unread-badge">{unreadCount > 99 ? '99+' : unreadCount}</span> : <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-[hsl(4_64%_48%)] ring-2 ring-[hsl(var(--background))]" />}</button>{notificationsOpen && <NotificationsPanel onClose={closeNotifications} />}</div><div className="hidden h-7 w-px bg-[hsl(var(--border))] sm:block" /><div className="flex items-center gap-2.5">
           {user?.imageUrl ? <img src={user.imageUrl} alt="" className="flex h-9 w-9 items-center justify-center rounded-full object-cover" data-testid="current-user-avatar" /> : <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[hsl(190_37%_24%)] text-xs font-bold text-[hsl(42_76%_74%)]" data-testid="current-user-avatar">{user?.initials ?? '—'}</span>}
           <div className="hidden sm:block">
             <p className="text-xs font-bold" data-testid="current-user-name">{user?.name ?? '—'}</p>
