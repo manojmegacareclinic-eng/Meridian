@@ -189,6 +189,80 @@ async function main() {
       console.log("  SKIP scorecard strip flow (run seed-scorecard first)");
     }
 
+    // Phase 4.4 — header bell notifications panel (requires prior seed-notify run)
+    type FeedItem = { id: number; kind: string; title: string; countryId: number | null; isRead: boolean };
+    const notifFeed = (await fetch(`${baseURL}/api/notifications`, { headers: { accept: "application/json" } })
+      .then((r) => (r.ok ? r.json() : null))
+      .catch(() => null)) as { unreadCount: number; items: FeedItem[] } | null;
+    const posItem = notifFeed?.items?.find((i) => i.kind === "position_change" && i.title.includes("Position Demo"));
+    const metItem = notifFeed?.items?.find((i) => i.kind === "meeting_upcoming");
+
+    if (notifFeed && posItem) {
+      await page.goto(`${baseURL}/`, { waitUntil: "load" });
+      await page.waitForSelector('[data-testid="button-notifications"]', { timeout: 15000 });
+      const badge = page.locator('[data-testid="notifications-unread-badge"]');
+      if (notifFeed.unreadCount > 0) {
+        await badge.waitFor({ state: "visible", timeout: 15000 });
+        const badgeText = ((await badge.textContent()) ?? "").trim();
+        check("bell unread badge shows reconciled count", badgeText === String(notifFeed.unreadCount), `got "${badgeText}"`);
+      } else {
+        check("bell unread badge hidden when count is zero", (await badge.count()) === 0, "badge unexpectedly shown");
+      }
+
+      await page.click('[data-testid="button-notifications"]');
+      await page.waitForSelector('[data-testid="notifications-panel"]', { timeout: 15000 });
+      check("bell opens notifications panel", await page.isVisible('[data-testid="notifications-panel"]'));
+      const itemCount = await page.locator('[data-testid^="notifications-item-"]').count();
+      check("notifications rows render", itemCount > 0, `got ${itemCount}`);
+      const panelText = (await page.locator('[data-testid="notifications-panel"]').textContent()) ?? "";
+      check("seeded position_change title present", panelText.includes("Position Demo"), panelText.slice(0, 140));
+      check("seeded meeting_upcoming title present", Boolean(metItem) && panelText.includes("Upcoming meeting"), panelText.slice(0, 140));
+
+      const posCountry = posItem.countryId ?? ((await fetch(`${baseURL}/api/countries`)
+        .then((r) => (r.ok ? r.json() : []))
+        .catch(() => [])) as { code: string; id: number }[]).find((c) => c.code === "POSN")?.id;
+      if (metItem && posCountry) {
+        await page.click(`[data-testid="notifications-item-${posItem.id}"]`);
+        await page.waitForURL(`**/country/${posCountry}?tab=government`, { timeout: 15000 });
+        check("notification click deep-links to ?tab=government", true);
+        await page.waitForSelector('[data-testid="tab-government"]', { timeout: 15000 });
+        const govClass = (await page.locator('[data-testid="tab-government"]').getAttribute("class")) ?? "";
+        check("government tab active after deep-link", govClass.includes("bg-[hsl(var(--primary))]"), "active class missing");
+      } else {
+        console.log("  SKIP notification deep-link flow (missing posItem country or meeting seed)");
+      }
+
+      await page.goto(`${baseURL}/`, { waitUntil: "load" });
+      await page.waitForSelector('[data-testid="button-notifications"]', { timeout: 15000 });
+      await page.click('[data-testid="button-notifications"]');
+      await page.waitForSelector('[data-testid="notifications-panel"]', { timeout: 15000 });
+      const markAll = page.locator('[data-testid="notifications-mark-all-read"]');
+      if (await markAll.count()) {
+        await markAll.click();
+        await page.waitForTimeout(900);
+        const feedAfter = (await fetch(`${baseURL}/api/notifications`)
+          .then((r) => (r.ok ? r.json() : null))
+          .catch(() => null)) as { unreadCount: number; items: FeedItem[] } | null;
+        check("mark-all-read clears unread count", feedAfter?.unreadCount === 0, `got ${feedAfter?.unreadCount}`);
+        const openBadge = await page.locator('[data-testid="notifications-unread-badge"]').count();
+        check("unread badge hidden after mark-all-read", openBadge === 0, `got ${openBadge}`);
+        if (feedAfter && feedAfter.items.length === 0 && feedAfter.unreadCount === 0) {
+          await page.click('[data-testid="button-notifications"]');
+          await page.waitForSelector('[data-testid="notifications-empty"]', { timeout: 15000 });
+          check("empty state shown when no alerts remain", await page.isVisible('[data-testid="notifications-empty"]'));
+        } else {
+          check("read rows remain listed after mark-all-read", (feedAfter?.items.length ?? 0) > 0, "no rows after mark-all-read");
+        }
+      } else {
+        console.log("  SKIP mark-all-read flow (mark-all button not rendered)");
+      }
+      await page.keyboard.press("Escape");
+      await page.waitForTimeout(250);
+      check("Escape closes the panel", (await page.locator('[data-testid="notifications-panel"]').count()) === 0, "panel still open after Escape");
+    } else {
+      console.log("  SKIP notifications panel flow (run seed-notify first)");
+    }
+
     // Country workspace detail page (read-only tab checks)
     await page.goto(`${baseURL}/countries`, { waitUntil: "load" });
     await page.waitForSelector('[data-testid^="card-country-"]', { timeout: 15000 });

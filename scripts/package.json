@@ -8,6 +8,7 @@
     "auth-qa": "tsx ./src/auth-qa.ts",
     "route-qa": "tsx ./src/route-qa.ts",
     "seed-scorecard": "tsx ./src/seed-scorecard.ts",
+    "seed-notify": "tsx ./src/seed-notify.ts",
     "create-user": "tsx ./src/create-user.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
