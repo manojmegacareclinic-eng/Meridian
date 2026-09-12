@@ -15,4 +15,5 @@ export const NotificationEntityType = {
   agreement: 'agreement',
   task: 'task',
   country: 'country',
+  intelligence_finding: 'intelligence_finding',
 } as const;

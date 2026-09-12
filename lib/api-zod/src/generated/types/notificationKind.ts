@@ -15,4 +15,5 @@ export const NotificationKind = {
   agreement_expiring: 'agreement_expiring',
   follow_up_overdue: 'follow_up_overdue',
   election_approaching: 'election_approaching',
+  new_finding: 'new_finding',
 } as const;

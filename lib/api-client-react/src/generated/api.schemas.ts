@@ -1687,6 +1687,7 @@ export const NotificationKind = {
   agreement_expiring: 'agreement_expiring',
   follow_up_overdue: 'follow_up_overdue',
   election_approaching: 'election_approaching',
+  new_finding: 'new_finding',
 } as const;
 
 export type NotificationEntityType = typeof NotificationEntityType[keyof typeof NotificationEntityType];
@@ -1698,6 +1699,7 @@ export const NotificationEntityType = {
   agreement: 'agreement',
   task: 'task',
   country: 'country',
+  intelligence_finding: 'intelligence_finding',
 } as const;
 
 export interface Notification {

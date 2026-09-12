@@ -2,6 +2,7 @@ import { Router, type IRouter, type RequestHandler } from "express";
 import { and, desc, eq, gte, sql } from "drizzle-orm";
 import {
   changeEventsTable,
+  countriesTable,
   db,
   intelligenceFindingsTable,
   intelligenceSourcesTable,
@@ -251,6 +252,14 @@ router.post("/findings", writeRole, async (req, res): Promise<void> => {
     })
     .returning();
   if (!row) { res.status(500).json({ error: "Finding creation failed." }); return; }
+  const auditCountryId =
+    row.targetType === "country" && row.targetId != null
+      ? await db
+          .select({ id: countriesTable.id })
+          .from(countriesTable)
+          .where(eq(countriesTable.id, row.targetId))
+          .then((rows) => (rows[0] ? row.targetId : null))
+      : null;
   await writeAudit({
     actor,
     action: "create",
@@ -259,7 +268,7 @@ router.post("/findings", writeRole, async (req, res): Promise<void> => {
     kind: "intelligence",
     title: "Finding created",
     description: `Finding "${row.headline}" entered the review queue.`,
-    countryId: row.targetType === "country" ? row.targetId : null,
+    countryId: auditCountryId,
     after: { id: row.id, topic: row.topic, headline: row.headline, confidence: row.confidence },
   });
   res.json(CreateIntelligenceFindingResponse.parse(serializeFinding({ ...row, sourceName: source.name, sourceTier: source.tier })));

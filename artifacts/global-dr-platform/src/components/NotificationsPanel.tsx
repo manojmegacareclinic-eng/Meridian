@@ -7,7 +7,7 @@ import {
   getListNotificationsQueryKey,
 } from '@workspace/api-client-react';
 import type { ListNotificationsResponse } from '@workspace/api-client-react';
-import { CalendarDays, CheckCheck, CircleAlert, FileCheck2, Landmark, Vote } from 'lucide-react';
+import { CalendarDays, CheckCheck, CircleAlert, FileCheck2, Landmark, Radar, Vote } from 'lucide-react';
 import { queryClient } from '@/lib/query';
 
 type NotificationItem = ListNotificationsResponse['items'][number];
@@ -18,6 +18,7 @@ const KIND_META: Record<NotificationItem['kind'], { icon: typeof Landmark; label
   agreement_expiring: { icon: FileCheck2, label: 'Agreement expiring' },
   follow_up_overdue: { icon: CircleAlert, label: 'Overdue follow-up' },
   election_approaching: { icon: Vote, label: 'Election approaching' },
+  new_finding: { icon: Radar, label: 'New finding' },
 };
 
 const relativeTime = (value: string) => {

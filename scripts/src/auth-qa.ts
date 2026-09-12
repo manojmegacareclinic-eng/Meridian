@@ -4,8 +4,8 @@
 import http from "node:http";
 import { once } from "node:events";
 import { betterAuth } from "better-auth";
-import { and, eq, inArray } from "drizzle-orm";
-import { db, pool, activityTable, countriesTable, documentsTable, newsTable, userTable, meetingsTable, agreementsTable, drStrategiesTable, tasksTable, actionItemsTable, notificationsTable, officeTermsTable, positionsTable, ministriesTable } from "@workspace/db";
+import { and, eq, inArray, or } from "drizzle-orm";
+import { db, pool, activityTable, countriesTable, documentsTable, newsTable, userTable, meetingsTable, agreementsTable, drStrategiesTable, tasksTable, actionItemsTable, notificationsTable, officeTermsTable, positionsTable, ministriesTable, changeEventsTable, intelligenceSourcesTable, intelligenceFindingsTable } from "@workspace/db";
 import { scorecardFixture } from "./scorecard-fixture";
 import {
   buildAuthOptions,
@@ -961,6 +961,174 @@ async function main() {
   await db.delete(tasksTable).where(inArray(tasksTable.countryId, [nfId, nfOpenId]));
   await db.delete(agreementsTable).where(inArray(agreementsTable.countryId, [nfId, nfOpenId]));
   await db.delete(countriesTable).where(inArray(countriesTable.code, [nfCode, nfOpenCode, nfPlusCode]));
+
+  // 5.0-5.5 intelligence (Phase 5, spec 2026-09-12). Trust layer: sources,
+  //   findings queue, one-way human decisions, change-event provenance, and the
+  //   new_finding staff alert. Disposable source/country per run; fingerprints
+  //   are unique because sources get fresh ids on every run.
+  const iqCountryCode = `QI${Math.floor(1 + Math.random() * 9)}`;
+  const [iqCountry] = await db.insert(countriesTable).values({ name: "QA Intelligence Land", code: iqCountryCode, region: "QA", status: "leads", riskLevel: "medium", governmentType: "presidential", electionYear: new Date().getUTCFullYear() }).returning({ id: countriesTable.id });
+  const iqCid = iqCountry.id;
+  const iqYear = new Date().getUTCFullYear();
+  const iqNextYear = iqYear + 1;
+  const iqBaseUrlS1 = `https://intel.qa.example/s1-${Date.now()}`;
+  const iqBaseUrlS4 = `https://intel.qa.example/s4-${Date.now()}`;
+  const iqFindings: number[] = [];
+
+  const iqList = await fetch(`${origin}/api/intelligence/sources`, { headers: { cookie: adminJar.header() } });
+  const iqListBody = (await iqList.json().catch(() => ({}))) as { items: unknown[] };
+  check("5.0 GET /intelligence/sources -> 200 items", iqList.status === 200 && Array.isArray(iqListBody.items), `status=${iqList.status}`);
+  const iqViewerList = await fetch(`${origin}/api/intelligence/sources`, { headers: { cookie: viewerJar.header() } });
+  check("5.0 GET sources as viewer -> 200 (read-only)", iqViewerList.status === 200, `status=${iqViewerList.status}`);
+  const iqViewerPost = await fetch(`${origin}/api/intelligence/sources`, { method: "POST", headers: { "content-type": "application/json", cookie: viewerJar.header() }, body: JSON.stringify({ name: "QA Viewer Source", baseUrl: iqBaseUrlS1, kind: "government_site" }) });
+  check("5.0 POST source as viewer -> 403", iqViewerPost.status === 403, `status=${iqViewerPost.status}`);
+
+  const iqS1Res = await fetch(`${origin}/api/intelligence/sources`, { method: "POST", headers: { "content-type": "application/json", cookie: adminJar.header() }, body: JSON.stringify({ name: "QA Intel Portal", baseUrl: iqBaseUrlS1, kind: "government_site" }) });
+  const iqS1 = (await iqS1Res.json().catch(() => ({}))) as { id: number; tier: number };
+  check("5.0 POST source default tier (government_site -> 1)", iqS1Res.status === 200 && iqS1.tier === 1, `status=${iqS1Res.status} tier=${iqS1.tier}`);
+  const iqS4Res = await fetch(`${origin}/api/intelligence/sources`, { method: "POST", headers: { "content-type": "application/json", cookie: adminJar.header() }, body: JSON.stringify({ name: "QA Intel Gazette", baseUrl: iqBaseUrlS4, kind: "government_gazette" }) });
+  const iqS4 = (await iqS4Res.json().catch(() => ({}))) as { id: number; tier: number };
+  check("5.0 POST source default tier (government_gazette -> 4)", iqS4Res.status === 200 && iqS4.tier === 4, `status=${iqS4Res.status} tier=${iqS4.tier}`);
+
+  const iqPatchViewer = await fetch(`${origin}/api/intelligence/sources/${iqS1.id}`, { method: "PATCH", headers: { "content-type": "application/json", cookie: viewerJar.header() }, body: JSON.stringify({ name: "Nope" }) });
+  check("5.0 PATCH source as viewer -> 403", iqPatchViewer.status === 403, `status=${iqPatchViewer.status}`);
+  const iqPatch = await fetch(`${origin}/api/intelligence/sources/${iqS1.id}`, { method: "PATCH", headers: { "content-type": "application/json", cookie: adminJar.header() }, body: JSON.stringify({ name: "QA Intel Portal (renamed)" }) });
+  const iqS1Patched = (await iqPatch.json().catch(() => ({}))) as { name: string };
+  check("5.0 PATCH source -> 200 reflects rename", iqPatch.status === 200 && iqS1Patched.name === "QA Intel Portal (renamed)", `status=${iqPatch.status} name=${iqS1Patched.name}`);
+  const iqPatchMissing = await fetch(`${origin}/api/intelligence/sources/999999`, { method: "PATCH", headers: { "content-type": "application/json", cookie: adminJar.header() }, body: JSON.stringify({ name: "Nope" }) });
+  check("5.0 PATCH nonexistent source -> 404", iqPatchMissing.status === 404, `status=${iqPatchMissing.status}`);
+  const iqList2 = await fetch(`${origin}/api/intelligence/sources`, { headers: { cookie: adminJar.header() } });
+  const iqList2Body = (await iqList2.json().catch(() => ({}))) as { items: { id: number; tier: number }[] };
+  const iqS1Idx = iqList2Body.items.findIndex((s) => s.id === iqS1.id);
+  const iqS4Idx = iqList2Body.items.findIndex((s) => s.id === iqS4.id);
+  check("5.0 sources sorted by tier ascending", iqS1Idx >= 0 && iqS1Idx < iqS4Idx, `s1@${iqS1Idx} s4@${iqS4Idx}`);
+
+  const iqPostF = async (body: Record<string, unknown>) => {
+    const res = await fetch(`${origin}/api/intelligence/findings`, { method: "POST", headers: { "content-type": "application/json", cookie: adminJar.header() }, body: JSON.stringify(body) });
+    const json = (await res.json().catch(() => ({}))) as { id?: number; stage?: string; headline?: string; confidence?: number };
+    return { res, json };
+  };
+
+  const iqFUrl = `https://intel.qa.example/f1-${Date.now()}`;
+  const iqF1 = await iqPostF({ sourceId: iqS1.id, topic: "election", headline: "QA dedupe alpha", url: iqFUrl, confidence: 40 });
+  const iqF1Id = iqF1.json.id ?? -1;
+  iqFindings.push(iqF1Id);
+  check("5.1 POST finding -> 200 open with confidence", iqF1.res.status === 200 && iqF1.json.stage === "open" && iqF1.json.confidence === 40, `status=${iqF1.res.status}`);
+  const iqF2 = await iqPostF({ sourceId: iqS1.id, topic: "election", headline: "QA dedupe beta", url: iqFUrl, confidence: 70 });
+  check("5.1 same fingerprint refreshes in place (same id)", iqF2.json.id === iqF1Id && iqF2.json.headline === "QA dedupe beta" && iqF2.json.confidence === 70, `id=${iqF2.json.id} head=${iqF2.json.headline} conf=${iqF2.json.confidence}`);
+  const iqRejF1 = await fetch(`${origin}/api/intelligence/findings/${iqF1Id}/reject`, { method: "POST", headers: { "content-type": "application/json", cookie: adminJar.header() }, body: JSON.stringify({ reviewNote: "QA dedupe fixture closed" }) });
+  check("5.1 reject dedupe fixture -> 200", iqRejF1.status === 200, `status=${iqRejF1.status}`);
+  const iqF3 = await iqPostF({ sourceId: iqS1.id, topic: "election", headline: "QA dedupe gamma", url: iqFUrl, confidence: 70 });
+  check("5.1 re-POST decided fingerprint -> 409 with existing id", iqF3.res.status === 409 && iqF3.json.id === iqF1Id, `status=${iqF3.res.status} id=${iqF3.json.id}`);
+
+  const iqApply = await iqPostF({ sourceId: iqS1.id, topic: "government_change", headline: "QA cabinet reshuffle confirmed", url: null, confidence: 80, targetType: "country", targetId: iqCid, field: "governmentType", value: "parliamentary" });
+  const iqApplyId = iqApply.json.id ?? -1;
+  iqFindings.push(iqApplyId);
+  const iqApproveRes = await fetch(`${origin}/api/intelligence/findings/${iqApplyId}/approve`, { method: "POST", headers: { "content-type": "application/json", cookie: adminJar.header() }, body: JSON.stringify({ apply: true, reviewNote: "QA verified via gazette" }) });
+  const iqApproveBody = (await iqApproveRes.json().catch(() => ({}))) as { stage: string; applied: boolean; changeEventId: number | null };
+  check("5.2 approve+apply -> 200 applied with change event", iqApproveRes.status === 200 && iqApproveBody.stage === "approved" && iqApproveBody.applied === true && typeof iqApproveBody.changeEventId === "number", `status=${iqApproveRes.status} body=${JSON.stringify(iqApproveBody)}`);
+  const [iqAppliedRow] = await db.select({ governmentType: countriesTable.governmentType }).from(countriesTable).where(eq(countriesTable.id, iqCid));
+  check("5.2 official governmentType updated", iqAppliedRow?.governmentType === "parliamentary", `govType=${iqAppliedRow?.governmentType}`);
+  const iqCE = await fetch(`${origin}/api/intelligence/change-events?findingId=${iqApplyId}`, { headers: { cookie: adminJar.header() } });
+  const iqCEBody = (await iqCE.json().catch(() => ({}))) as { items: { field: string; beforeValue: string; afterValue: string; applied: boolean; sourceUrl: string | null }[] };
+  check(
+    "5.2 change event records before/after + provenance",
+    iqCE.status === 200 && iqCEBody.items.length === 1 && iqCEBody.items[0].field === "governmentType" && iqCEBody.items[0].beforeValue === "presidential" && iqCEBody.items[0].afterValue === "parliamentary" && iqCEBody.items[0].applied === true,
+    JSON.stringify(iqCEBody.items[0]),
+  );
+  const iqAuditApplied = await db.select({ id: activityTable.id }).from(activityTable).where(and(eq(activityTable.countryId, iqCid), eq(activityTable.kind, "intelligence")));
+  check("5.2 apply writes an audit row", iqAuditApplied.length >= 1, `rows=${iqAuditApplied.length}`);
+  const iqReApprove = await fetch(`${origin}/api/intelligence/findings/${iqApplyId}/approve`, { method: "POST", headers: { "content-type": "application/json", cookie: adminJar.header() }, body: JSON.stringify({}) });
+  check("5.2 second approve -> 409 (one-way)", iqReApprove.status === 409, `status=${iqReApprove.status}`);
+
+  const iqNoApply = await iqPostF({ sourceId: iqS1.id, topic: "election", headline: "QA next-year election call", url: null, confidence: 60, targetType: "country", targetId: iqCid, field: "electionYear", value: String(iqNextYear) });
+  const iqNoApplyId = iqNoApply.json.id ?? -1;
+  iqFindings.push(iqNoApplyId);
+  const iqNoApplyRes = await fetch(`${origin}/api/intelligence/findings/${iqNoApplyId}/approve`, { method: "POST", headers: { "content-type": "application/json", cookie: adminJar.header() }, body: JSON.stringify({}) });
+  const iqNoApplyBody = (await iqNoApplyRes.json().catch(() => ({}))) as { stage: string; applied: boolean; changeEventId: number | null };
+  check("5.3 approve without apply -> 200 applied=false, no change event", iqNoApplyRes.status === 200 && iqNoApplyBody.applied === false && iqNoApplyBody.changeEventId == null, `status=${iqNoApplyRes.status} body=${JSON.stringify(iqNoApplyBody)}`);
+  const [iqRowAfterNoApply] = await db.select({ electionYear: countriesTable.electionYear }).from(countriesTable).where(eq(countriesTable.id, iqCid));
+  check("5.3 official electionYear unchanged", iqRowAfterNoApply?.electionYear === iqYear, `year=${iqRowAfterNoApply?.electionYear}`);
+
+  const iqBadField = await iqPostF({ sourceId: iqS1.id, topic: "government_change", headline: "QA unallowlisted field", url: null, confidence: 70, targetType: "country", targetId: iqCid, field: "currency", value: "XYZ" });
+  const iqBadFieldId = iqBadField.json.id ?? -1;
+  iqFindings.push(iqBadFieldId);
+  const iqBadApprove = await fetch(`${origin}/api/intelligence/findings/${iqBadFieldId}/approve`, { method: "POST", headers: { "content-type": "application/json", cookie: adminJar.header() }, body: JSON.stringify({ apply: true }) });
+  check("5.4 apply unallowlisted field -> 400", iqBadApprove.status === 400, `status=${iqBadApprove.status}`);
+  const iqBadGet = await fetch(`${origin}/api/intelligence/findings/${iqBadFieldId}`, { headers: { cookie: adminJar.header() } });
+  const iqBadGetBody = (await iqBadGet.json().catch(() => ({}))) as { stage: string };
+  check("5.4 400 leaves finding open (no forced decision)", iqBadGetBody.stage === "open", `stage=${iqBadGetBody.stage}`);
+  const iqVanish = await iqPostF({ sourceId: iqS1.id, topic: "government_change", headline: "QA vanished target", url: null, confidence: 60, targetType: "country", targetId: 999999, field: "status", value: "intels" });
+  const iqVanishId = iqVanish.json.id ?? -1;
+  iqFindings.push(iqVanishId);
+  const iqVanishApprove = await fetch(`${origin}/api/intelligence/findings/${iqVanishId}/approve`, { method: "POST", headers: { "content-type": "application/json", cookie: adminJar.header() }, body: JSON.stringify({ apply: true }) });
+  check("5.4 apply to nonexistent target -> 400", iqVanishApprove.status === 400, `status=${iqVanishApprove.status}`);
+  const iqMissing = await fetch(`${origin}/api/intelligence/findings/999999`, { headers: { cookie: adminJar.header() } });
+  check("5.4 GET nonexistent finding -> 404", iqMissing.status === 404, `status=${iqMissing.status}`);
+
+  const iqRej = await iqPostF({ sourceId: iqS4.id, topic: "diplomatic_news", headline: "QA diplomatic note", url: null, confidence: 55 });
+  const iqRejId = iqRej.json.id ?? -1;
+  iqFindings.push(iqRejId);
+  const iqViewerApprove = await fetch(`${origin}/api/intelligence/findings/${iqRejId}/approve`, { method: "POST", headers: { "content-type": "application/json", cookie: viewerJar.header() }, body: JSON.stringify({}) });
+  check("5.5 approve as viewer -> 403", iqViewerApprove.status === 403, `status=${iqViewerApprove.status}`);
+  const iqRejRes = await fetch(`${origin}/api/intelligence/findings/${iqRejId}/reject`, { method: "POST", headers: { "content-type": "application/json", cookie: adminJar.header() }, body: JSON.stringify({ reviewNote: "QA needs secondary confirmation" }) });
+  const iqRejBody = (await iqRejRes.json().catch(() => ({}))) as { id: number; stage: string };
+  check("5.5 reject -> 200 stage=rejected", iqRejRes.status === 200 && iqRejBody.id === iqRejId && iqRejBody.stage === "rejected", `status=${iqRejRes.status}`);
+  const iqRejGet = await fetch(`${origin}/api/intelligence/findings/${iqRejId}`, { headers: { cookie: adminJar.header() } });
+  const iqRejGetBody = (await iqRejGet.json().catch(() => ({}))) as { stage: string; reviewNote: string | null; applied: boolean };
+  check("5.5 rejected finding carries reviewNote", iqRejGetBody.stage === "rejected" && iqRejGetBody.reviewNote === "QA needs secondary confirmation" && iqRejGetBody.applied === false, JSON.stringify(iqRejGetBody));
+  const iqRejAgain = await fetch(`${origin}/api/intelligence/findings/${iqRejId}/reject`, { method: "POST", headers: { "content-type": "application/json", cookie: adminJar.header() }, body: JSON.stringify({}) });
+  check("5.5 second reject -> 409 (one-way)", iqRejAgain.status === 409, `status=${iqRejAgain.status}`);
+  const iqApproveRejected = await fetch(`${origin}/api/intelligence/findings/${iqRejId}/approve`, { method: "POST", headers: { "content-type": "application/json", cookie: adminJar.header() }, body: JSON.stringify({}) });
+  check("5.5 approve after reject -> 409 (one-way)", iqApproveRejected.status === 409, `status=${iqApproveRejected.status}`);
+
+  const iqOpen = await iqPostF({ sourceId: iqS1.id, topic: "ngo_news", headline: "QA fresh open item", url: null, confidence: 90 });
+  const iqOpenId = iqOpen.json.id ?? -1;
+  iqFindings.push(iqOpenId);
+  const iqQueue = await fetch(`${origin}/api/intelligence/findings?sourceId=${iqS1.id}`, { headers: { cookie: adminJar.header() } });
+  const iqQueueBody = (await iqQueue.json().catch(() => ({}))) as { items: { id: number }[] };
+  check("5.1 open-first ordering (newest open on top)", iqQueue.status === 200 && iqQueueBody.items[0]?.id === iqOpenId, `top=${iqQueueBody.items[0]?.id} want=${iqOpenId}`);
+  const iqTopic = await fetch(`${origin}/api/intelligence/findings?topic=ngo_news`, { headers: { cookie: adminJar.header() } });
+  const iqTopicBody = (await iqTopic.json().catch(() => ({}))) as { items: { topic: string }[] };
+  check("5.1 queue topic filter", iqTopic.status === 200 && iqTopicBody.items.every((i) => i.topic === "ngo_news"), `items=${iqTopicBody.items.length}`);
+  const iqStage = await fetch(`${origin}/api/intelligence/findings?stage=rejected`, { headers: { cookie: adminJar.header() } });
+  const iqStageBody = (await iqStage.json().catch(() => ({}))) as { items: { stage: string }[] };
+  check("5.1 queue stage filter", iqStage.status === 200 && iqStageBody.items.length >= 1 && iqStageBody.items.every((i) => i.stage === "rejected"), `items=${iqStageBody.items.length}`);
+  const iqConf = await fetch(`${origin}/api/intelligence/findings?minConfidence=80`, { headers: { cookie: adminJar.header() } });
+  const iqConfBody = (await iqConf.json().catch(() => ({}))) as { items: { confidence: number }[] };
+  check("5.1 queue minConfidence filter", iqConf.status === 200 && iqConfBody.items.every((i) => i.confidence >= 80), `items=${iqConfBody.items.length}`);
+
+  const iqNf = (b: { items: { kind: string; entityType: string; entityId: number }[] }) => ({
+    hasFinding: (fid: number) => b.items.some((i) => i.kind === "new_finding" && i.entityType === "intelligence_finding" && i.entityId === fid),
+  });
+  const iqNotif = await fetch(`${origin}/api/notifications`, { headers: { cookie: adminJar.header() } });
+  const iqNotifBody = (await iqNotif.json().catch(() => ({}))) as { items: { kind: string; entityType: string; entityId: number; title: string }[] };
+  check("5.5 new_finding appears for open finding (admin)", iqNf(iqNotifBody).hasFinding(iqOpenId), `items=${iqNotifBody.items.length}`);
+  const iqNotifViewer = await fetch(`${origin}/api/notifications`, { headers: { cookie: viewerJar.header() } });
+  const iqNotifViewerBody = (await iqNotifViewer.json().catch(() => ({}))) as { items: { kind: string; entityType: string; entityId: number }[] };
+  check("5.5 new_finding alerts all staff (viewer too)", iqNf(iqNotifViewerBody).hasFinding(iqOpenId), `items=${iqNotifViewerBody.items.length}`);
+  const iqNfItem = iqNotifBody.items.find((i) => i.kind === "new_finding" && i.entityType === "intelligence_finding" && i.entityId === iqOpenId);
+  check("5.5 new_finding title carries the headline", Boolean(iqNfItem?.title.includes("QA fresh open item")), `title=${iqNfItem?.title}`);
+  const iqOpenApprove = await fetch(`${origin}/api/intelligence/findings/${iqOpenId}/approve`, { method: "POST", headers: { "content-type": "application/json", cookie: adminJar.header() }, body: JSON.stringify({ apply: false, reviewNote: "QA informational only" }) });
+  check("5.5 approve open fixture -> 200", iqOpenApprove.status === 200, `status=${iqOpenApprove.status}`);
+  const iqNotifAfter = await fetch(`${origin}/api/notifications`, { headers: { cookie: adminJar.header() } });
+  const iqNotifAfterBody = (await iqNotifAfter.json().catch(() => ({}))) as { items: { kind: string; entityType: string; entityId: number }[] };
+  check("5.5 new_finding retired once finding decided", !iqNf(iqNotifAfterBody).hasFinding(iqOpenId), "still alerted after decision");
+
+  const iqStale = await db.insert(intelligenceFindingsTable).values({ sourceId: iqS4.id, topic: "religious_affairs", headline: "QA stale open item", url: null, confidence: 55, stage: "open", fingerprint: `${iqS4.id}:qa stale open item`, createdAt: new Date(Date.now() - 9 * 86400000) }).returning({ id: intelligenceFindingsTable.id });
+  const iqStaleId = iqStale[0].id;
+  iqFindings.push(iqStaleId);
+  const iqNotifStale = await fetch(`${origin}/api/notifications`, { headers: { cookie: adminJar.header() } });
+  const iqNotifStaleBody = (await iqNotifStale.json().catch(() => ({}))) as { items: { kind: string; entityType: string; entityId: number }[] };
+  check("5.5 stale (>7d) open finding gets no new_finding", !iqNf(iqNotifStaleBody).hasFinding(iqStaleId), "stale finding alerted");
+
+  await db.delete(changeEventsTable).where(inArray(changeEventsTable.findingId, iqFindings));
+  await db.delete(intelligenceFindingsTable).where(inArray(intelligenceFindingsTable.id, iqFindings));
+  await db.delete(intelligenceSourcesTable).where(inArray(intelligenceSourcesTable.id, [iqS1.id, iqS4.id]));
+  await db.delete(notificationsTable).where(inArray(notificationsTable.fingerprint, iqFindings.map((id) => `new_finding:${id}`)));
+  await db.delete(notificationsTable).where(eq(notificationsTable.countryId, iqCid));
+  await db.delete(activityTable).where(and(eq(activityTable.kind, "intelligence"), or(eq(activityTable.countryId, iqCid), inArray(activityTable.entityId, [...iqFindings, iqS1.id, iqS4.id].map(String)))));
+  await db.delete(countriesTable).where(eq(countriesTable.code, iqCountryCode));
 
   await db.delete(meetingsTable).where(inArray(meetingsTable.countryId, [scCountryId, zdId]));
   await db.delete(tasksTable).where(inArray(tasksTable.countryId, [scCountryId, zdId]));

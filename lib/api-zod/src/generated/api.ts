@@ -2122,11 +2122,11 @@ export const ListNotificationsResponse = zod.object({
   "unreadCount": zod.int(),
   "items": zod.array(zod.object({
   "id": zod.int(),
-  "kind": zod.enum(['position_change', 'meeting_upcoming', 'agreement_expiring', 'follow_up_overdue', 'election_approaching']),
+  "kind": zod.enum(['position_change', 'meeting_upcoming', 'agreement_expiring', 'follow_up_overdue', 'election_approaching', 'new_finding']),
   "title": zod.string(),
   "body": zod.string(),
   "countryId": zod.int().nullish(),
-  "entityType": zod.enum(['office_term', 'meeting', 'agreement', 'task', 'country']),
+  "entityType": zod.enum(['office_term', 'meeting', 'agreement', 'task', 'country', 'intelligence_finding']),
   "entityId": zod.int(),
   "isRead": zod.boolean(),
   "readAt": zod.string().nullish(),

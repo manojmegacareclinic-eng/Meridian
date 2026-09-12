@@ -1,4 +1,4 @@
-import { and, eq, gte } from "drizzle-orm";
+import { and, eq, gte, inArray } from "drizzle-orm";
 import type { Db } from "@workspace/db";
 import {
   contactsTable,
@@ -125,12 +125,25 @@ export async function findFindingCandidates(db: Db): Promise<FindingCandidate[]>
     .innerJoin(intelligenceSourcesTable, eq(intelligenceFindingsTable.sourceId, intelligenceSourcesTable.id))
     .where(and(eq(intelligenceFindingsTable.stage, "open"), gte(intelligenceFindingsTable.createdAt, cutoff)));
 
+  const countryTargetIds = [
+    ...new Set(rows.filter((r) => r.targetType === "country" && r.targetId != null).map((r) => r.targetId as number)),
+  ];
+  const existingCountryIds = new Set<number>();
+  if (countryTargetIds.length > 0) {
+    const existingRows = await db
+      .select({ id: countriesTable.id })
+      .from(countriesTable)
+      .where(inArray(countriesTable.id, countryTargetIds));
+    for (const row of existingRows) existingCountryIds.add(row.id);
+  }
+
   return rows.map((row) => ({
     kind: "new_finding",
     fingerprint: `new_finding:${row.id}`,
     title: `New intelligence finding — ${row.headline}`,
     body: `${TOPIC_LABELS[row.topic] ?? row.topic} · confidence ${row.confidence}% · via ${row.sourceName}`,
-    countryId: row.targetType === "country" ? row.targetId : null,
+    countryId:
+      row.targetType === "country" && row.targetId != null && existingCountryIds.has(row.targetId) ? row.targetId : null,
     entityType: "intelligence_finding",
     entityId: row.id,
   }));

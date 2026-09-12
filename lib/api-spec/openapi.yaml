@@ -4674,6 +4674,7 @@ components:
           - agreement_expiring
           - follow_up_overdue
           - election_approaching
+          - new_finding
         title:
           type: string
         body:
@@ -4690,6 +4691,7 @@ components:
           - agreement
           - task
           - country
+          - intelligence_finding
         entityId:
           type: integer
         isRead:
