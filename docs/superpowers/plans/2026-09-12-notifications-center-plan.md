@@ -188,16 +188,16 @@ git commit -m "feat(qa): auth-qa 4.4 notifications section green"
 **Files:**
 - Create: `artifacts/global-dr-platform/src/components/NotificationsPanel.tsx`
 
-- [ ] **Step 1: Component** — `useListNotifications()`; wrapper `<div data-testid="notifications-panel">`; unread items first (dot), then read; kind → icon + label; "Mark all read" header button (`useMarkAllNotificationsRead`); per-item click → `useMarkNotificationRead` + deep-link (`router.navigate`): position_change → `/country/$countryId?tab=government`, meeting_upcoming → `/meetings`, agreement_expiring → `/country/$countryId?tab=documents`, follow_up_overdue → `/country/$countryId?tab=tasks`, election_approaching → `/country/$countryId`. Testids `notifications-item-${id}`, `notifications-mark-all-read`, `notifications-empty`. Loading + error states.
+- [x] **Step 1: Component** — `useListNotifications()`; wrapper `<div data-testid="notifications-panel">`; unread items first (dot), then read; kind → icon + label; "Mark all read" header button (`useMarkAllNotificationsRead`); per-item click → `useMarkNotificationRead` + deep-link (`router.navigate`): position_change → `/country/$countryId?tab=government`, meeting_upcoming → `/meetings`, agreement_expiring → `/country/$countryId?tab=documents`, follow_up_overdue → `/country/$countryId?tab=tasks`, election_approaching → `/country/$countryId`. Testids `notifications-item-${id}`, `notifications-mark-all-read`, `notifications-empty`. Loading + error states.
 
 ### Task 2: Wire the header bell
 
 **Files:**
 - Modify: `artifacts/global-dr-platform/src/App.tsx`
 
-- [ ] **Step 1: Badge** — `useListNotifications()` at layout level (or in panel); when `unreadCount > 0`, replace the decorative dot (App.tsx 327) with `<span data-testid="notifications-unread-badge">{unreadCount}</span>`; auto-refetch on close.
-- [ ] **Step 2: Toggle** — click `button-notifications` toggles the panel (closed by outside click / Escape). Panel renders positioned under the bell.
-- [ ] **Step 3: Commit**
+- [x] **Step 1: Badge** — `useListNotifications()` at layout level (or in panel); when `unreadCount > 0`, replace the decorative dot (App.tsx 327) with `<span data-testid="notifications-unread-badge">{unreadCount}</span>`; auto-refetch on close.
+- [x] **Step 2: Toggle** — click `button-notifications` toggles the panel (closed by outside click / Escape). Panel renders positioned under the bell.
+- [x] **Step 3: Commit**
 ```bash
 git add artifacts/global-dr-platform/src/components/NotificationsPanel.tsx artifacts/global-dr-platform/src/App.tsx
 git commit -m "feat(spa): header bell notification panel with unread badge + mark-all-read"
@@ -209,14 +209,14 @@ git commit -m "feat(spa): header bell notification panel with unread badge + mar
 - Create: `scripts/src/seed-notify.ts`
 - Modify: `scripts/package.json`, `scripts/src/route-qa.ts`
 
-- [ ] **Step 1: `seed-notify` script** — deterministic: ensure demo countries (`POSN` "Position Demo", meeting on an existing seeded country, etc.), create a current office term, an in-window meeting, a signed in-window agreement, an overdue task, an election-year country; prints the run summary. Idempotent (re-run refreshes same fingerprints). Add `"seed-notify": "tsx ./src/seed-notify.ts"` to `scripts/package.json`.
-- [ ] **Step 2: route-qa notifications checks** — on `baseURL + '/'`:
+- [x] **Step 1: `seed-notify` script** — deterministic: ensure demo countries (`POSN` "Position Demo", meeting on an existing seeded country, etc.), create a current office term, an in-window meeting, a signed in-window agreement, an overdue task, an election-year country; prints the run summary. Idempotent (re-run refreshes same fingerprints). Add `"seed-notify": "tsx ./src/seed-notify.ts"` to `scripts/package.json`.
+- [x] **Step 2: route-qa notifications checks** — on `baseURL + '/'`:
   - assert `button-notifications` exists and the unread badge shows the reconciled count;
   - click it → `notifications-panel` visible, `notifications-item-` rows render, at least the seeded `position_change` and `meeting_upcoming` titles present;
   - click an item → marks read + navigates (`waitForURL('**/country/**?tab=government')`);
   - click `notifications-mark-all-read` → badge hidden (count 0), `notifications-empty` when no items remain.
-- [ ] **Step 4: Run both suites** — one bash invocation (API `AUTH_PASSTHROUGH=true PORT=3000` + SPA `VITE_AUTH_DEMO=1 API_PROXY_TARGET=http://localhost:3000`, kill 3000/5173 first), run `seed-notify`, `route-qa` (64 prior checks + new), then auth-qa. Expected: both `ALL PASS`, counts recorded.
-- [ ] **Step 5: Commit**
+- [x] **Step 4: Run both suites** — one bash invocation (API `AUTH_PASSTHROUGH=true PORT=3000` + SPA `VITE_AUTH_DEMO=1 API_PROXY_TARGET=http://localhost:3000`, kill 3000/5173 first), run `seed-notify`, `route-qa` (64 prior checks + new), then auth-qa. Expected: both `ALL PASS`, counts recorded.
+- [x] **Step 5: Commit**
 ```bash
 git add scripts/src/seed-notify.ts scripts/package.json scripts/src/route-qa.ts
 git commit -m "feat(qa): deterministic notifications seed + route-qa bell/panel checks"
