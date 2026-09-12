@@ -4,8 +4,8 @@
 import http from "node:http";
 import { once } from "node:events";
 import { betterAuth } from "better-auth";
-import { eq, inArray } from "drizzle-orm";
-import { db, pool, activityTable, countriesTable, documentsTable, newsTable, userTable, meetingsTable, agreementsTable, drStrategiesTable, tasksTable, actionItemsTable } from "@workspace/db";
+import { and, eq, inArray } from "drizzle-orm";
+import { db, pool, activityTable, countriesTable, documentsTable, newsTable, userTable, meetingsTable, agreementsTable, drStrategiesTable, tasksTable, actionItemsTable, notificationsTable, officeTermsTable, positionsTable, ministriesTable } from "@workspace/db";
 import { scorecardFixture } from "./scorecard-fixture";
 import {
   buildAuthOptions,
@@ -816,6 +816,151 @@ async function main() {
   check("4.3 unknown country -> 404", missingRes.status === 404, `status=${missingRes.status}`);
   const badIdRes = await fetch(`${origin}/api/countries/abc/scorecard`, { headers: { cookie: adminJar.header() } });
   check("4.3 non-numeric id -> 404", badIdRes.status === 404, `status=${badIdRes.status}`);
+
+  // 4.4 notifications (Phase 4.4, spec 2026-09-12). Deterministic reconcile-on-read:
+  //   a disposable country with a full assignment set drives every alert kind; a
+  //   second assignee-less country exercises the fallback-to-all-staff path.
+  const nfToday = new Date().toISOString().split("T")[0];
+  const nfYesterday = new Date(Date.now() - 86400000).toISOString().split("T")[0];
+  const nfPlus10 = new Date(Date.now() + 10 * 86400000).toISOString().split("T")[0];
+  const nfYear = new Date().getUTCFullYear();
+  const nfCode = `QN${Math.floor(1 + Math.random() * 9)}`;
+  const nfOpenCode = `QO${Math.floor(1 + Math.random() * 9)}`;
+  const nfPlusCode = `QS${Math.floor(1 + Math.random() * 9)}`;
+  const nfAssigneeId = assigneeId ?? "";
+  const [nfCountry] = await db.insert(countriesTable).values({ name: "QA Notify", code: nfCode, region: "QA", status: "leads", riskLevel: "medium", electionYear: nfYear, primaryOwnerUserId: qaUser.user.id, secondaryOwnerUserId: nfAssigneeId || undefined }).returning({ id: countriesTable.id });
+  const nfId = nfCountry.id;
+  const [nfOpen] = await db.insert(countriesTable).values({ name: "QA Notify Open", code: nfOpenCode, region: "QA", status: "leads", riskLevel: "medium", electionYear: nfYear + 2 }).returning({ id: countriesTable.id });
+  const nfOpenId = nfOpen.id;
+  const [nfPlus] = await db.insert(countriesTable).values({ name: "QA Notify Plus", code: nfPlusCode, region: "QA", status: "leads", riskLevel: "medium", electionYear: nfYear + 1 }).returning({ id: countriesTable.id });
+  const nfPlusId = nfPlus.id;
+
+  const [nfMinistry] = await db.insert(ministriesTable).values({ countryId: nfId, name: "Ministry of QA Notify", type: "diplomatic" }).returning({ id: ministriesTable.id });
+  const [nfPosition] = await db.insert(positionsTable).values({ ministryId: nfMinistry.id, title: "QA Notify Minister" }).returning({ id: positionsTable.id });
+  const [nfTermA] = await db.insert(officeTermsTable).values({ positionId: nfPosition.id, personName: "QA Term A", startDate: nfToday }).returning({ id: officeTermsTable.id });
+  const [nfMeeting] = await db.insert(meetingsTable).values({ title: "QA Notify Session", countryId: nfId, date: new Date(Date.now() + 5 * 3600000), actionArea: "Trade & investment" }).returning({ id: meetingsTable.id });
+  const [nfDoneMeeting] = await db.insert(meetingsTable).values({ title: "QA Notify Done", countryId: nfOpenId, date: new Date(Date.now() + 5 * 3600000), status: "completed", actionArea: "Trade & investment" }).returning({ id: meetingsTable.id });
+  const [nfAgreement] = await db.insert(agreementsTable).values({ name: "QA Notify Accord", type: "MoU", countryId: nfId, lifecycleState: "signed", status: "signed", updatedAt: nfToday, renewalDate: nfPlus10 }).returning({ id: agreementsTable.id });
+  const [nfArchived] = await db.insert(agreementsTable).values({ name: "QA Notify Archived", type: "MoU", countryId: nfId, lifecycleState: "archived", status: "archived", updatedAt: nfToday, renewalDate: nfPlus10 }).returning({ id: agreementsTable.id });
+  const [nfNoRenewal] = await db.insert(agreementsTable).values({ name: "QA No Renewal", type: "MoU", countryId: nfOpenId, lifecycleState: "signed", status: "signed", updatedAt: nfToday }).returning({ id: agreementsTable.id });
+  const [nfOpenAgreement] = await db.insert(agreementsTable).values({ name: "QA Open Accord", type: "MoU", countryId: nfOpenId, lifecycleState: "signed", status: "signed", updatedAt: nfToday, renewalDate: nfPlus10 }).returning({ id: agreementsTable.id });
+  const [nfTask] = await db.insert(tasksTable).values({ countryId: nfId, title: "QA Overdue Task", actionArea: "Security dialogue", status: "active", dueDate: nfYesterday }).returning({ id: tasksTable.id });
+  const [nfDoneTask] = await db.insert(tasksTable).values({ countryId: nfOpenId, title: "QA Done Task", actionArea: "Security dialogue", status: "done", dueDate: nfYesterday }).returning({ id: tasksTable.id });
+  const [nfOpenTask] = await db.insert(tasksTable).values({ countryId: nfOpenId, title: "QA Open Overdue", actionArea: "Security dialogue", status: "active", dueDate: nfYesterday }).returning({ id: tasksTable.id });
+
+  const nfType = (b: { items: { id: number; kind: string; title: string; countryId: number | null; entityType: string; entityId: number; isRead: boolean; readAt: string | null; createdAt: string }[]; unreadCount: number }) => ({
+    items: b.items,
+    has: (et: string, eid: number) => b.items.some((i) => i.entityType === et && i.entityId === eid),
+  });
+  const nfRes = await fetch(`${origin}/api/notifications`, { headers: { cookie: adminJar.header() } });
+  const nfBody = (await nfRes.json().catch(() => ({}))) as { items: { id: number; kind: string; title: string; countryId: number | null; entityType: string; entityId: number; isRead: boolean; readAt: string | null; createdAt: string }[]; unreadCount: number };
+  const nfFeed = nfType(nfBody);
+  check("4.4 GET /api/notifications -> 200", nfRes.status === 200, `status=${nfRes.status}`);
+  check("4.4 admin feed: position_change for current term", nfFeed.has("office_term", nfTermA.id), `items=${nfBody.items.length}`);
+  check("4.4 admin feed: meeting_upcoming in-window meeting", nfFeed.has("meeting", nfMeeting.id), `items=${nfBody.items.length}`);
+  check("4.4 admin feed: agreement_expiring signed in-window", nfFeed.has("agreement", nfAgreement.id), `items=${nfBody.items.length}`);
+  check("4.4 admin feed: follow_up_overdue active overdue", nfFeed.has("task", nfTask.id), `items=${nfBody.items.length}`);
+  check("4.4 admin feed: election_approaching currentYear", nfFeed.has("country", nfId), `items=${nfBody.items.length}`);
+  check("4.4 admin feed: election_approaching currentYear+1", nfFeed.has("country", nfPlusId), `items=${nfBody.items.length}`);
+  const nfTermItem = nfBody.items.find((i) => i.entityType === "office_term" && i.entityId === nfTermA.id);
+  check(
+    "4.4 position_change title carries position/ministry/country",
+    Boolean(nfTermItem?.title.includes("QA Notify Minister") && nfTermItem.title.includes("Ministry of QA Notify") && nfTermItem.title.includes("QA Notify")),
+    `title=${nfTermItem?.title}`,
+  );
+  check("4.4 no meeting_upcoming for completed meeting", !nfFeed.has("meeting", nfDoneMeeting.id), "completed meeting alerted");
+  check("4.4 no agreement_expiring for archived", !nfFeed.has("agreement", nfArchived.id), "archived agreement alerted");
+  check("4.4 no agreement_expiring without renewal date", !nfFeed.has("agreement", nfNoRenewal.id), "no-renewal agreement alerted");
+  check("4.4 no follow_up_overdue for done task", !nfFeed.has("task", nfDoneTask.id), "done task alerted");
+  check("4.4 no election_approaching for +2 year", !nfFeed.has("country", nfOpenId), "+2 country alerted");
+
+  const nfRecips = await db.select({ recipientUserId: notificationsTable.recipientUserId }).from(notificationsTable).where(eq(notificationsTable.fingerprint, `agreement_expiring:${nfAgreement.id}`));
+  check(
+    "4.4 agreement recipients = exactly the two assignees",
+    nfRecips.length === 2 && nfRecips.every((r) => r.recipientUserId === qaUser.user.id || r.recipientUserId === nfAssigneeId),
+    JSON.stringify(nfRecips),
+  );
+  const nfOpenTaskRecips = await db.select({ recipientUserId: notificationsTable.recipientUserId }).from(notificationsTable).where(eq(notificationsTable.fingerprint, `follow_up_overdue:${nfOpenTask.id}`));
+  check(
+    "4.4 assignee-less country task falls back to all staff",
+    nfOpenTaskRecips.length > nfRecips.length && nfOpenTaskRecips.some((r) => r.recipientUserId === viewerAccount.user.id) && nfOpenTaskRecips.some((r) => r.recipientUserId === qaUser.user.id),
+    `recips=${nfOpenTaskRecips.length}`,
+  );
+
+  const nfViewerRes = await fetch(`${origin}/api/notifications`, { headers: { cookie: viewerJar.header() } });
+  const nfViewerBody = (await nfViewerRes.json().catch(() => ({}))) as { items: { id: number; entityType: string; entityId: number }[] };
+  const nfViewer = nfType(nfViewerBody as never);
+  check("4.4 viewer (non-assignee) misses assigned-country agreement", !nfViewer.has("agreement", nfAgreement.id), "assigned agreement leaked to viewer");
+  check("4.4 viewer (non-assignee) misses assigned-country overdue", !nfViewer.has("task", nfTask.id), "assigned task leaked to viewer");
+  check("4.4 viewer gets assignee-less country agreement", nfViewer.has("agreement", nfOpenAgreement.id), "open agreement missing for viewer");
+  check("4.4 viewer gets global position_change", nfViewer.has("office_term", nfTermA.id), "position_change missing for viewer");
+
+  const nfLen1 = nfBody.items.length;
+  const nfG2 = await fetch(`${origin}/api/notifications`, { headers: { cookie: adminJar.header() } });
+  const nfG2Body = (await nfG2.json().catch(() => ({}))) as { items: unknown[] };
+  const nfG3 = await fetch(`${origin}/api/notifications`, { headers: { cookie: adminJar.header() } });
+  const nfG3Body = (await nfG3.json().catch(() => ({}))) as { items: unknown[] };
+  check("4.4 idempotent feed across three GETs", nfLen1 === nfG2Body.items.length && nfLen1 === nfG3Body.items.length, `lens=${nfLen1}/${nfG2Body.items.length}/${nfG3Body.items.length}`);
+  const nfDup = await db.select({ id: notificationsTable.id }).from(notificationsTable).where(and(eq(notificationsTable.recipientUserId, qaUser.user.id), eq(notificationsTable.fingerprint, `agreement_expiring:${nfAgreement.id}`)));
+  check("4.4 unique (recipient, fingerprint) enforced", nfDup.length === 1, JSON.stringify(nfDup));
+
+  await db.update(officeTermsTable).set({ isCurrent: 0 }).where(eq(officeTermsTable.id, nfTermA.id));
+  const [nfTermB] = await db.insert(officeTermsTable).values({ positionId: nfPosition.id, personName: "QA Term B", startDate: nfToday, isCurrent: 1 }).returning({ id: officeTermsTable.id });
+  const nfRetireRes = await fetch(`${origin}/api/notifications`, { headers: { cookie: adminJar.header() } });
+  const nfRetireBody = (await nfRetireRes.json().catch(() => ({}))) as { items: { entityType: string; entityId: number }[] };
+  const nfRetired = nfType(nfRetireBody as never);
+  check("4.4 replacing current term retires old fingerprint", !nfRetired.has("office_term", nfTermA.id), "old term still alerted");
+  check("4.4 replacing current term inserts new fingerprint", nfRetired.has("office_term", nfTermB.id), "new term missing");
+
+  await db.update(officeTermsTable).set({ personName: "QA Term B2" }).where(eq(officeTermsTable.id, nfTermB.id));
+  const nfRefreshRes = await fetch(`${origin}/api/notifications`, { headers: { cookie: adminJar.header() } });
+  const nfRefreshBody = (await nfRefreshRes.json().catch(() => ({}))) as { items: { id: number; entityType: string; entityId: number; title: string; body: string }[] };
+  check(
+    "4.4 editing personName refreshes body in place",
+    nfRefreshBody.items.some((i) => i.entityType === "office_term" && i.entityId === nfTermB.id && i.body.includes("QA Term B2")),
+    JSON.stringify(nfRefreshBody.items.find((i) => i.entityType === "office_term" && i.entityId === nfTermB.id)),
+  );
+  const nfTermBrows = await db.select({ id: notificationsTable.id }).from(notificationsTable).where(and(eq(notificationsTable.recipientUserId, qaUser.user.id), eq(notificationsTable.fingerprint, `position_change:${nfTermB.id}`)));
+  check("4.4 count unchanged after title refresh", nfTermBrows.length === 1, JSON.stringify(nfTermBrows));
+
+  await db.update(meetingsTable).set({ status: "completed", completedAt: new Date() }).where(eq(meetingsTable.id, nfMeeting.id));
+  const nfMeetRes = await fetch(`${origin}/api/notifications`, { headers: { cookie: adminJar.header() } });
+  const nfMeetBody = (await nfMeetRes.json().catch(() => ({}))) as { items: { entityType: string; entityId: number }[] };
+  check("4.4 completing a meeting retires meeting_upcoming", !nfType(nfMeetBody as never).has("meeting", nfMeeting.id), "completed meeting still alerted");
+
+  const nfAdminRow = nfBody.items.find((i) => i.entityType === "agreement" && i.entityId === nfAgreement.id);
+  const nfReadRes = await fetch(`${origin}/api/notifications/${nfAdminRow!.id}/read`, { method: "PATCH", headers: { cookie: adminJar.header() } });
+  check("4.4 PATCH :id/read -> 200", nfReadRes.status === 200, `status=${nfReadRes.status}`);
+  const nfUnreadRes = await fetch(`${origin}/api/notifications?unread=only`, { headers: { cookie: adminJar.header() } });
+  const nfUnreadBody = (await nfUnreadRes.json().catch(() => ({}))) as { items: { id: number }[] };
+  check("4.4 read row excluded from unread-only feed", nfAdminRow !== undefined && !nfUnreadBody.items.some((i) => i.id === nfAdminRow.id), `unread=${nfUnreadBody.items.length}`);
+  const nfCrossRes = await fetch(`${origin}/api/notifications/${nfAdminRow!.id}/read`, { method: "PATCH", headers: { cookie: viewerJar.header() } });
+  check("4.4 PATCH another user's row -> 404", nfCrossRes.status === 404, `status=${nfCrossRes.status}`);
+  const nfBadRes = await fetch(`${origin}/api/notifications/999999999/read`, { method: "PATCH", headers: { cookie: adminJar.header() } });
+  check("4.4 PATCH nonexistent id -> 404", nfBadRes.status === 404, `status=${nfBadRes.status}`);
+  const nfAlphaRes = await fetch(`${origin}/api/notifications/abc/read`, { method: "PATCH", headers: { cookie: adminJar.header() } });
+  check("4.4 PATCH non-numeric id -> 400", nfAlphaRes.status === 400, `status=${nfAlphaRes.status}`);
+  const nfAllRes = await fetch(`${origin}/api/notifications/read-all`, { method: "POST", headers: { cookie: adminJar.header() } });
+  const nfAllBody = (await nfAllRes.json().catch(() => ({}))) as { ok?: boolean; updated?: number };
+  check("4.4 POST read-all -> 200 ok updated>=1", nfAllRes.status === 200 && nfAllBody.ok === true && typeof nfAllBody.updated === "number" && nfAllBody.updated >= 1, JSON.stringify(nfAllBody));
+  const nfAfterAll = await fetch(`${origin}/api/notifications`, { headers: { cookie: adminJar.header() } });
+  const nfAfterAllBody = (await nfAfterAll.json().catch(() => ({}))) as { unreadCount: number };
+  check("4.4 unreadCount zeroed after read-all", nfAfterAllBody.unreadCount === 0, `unread=${nfAfterAllBody.unreadCount}`);
+
+  await db.update(userTable).set({ banned: true }).where(eq(userTable.email, QA_EMAILS[3]));
+  await fetch(`${origin}/api/notifications`, { headers: { cookie: adminJar.header() } });
+  const nfBannedRows = await db.select({ id: notificationsTable.id }).from(notificationsTable).where(eq(notificationsTable.recipientUserId, nfAssigneeId));
+  check("4.4 banned recipient's rows pruned", nfBannedRows.length === 0, `rows=${nfBannedRows.length}`);
+  await db.update(userTable).set({ banned: false }).where(eq(userTable.email, QA_EMAILS[3]));
+
+  await db.delete(notificationsTable).where(inArray(notificationsTable.countryId, [nfId, nfOpenId, nfPlusId]));
+  await db.delete(officeTermsTable).where(inArray(officeTermsTable.positionId, [nfPosition.id]));
+  await db.delete(positionsTable).where(inArray(positionsTable.id, [nfPosition.id]));
+  await db.delete(ministriesTable).where(inArray(ministriesTable.id, [nfMinistry.id]));
+  await db.delete(meetingsTable).where(inArray(meetingsTable.countryId, [nfId, nfOpenId]));
+  await db.delete(tasksTable).where(inArray(tasksTable.countryId, [nfId, nfOpenId]));
+  await db.delete(agreementsTable).where(inArray(agreementsTable.countryId, [nfId, nfOpenId]));
+  await db.delete(countriesTable).where(inArray(countriesTable.code, [nfCode, nfOpenCode, nfPlusCode]));
 
   await db.delete(meetingsTable).where(inArray(meetingsTable.countryId, [scCountryId, zdId]));
   await db.delete(tasksTable).where(inArray(tasksTable.countryId, [scCountryId, zdId]));

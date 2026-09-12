@@ -1,4 +1,4 @@
-import { and, eq, gt, gte, inArray, lt, lte, ne, notInArray, sql } from "drizzle-orm";
+import { and, eq, gt, gte, inArray, isNotNull, lt, lte, notInArray, sql } from "drizzle-orm";
 import type { Db } from "@workspace/db";
 import {
   agreementsTable,
@@ -143,7 +143,7 @@ function agreementCandidates(db: Db): Promise<NotificationCandidate[]> {
         inArray(agreementsTable.lifecycleState, ["approved", "signed"]),
         gte(agreementsTable.renewalDate, today as string),
         lte(agreementsTable.renewalDate, horizon as string),
-        ne(agreementsTable.renewalDate, sql`NULL`),
+        isNotNull(agreementsTable.renewalDate),
       )
     )
     .then((rows) =>
@@ -175,7 +175,7 @@ function taskCandidates(db: Db): Promise<NotificationCandidate[]> {
     .where(
       and(
         eq(tasksTable.status, "active"),
-        ne(tasksTable.dueDate, sql`NULL`),
+        isNotNull(tasksTable.dueDate),
         lt(tasksTable.dueDate as any, today as string),
       )
     )
@@ -197,7 +197,7 @@ function electionCandidates(db: Db): Promise<NotificationCandidate[]> {
   return db
     .select({ id: countriesTable.id, name: countriesTable.name, electionYear: countriesTable.electionYear })
     .from(countriesTable)
-    .where(and(ne(countriesTable.electionYear, sql`NULL`), gte(countriesTable.electionYear, currentYear), lte(countriesTable.electionYear, currentYear + 1)))
+    .where(and(isNotNull(countriesTable.electionYear), gte(countriesTable.electionYear, currentYear), lte(countriesTable.electionYear, currentYear + 1)))
     .then((rows) =>
       rows.map((row) => ({
         kind: "election_approaching",
