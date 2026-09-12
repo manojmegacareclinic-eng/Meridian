@@ -6881,7 +6881,7 @@ export const getMarkAllNotificationsReadUrl = () => {
 
 
 
-  return `/api/notifications`
+  return `/api/notifications/read-all`
 }
 
 /**

@@ -1767,6 +1767,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ListNotificationsResponse'
+  /notifications/read-all:
     post:
       operationId: markAllNotificationsRead
       tags:
