@@ -12,6 +12,7 @@ import {
   userTable,
 } from "@workspace/db";
 import { authPassthrough } from "../middlewares/guards";
+import { findFindingCandidates } from "./intelligence";
 
 const DAY_MS = 86_400_000;
 const HOUR_MS = 3_600_000;
@@ -218,17 +219,18 @@ function electionCandidates(db: Db): Promise<NotificationCandidate[]> {
  * rows whose recipient is no longer eligible.
  */
 export async function reconcileNotifications(db: Db): Promise<void> {
-  const [positions, meetings, agreements, tasks, elections] = await Promise.all([
+  const [positions, meetings, agreements, tasks, elections, findings] = await Promise.all([
     positionCandidates(db),
     meetingCandidates(db),
     agreementCandidates(db),
     taskCandidates(db),
     electionCandidates(db),
+    findFindingCandidates(db),
   ]);
 
   const staff = await allRecipients(db);
 
-  const globalCandidates = [...positions, ...meetings, ...elections];
+  const globalCandidates = [...positions, ...meetings, ...elections, ...findings];
   const countryScoped = [...agreements, ...tasks];
 
   const insertRows: (typeof notificationsTable.$inferInsert)[] = [];

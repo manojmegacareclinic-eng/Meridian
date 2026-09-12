@@ -22,7 +22,10 @@ export type AuditEntityType =
   | "meeting_transcript"
   | "action_item"
   | "deliverable"
-  | "task";
+  | "task"
+  | "intelligence_source"
+  | "intelligence_finding"
+  | "change_event";
 
 export interface AuditActor {
   id: string;
