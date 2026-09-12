@@ -2105,3 +2105,54 @@ export const UpdateAgreementLifecycleResponse = zod.object({
 })
 
 
+/**
+ * @summary List the current user's notifications (reconciles alerts first)
+ */
+export const listNotificationsQueryLimitDefault = 50;
+export const listNotificationsQueryLimitMax = 200;
+
+
+
+export const ListNotificationsQueryParams = zod.object({
+  "limit": zod.coerce.number().int().max(listNotificationsQueryLimitMax).default(listNotificationsQueryLimitDefault),
+  "unread": zod.enum(['only']).optional()
+})
+
+export const ListNotificationsResponse = zod.object({
+  "unreadCount": zod.int(),
+  "items": zod.array(zod.object({
+  "id": zod.int(),
+  "kind": zod.enum(['position_change', 'meeting_upcoming', 'agreement_expiring', 'follow_up_overdue', 'election_approaching']),
+  "title": zod.string(),
+  "body": zod.string(),
+  "countryId": zod.int().nullish(),
+  "entityType": zod.enum(['office_term', 'meeting', 'agreement', 'task', 'country']),
+  "entityId": zod.int(),
+  "isRead": zod.boolean(),
+  "readAt": zod.string().nullish(),
+  "createdAt": zod.string()
+}))
+})
+
+
+/**
+ * @summary Mark all of the current user's notifications read
+ */
+export const MarkAllNotificationsReadResponse = zod.object({
+  "ok": zod.boolean(),
+  "updated": zod.int()
+})
+
+
+/**
+ * @summary Mark a single notification read
+ */
+export const MarkNotificationReadParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+export const MarkNotificationReadResponse = zod.object({
+  "ok": zod.boolean()
+})
+
+

@@ -1520,9 +1520,58 @@ export interface AgreementLifecycleUpdate {
   lifecycleState: AgreementLifecycleUpdateLifecycleState;
 }
 
+export type NotificationKind = typeof NotificationKind[keyof typeof NotificationKind];
+
+
+export const NotificationKind = {
+  position_change: 'position_change',
+  meeting_upcoming: 'meeting_upcoming',
+  agreement_expiring: 'agreement_expiring',
+  follow_up_overdue: 'follow_up_overdue',
+  election_approaching: 'election_approaching',
+} as const;
+
+export type NotificationEntityType = typeof NotificationEntityType[keyof typeof NotificationEntityType];
+
+
+export const NotificationEntityType = {
+  office_term: 'office_term',
+  meeting: 'meeting',
+  agreement: 'agreement',
+  task: 'task',
+  country: 'country',
+} as const;
+
+export interface Notification {
+  id: number;
+  kind: NotificationKind;
+  title: string;
+  body: string;
+  /** @nullable */
+  countryId?: number | null;
+  entityType: NotificationEntityType;
+  entityId: number;
+  isRead: boolean;
+  /** @nullable */
+  readAt?: string | null;
+  createdAt: string;
+}
+
+export interface ListNotificationsResponse {
+  unreadCount: number;
+  items: Notification[];
+}
+
+export interface MarkAllNotificationsResponse {
+  ok: boolean;
+  updated: number;
+}
+
 export type SearchParameter = string;
 
 export type AuditLimitParameter = number;
+
+export type NotificationLimitParameter = number;
 
 export type MeetingIdQueryParameter = number;
 
@@ -1708,4 +1757,23 @@ export const ListDeliverablesStatus = {
   in_progress: 'in_progress',
   completed: 'completed',
 } as const;
+
+export type ListNotificationsParams = {
+/**
+ * @maximum 200
+ */
+limit?: NotificationLimitParameter;
+unread?: ListNotificationsUnread;
+};
+
+export type ListNotificationsUnread = typeof ListNotificationsUnread[keyof typeof ListNotificationsUnread];
+
+
+export const ListNotificationsUnread = {
+  only: 'only',
+} as const;
+
+export type MarkNotificationRead200 = {
+  ok: boolean;
+};
 
