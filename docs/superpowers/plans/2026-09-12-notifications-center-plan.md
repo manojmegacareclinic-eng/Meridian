@@ -139,10 +139,10 @@ git commit -m "feat(api): codegen for notifications contract + curated zod index
 **Files:**
 - Create: `artifacts/api-server/src/lib/notifications.ts`
 
-- [ ] **Step 1: Staff + assignee resolution** — all non-banned `user` rows = staff; the `passthrough` sentinel id gets a guaranteed recipient row (insert a `user` with `id='passthrough'`, `name='Demo'`, `role='global_admin'` `ON CONFLICT DO NOTHING` equivalent via existence check) so demo-mode route-qa is deterministic. Country assignees = non-null of the four `countries` FK columns.
-- [ ] **Step 2: Candidate queries** — one query per kind reading live tables (as specced: current office terms joined to positions→ministries→countries; scheduled meetings within 48h; signed/approved agreements with renewal_date in window; active tasks past due; countries with election_year in current/next year). Each candidate carries `{ kind, fingerprint, countryId, entityType, entityId, title, body, recipients[] }`.
-- [ ] **Step 3: Reconcile algorithm** — `reconcileNotifications()`: (a) insert candidates whose `(recipient_user_id, fingerprint)` doesn't exist; (b) refresh title/body when the fingerprint exists but text differs; (c) **retire** — delete rows whose fingerprint is no longer produced (query the live set of fingerprints per kind and delete the rest); (d) **prune** — delete rows whose recipient user is missing or banned. Return void.
-- [ ] **Step 4: Typecheck** — `bun run typecheck` exits 0.
+- [x] **Step 1: Staff + assignee resolution** — all non-banned `user` rows = staff; the `passthrough` sentinel id gets a guaranteed recipient row (insert a `user` with `id='passthrough'`, `name='Demo'`, `role='global_admin'` `ON CONFLICT DO NOTHING` equivalent via existence check) so demo-mode route-qa is deterministic. Country assignees = non-null of the four `countries` FK columns.
+- [x] **Step 2: Candidate queries** — one query per kind reading live tables (as specced: current office terms joined to positions→ministries→countries; scheduled meetings within 48h; signed/approved agreements with renewal_date in window; active tasks past due; countries with election_year in current/next year). Each candidate carries `{ kind, fingerprint, countryId, entityType, entityId, title, body, recipients[] }`.
+- [x] **Step 3: Reconcile algorithm** — `reconcileNotifications()`: (a) insert candidates whose `(recipient_user_id, fingerprint)` doesn't exist; (b) refresh title/body when the fingerprint exists but text differs; (c) **retire** — delete rows whose fingerprint is no longer produced (query the live set of fingerprints per kind and delete the rest); (d) **prune** — delete rows whose recipient user is missing or banned. Return void.
+- [x] **Step 4: Typecheck** — `bun run typecheck` exits 0.
 
 ### Task 2: The endpoints + mount
 
@@ -150,21 +150,21 @@ git commit -m "feat(api): codegen for notifications contract + curated zod index
 - Create: `artifacts/api-server/src/routes/notifications.ts`
 - Modify: `artifacts/api-server/src/routes/index.ts`
 
-- [ ] **Step 1: Router** — pattern-matched to `audit.ts`. All queries filter `recipient_user_id = getActor(req).id`.
-- [ ] **Step 2: `GET /api/notifications`** — run `reconcileNotifications()` first; then select the actor's rows `orderBy desc(createdAt), desc(id)`, optional `?limit=` (default 50) and `?unread=only`; respond `{ unreadCount, items }`.
-- [ ] **Step 3: `PATCH /api/notifications/:id/read`** — `ReadNotificationParams.safeParse`; update where `id` AND `recipient_user_id = actor`; if no row matched → 404 `{ error: "Notification not found." }`; else `{ ok: true }`.
-- [ ] **Step 4: `POST /api/notifications/read-all`** — update all rows where `recipient_user_id = actor` and `is_read = false`; respond `{ ok: true, updated }`.
-- [ ] **Step 5: Mount** — in `routes/index.ts`, after `auditRouter` (line 32) and **before** `requireWriteRole()` (line 33): `router.use("/notifications", notificationsRouter)`. Prefix mount (paths absolute under it).
-- [ ] **Step 6: Typecheck** — `bun run typecheck` exits 0.
+- [x] **Step 1: Router** — pattern-matched to `audit.ts`. All queries filter `recipient_user_id = getActor(req).id`.
+- [x] **Step 2: `GET /api/notifications`** — run `reconcileNotifications()` first; then select the actor's rows `orderBy desc(createdAt), desc(id)`, optional `?limit=` (default 50) and `?unread=only`; respond `{ unreadCount, items }`.
+- [x] **Step 3: `PATCH /api/notifications/:id/read`** — `ReadNotificationParams.safeParse`; update where `id` AND `recipient_user_id = actor`; if no row matched → 404 `{ error: "Notification not found." }`; else `{ ok: true }`.
+- [x] **Step 4: `POST /api/notifications/read-all`** — update all rows where `recipient_user_id = actor` and `is_read = false`; respond `{ ok: true, updated }`.
+- [x] **Step 5: Mount** — in `routes/index.ts`, after `auditRouter` (line 32) and **before** `requireWriteRole()` (line 33): `router.use("/notifications", notificationsRouter)`. Prefix mount (paths absolute under it).
+- [x] **Step 6: Typecheck** — `bun run typecheck` exits 0.
 
 ### Task 3: auth-qa 4.4 section
 
 **Files:**
 - Modify: `scripts/src/auth-qa.ts`
 
-- [ ] **Step 1: Imports** — add `notificationsTable`, `officeTermsTable`, `election`-relevant selects; seed extra users if needed (a second staff user + a banned one + the four assignees already exist from 4.1).
-- [ ] **Step 2: Seeded scenario inserts** — one disposable country with full assignment set; one office term in a position; one upcoming meeting (within 48h); one signed agreement with renewal_date in window; one active overdue task; `election_year = currentYear`; then assert the exact expected feed (counts, recipients, fingerprints).
-- [ ] **Step 3: Assertions** —
+- [x] **Step 1: Imports** — add `notificationsTable`, `officeTermsTable`, `election`-relevant selects; seed extra users if needed (a second staff user + a banned one + the four assignees already exist from 4.1).
+- [x] **Step 2: Seeded scenario inserts** — one disposable country with full assignment set; one office term in a position; one upcoming meeting (within 48h); one signed agreement with renewal_date in window; one active overdue task; `election_year = currentYear`; then assert the exact expected feed (counts, recipients, fingerprints).
+- [x] **Step 3: Assertions** —
   - `position_change` exists for every staff user, with the position/ministry/country title; replacing the current term retires the old row and inserts one for the new term; editing `personName` refreshes title, count unchanged.
   - `meeting_upcoming` for the in-window meeting only (completed/past meetings never alert); completing it retires the row.
   - `agreement_expiring` + `follow_up_overdue` arrive **only** for the country's assignees; for a second assignee-less country they fall back to all staff; archived / no-renewal-date / done / paused produce nothing.
@@ -172,8 +172,8 @@ git commit -m "feat(api): codegen for notifications contract + curated zod index
   - Idempotency: three `GET /api/notifications` calls → same table/counts.
   - Read flow: `PATCH :id/read` flips `isRead` + `readAt`; `POST read-all` zeroes `unreadCount`; a PATCH on another user's row → 404; a nonexistent id → 404.
   - Banned recipient's stale rows are pruned; the `passthrough` sentinel recipient exists in demo boot.
-- [ ] **Step 4: Run auth-qa** — the ENTIRE suite must stay green (`ALL PASS`).
-- [ ] **Step 5: Commit**
+- [x] **Step 4: Run auth-qa** — the ENTIRE suite must stay green (`ALL PASS`).
+- [x] **Step 5: Commit**
 ```bash
 git add scripts/src/auth-qa.ts
 git commit -m "feat(qa): auth-qa 4.4 notifications section green"
