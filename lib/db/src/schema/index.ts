@@ -23,6 +23,7 @@ export * from "./meetings";
 export * from "./agreements";
 export * from "./documents";
 export * from "./news";
+export * from "./notifications";
 export * from "./activity";
 export * from "./auth";
 export * from "./ministries";
