@@ -167,6 +167,274 @@ export interface HealthStatus {
   status: string;
 }
 
+export type SearchResultType = typeof SearchResultType[keyof typeof SearchResultType];
+
+
+export const SearchResultType = {
+  countries: 'countries',
+  contacts: 'contacts',
+  organizations: 'organizations',
+  agreements: 'agreements',
+  meetings: 'meetings',
+} as const;
+
+export interface SearchResult {
+  type: SearchResultType;
+  id: number;
+  title: string;
+  subtitle: string;
+  url: string;
+}
+
+export interface SearchResults {
+  results: SearchResult[];
+  total: number;
+}
+
+export type CountryPerformanceResponseCountriesItem = {
+  id?: number;
+  name?: string;
+  code?: string;
+  region?: string;
+  status?: string;
+  riskLevel?: string;
+  contactsCount?: number;
+  meetingsCount?: number;
+  agreementsCount?: number;
+};
+
+export type CountryPerformanceResponseMeetingsItem = {
+  countryId?: number;
+  status?: string;
+  actionArea?: string;
+};
+
+export type CountryPerformanceResponseTasksItem = {
+  countryId?: number;
+  status?: string;
+  actionArea?: string;
+  /** @nullable */
+  cadence?: string | null;
+};
+
+export type CountryPerformanceResponseActionItemsItem = {
+  countryId?: number;
+  status?: string;
+};
+
+export interface CountryPerformanceResponse {
+  countries: CountryPerformanceResponseCountriesItem[];
+  meetings: CountryPerformanceResponseMeetingsItem[];
+  tasks: CountryPerformanceResponseTasksItem[];
+  actionItems: CountryPerformanceResponseActionItemsItem[];
+}
+
+export type DrFunnelResponsePipelineItem = {
+  status?: string;
+  count?: number;
+};
+
+export type DrFunnelResponseMeetingsByAreaItem = {
+  actionArea?: string;
+  status?: string;
+  count?: number;
+};
+
+export type DrFunnelResponseAgreementsItem = {
+  lifecycleState?: string;
+  count?: number;
+};
+
+export type DrFunnelResponseTasksByCadenceItem = {
+  cadence?: string;
+  status?: string;
+  count?: number;
+};
+
+export interface DrFunnelResponse {
+  pipeline: DrFunnelResponsePipelineItem[];
+  meetingsByArea: DrFunnelResponseMeetingsByAreaItem[];
+  agreements: DrFunnelResponseAgreementsItem[];
+  tasksByCadence: DrFunnelResponseTasksByCadenceItem[];
+}
+
+export type MeetingsAnalyticsResponseMeetingsItem = {
+  id?: number;
+  title?: string;
+  date?: string;
+  status?: string;
+  actionArea?: string;
+  countryId?: number;
+  countryName?: string;
+  countryCode?: string;
+};
+
+export type MeetingsAnalyticsResponseMonthlyItem = {
+  month?: string;
+  count?: number;
+};
+
+export type MeetingsAnalyticsResponseByActionAreaItem = {
+  actionArea?: string;
+  count?: number;
+};
+
+export interface MeetingsAnalyticsResponse {
+  meetings: MeetingsAnalyticsResponseMeetingsItem[];
+  monthly: MeetingsAnalyticsResponseMonthlyItem[];
+  byActionArea: MeetingsAnalyticsResponseByActionAreaItem[];
+}
+
+export type LeadConversionResponseStatusTransitionsItem = {
+  fromStatus?: string;
+  count?: number;
+};
+
+export type LeadConversionResponseMeetingToAgreementItem = {
+  meetingId?: number;
+  meetingTitle?: string;
+  meetingDate?: string;
+  agreementCount?: number;
+};
+
+export type LeadConversionResponseTasksCreatedItem = {
+  month?: string;
+  count?: number;
+};
+
+export type LeadConversionResponseTasksCompletedItem = {
+  month?: string;
+  count?: number;
+};
+
+export interface LeadConversionResponse {
+  statusTransitions: LeadConversionResponseStatusTransitionsItem[];
+  meetingToAgreement: LeadConversionResponseMeetingToAgreementItem[];
+  tasksCreated: LeadConversionResponseTasksCreatedItem[];
+  tasksCompleted: LeadConversionResponseTasksCompletedItem[];
+}
+
+export type ContactCoverageResponseContactsItem = {
+  id?: number;
+  name?: string;
+  title?: string;
+  institution?: string;
+  email?: string;
+  /** @nullable */
+  phone?: string | null;
+  verificationStatus?: string;
+  relationship?: string;
+  countryId?: number;
+  countryName?: string;
+  countryCode?: string;
+  lastVerified?: string;
+};
+
+export type ContactCoverageResponseByCountryItem = {
+  countryId?: number;
+  countryName?: string;
+  countryCode?: string;
+  count?: number;
+};
+
+export type ContactCoverageResponseByVerificationItem = {
+  verificationStatus?: string;
+  count?: number;
+};
+
+export type ContactCoverageResponseByRelationshipItem = {
+  relationship?: string;
+  count?: number;
+};
+
+export interface ContactCoverageResponse {
+  contacts: ContactCoverageResponseContactsItem[];
+  byCountry: ContactCoverageResponseByCountryItem[];
+  byVerification: ContactCoverageResponseByVerificationItem[];
+  byRelationship: ContactCoverageResponseByRelationshipItem[];
+  withPhone: number;
+  withEmail: number;
+}
+
+export type PositionChangesResponsePositionsItem = {
+  id?: number;
+  title?: string;
+  type?: string;
+  countryId?: number;
+  countryName?: string;
+  countryCode?: string;
+};
+
+export type PositionChangesResponseTermsItem = {
+  id?: number;
+  personName?: string;
+  startDate?: string;
+  /** @nullable */
+  endDate?: string | null;
+  isCurrent?: number;
+  positionId?: number;
+  positionTitle?: string;
+  countryId?: number;
+  countryName?: string;
+};
+
+export type PositionChangesResponseByTypeItem = {
+  type?: string;
+  count?: number;
+};
+
+export interface PositionChangesResponse {
+  positions: PositionChangesResponsePositionsItem[];
+  terms: PositionChangesResponseTermsItem[];
+  byType: PositionChangesResponseByTypeItem[];
+  currentHolders: number;
+}
+
+export type EngagementHealthResponseHealthItem = {
+  countryId?: number;
+  countryName?: string;
+  countryCode?: string;
+  /** @nullable */
+  score?: number | null;
+  /** @nullable */
+  completionPct?: number | null;
+  /** @nullable */
+  slaRate?: number | null;
+  /** @nullable */
+  failureRate?: number | null;
+  riskLevel?: string;
+  status?: string;
+  poolCount?: number;
+  completedCount?: number;
+};
+
+export interface EngagementHealthResponse {
+  health: EngagementHealthResponseHealthItem[];
+}
+
+export type HeatMapResponseActivityItem = {
+  region?: string;
+  actionArea?: string;
+  count?: number;
+};
+
+export type HeatMapResponseAgreementsItem = {
+  region?: string;
+  lifecycleState?: string;
+  count?: number;
+};
+
+export type HeatMapResponseContactsItem = {
+  region?: string;
+  count?: number;
+};
+
+export interface HeatMapResponse {
+  activity: HeatMapResponseActivityItem[];
+  agreements: HeatMapResponseAgreementsItem[];
+  contacts: HeatMapResponseContactsItem[];
+}
+
 export interface PipelineStage {
   stage: string;
   count: number;
@@ -1729,6 +1997,10 @@ export interface MarkAllNotificationsResponse {
 
 export type SearchParameter = string;
 
+export type DateFromParameter = string;
+
+export type DateToParameter = string;
+
 export type AuditLimitParameter = number;
 
 export type NotificationLimitParameter = number;
@@ -1736,6 +2008,66 @@ export type NotificationLimitParameter = number;
 export type MeetingIdQueryParameter = number;
 
 export type IntelligenceLimitParameter = number;
+
+export type SearchAllParams = {
+search?: SearchParameter;
+type?: SearchAllType;
+/**
+ * @minimum 1
+ * @maximum 50
+ */
+limit?: number;
+};
+
+export type SearchAllType = typeof SearchAllType[keyof typeof SearchAllType];
+
+
+export const SearchAllType = {
+  all: 'all',
+  countries: 'countries',
+  contacts: 'contacts',
+  organizations: 'organizations',
+  agreements: 'agreements',
+  meetings: 'meetings',
+} as const;
+
+export type GetCountryPerformanceParams = {
+from?: DateFromParameter;
+to?: DateToParameter;
+countryId?: number;
+};
+
+export type GetDrFunnelParams = {
+from?: DateFromParameter;
+to?: DateToParameter;
+};
+
+export type GetMeetingsAnalyticsParams = {
+from?: DateFromParameter;
+to?: DateToParameter;
+};
+
+export type GetLeadConversionParams = {
+from?: DateFromParameter;
+to?: DateToParameter;
+};
+
+export type GetContactCoverageParams = {
+from?: DateFromParameter;
+to?: DateToParameter;
+countryId?: number;
+};
+
+export type GetPositionChangesParams = {
+from?: DateFromParameter;
+to?: DateToParameter;
+countryId?: number;
+};
+
+export type GetEngagementHealthParams = {
+from?: DateFromParameter;
+to?: DateToParameter;
+};
 
 export type ListCountriesParams = {
 search?: SearchParameter;

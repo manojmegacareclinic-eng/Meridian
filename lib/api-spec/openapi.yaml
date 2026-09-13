@@ -30,6 +30,8 @@ tags:
 - name: scorecards
 - name: notifications
 - name: intelligence
+- name: search
+- name: reports
 paths:
   /healthz:
     get:
@@ -44,6 +46,171 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HealthStatus'
+  /search:
+    get:
+      operationId: searchAll
+      tags:
+      - search
+      summary: Universal search across all entities
+      parameters:
+      - $ref: '#/components/parameters/Search'
+      - name: type
+        in: query
+        schema:
+          type: string
+          enum: [all, countries, contacts, organizations, agreements, meetings]
+          default: all
+      - name: limit
+        in: query
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 50
+          default: 10
+      responses:
+        '200':
+          description: Search results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SearchResults'
+  /reports/country-performance:
+    get:
+      operationId: getCountryPerformance
+      tags:
+      - reports
+      summary: Country performance metrics
+      parameters:
+      - $ref: '#/components/parameters/DateFrom'
+      - $ref: '#/components/parameters/DateTo'
+      - name: countryId
+        in: query
+        schema:
+          type: integer
+      responses:
+        '200':
+          description: Country performance data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CountryPerformanceResponse'
+  /reports/dr-funnel:
+    get:
+      operationId: getDrFunnel
+      tags:
+      - reports
+      summary: DR pipeline funnel metrics
+      parameters:
+      - $ref: '#/components/parameters/DateFrom'
+      - $ref: '#/components/parameters/DateTo'
+      responses:
+        '200':
+          description: DR funnel data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DrFunnelResponse'
+  /reports/meetings-analytics:
+    get:
+      operationId: getMeetingsAnalytics
+      tags:
+      - reports
+      summary: Meetings analytics
+      parameters:
+      - $ref: '#/components/parameters/DateFrom'
+      - $ref: '#/components/parameters/DateTo'
+      responses:
+        '200':
+          description: Meetings analytics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MeetingsAnalyticsResponse'
+  /reports/lead-conversion:
+    get:
+      operationId: getLeadConversion
+      tags:
+      - reports
+      summary: Lead conversion metrics
+      parameters:
+      - $ref: '#/components/parameters/DateFrom'
+      - $ref: '#/components/parameters/DateTo'
+      responses:
+        '200':
+          description: Lead conversion data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LeadConversionResponse'
+  /reports/contact-coverage:
+    get:
+      operationId: getContactCoverage
+      tags:
+      - reports
+      summary: Contact coverage metrics
+      parameters:
+      - $ref: '#/components/parameters/DateFrom'
+      - $ref: '#/components/parameters/DateTo'
+      - name: countryId
+        in: query
+        schema:
+          type: integer
+      responses:
+        '200':
+          description: Contact coverage data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContactCoverageResponse'
+  /reports/position-changes:
+    get:
+      operationId: getPositionChanges
+      tags:
+      - reports
+      summary: Position changes
+      parameters:
+      - $ref: '#/components/parameters/DateFrom'
+      - $ref: '#/components/parameters/DateTo'
+      - name: countryId
+        in: query
+        schema:
+          type: integer
+      responses:
+        '200':
+          description: Position changes data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PositionChangesResponse'
+  /reports/engagement-health:
+    get:
+      operationId: getEngagementHealth
+      tags:
+      - reports
+      summary: Engagement health scores
+      parameters:
+      - $ref: '#/components/parameters/DateFrom'
+      - $ref: '#/components/parameters/DateTo'
+      responses:
+        '200':
+          description: Engagement health scores
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EngagementHealthResponse'
+  /reports/heat-map:
+    get:
+      operationId: getHeatMap
+      tags:
+      - reports
+      summary: Geographic heat maps
+      responses:
+        '200':
+          description: Heat map data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HeatMapResponse'
   /dashboard/summary:
     get:
       operationId: getDashboardSummary
@@ -2038,6 +2205,18 @@ components:
       in: query
       schema:
         type: string
+    DateFrom:
+      name: from
+      in: query
+      schema:
+        type: string
+        format: date
+    DateTo:
+      name: to
+      in: query
+      schema:
+        type: string
+        format: date
     AuditLimit:
       name: limit
       in: query
@@ -2506,6 +2685,461 @@ components:
           type: string
       required:
       - status
+    SearchResult:
+      type: object
+      required:
+      - type
+      - id
+      - title
+      - subtitle
+      - url
+      properties:
+        type:
+          type: string
+          enum: [countries, contacts, organizations, agreements, meetings]
+        id:
+          type: integer
+        title:
+          type: string
+        subtitle:
+          type: string
+        url:
+          type: string
+    SearchResults:
+      type: object
+      required:
+      - results
+      - total
+      properties:
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/SearchResult'
+        total:
+          type: integer
+    CountryPerformanceResponse:
+      type: object
+      required:
+      - countries
+      - meetings
+      - tasks
+      - actionItems
+      properties:
+        countries:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+              name:
+                type: string
+              code:
+                type: string
+              region:
+                type: string
+              status:
+                type: string
+              riskLevel:
+                type: string
+              contactsCount:
+                type: integer
+              meetingsCount:
+                type: integer
+              agreementsCount:
+                type: integer
+        meetings:
+          type: array
+          items:
+            type: object
+            properties:
+              countryId:
+                type: integer
+              status:
+                type: string
+              actionArea:
+                type: string
+        tasks:
+          type: array
+          items:
+            type: object
+            properties:
+              countryId:
+                type: integer
+              status:
+                type: string
+              actionArea:
+                type: string
+              cadence:
+                type:
+                - string
+                - 'null'
+        actionItems:
+          type: array
+          items:
+            type: object
+            properties:
+              countryId:
+                type: integer
+              status:
+                type: string
+    DrFunnelResponse:
+      type: object
+      required:
+      - pipeline
+      - meetingsByArea
+      - agreements
+      - tasksByCadence
+      properties:
+        pipeline:
+          type: array
+          items:
+            type: object
+            properties:
+              status:
+                type: string
+              count:
+                type: integer
+        meetingsByArea:
+          type: array
+          items:
+            type: object
+            properties:
+              actionArea:
+                type: string
+              status:
+                type: string
+              count:
+                type: integer
+        agreements:
+          type: array
+          items:
+            type: object
+            properties:
+              lifecycleState:
+                type: string
+              count:
+                type: integer
+        tasksByCadence:
+          type: array
+          items:
+            type: object
+            properties:
+              cadence:
+                type: string
+              status:
+                type: string
+              count:
+                type: integer
+    MeetingsAnalyticsResponse:
+      type: object
+      required:
+      - meetings
+      - monthly
+      - byActionArea
+      properties:
+        meetings:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+              title:
+                type: string
+              date:
+                type: string
+              status:
+                type: string
+              actionArea:
+                type: string
+              countryId:
+                type: integer
+              countryName:
+                type: string
+              countryCode:
+                type: string
+        monthly:
+          type: array
+          items:
+            type: object
+            properties:
+              month:
+                type: string
+              count:
+                type: integer
+        byActionArea:
+          type: array
+          items:
+            type: object
+            properties:
+              actionArea:
+                type: string
+              count:
+                type: integer
+    LeadConversionResponse:
+      type: object
+      required:
+      - statusTransitions
+      - meetingToAgreement
+      - tasksCreated
+      - tasksCompleted
+      properties:
+        statusTransitions:
+          type: array
+          items:
+            type: object
+            properties:
+              fromStatus:
+                type: string
+              count:
+                type: integer
+        meetingToAgreement:
+          type: array
+          items:
+            type: object
+            properties:
+              meetingId:
+                type: integer
+              meetingTitle:
+                type: string
+              meetingDate:
+                type: string
+              agreementCount:
+                type: integer
+        tasksCreated:
+          type: array
+          items:
+            type: object
+            properties:
+              month:
+                type: string
+              count:
+                type: integer
+        tasksCompleted:
+          type: array
+          items:
+            type: object
+            properties:
+              month:
+                type: string
+              count:
+                type: integer
+    ContactCoverageResponse:
+      type: object
+      required:
+      - contacts
+      - byCountry
+      - byVerification
+      - byRelationship
+      - withPhone
+      - withEmail
+      properties:
+        contacts:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+              name:
+                type: string
+              title:
+                type: string
+              institution:
+                type: string
+              email:
+                type: string
+              phone:
+                type:
+                - string
+                - 'null'
+              verificationStatus:
+                type: string
+              relationship:
+                type: string
+              countryId:
+                type: integer
+              countryName:
+                type: string
+              countryCode:
+                type: string
+              lastVerified:
+                type: string
+        byCountry:
+          type: array
+          items:
+            type: object
+            properties:
+              countryId:
+                type: integer
+              countryName:
+                type: string
+              countryCode:
+                type: string
+              count:
+                type: integer
+        byVerification:
+          type: array
+          items:
+            type: object
+            properties:
+              verificationStatus:
+                type: string
+              count:
+                type: integer
+        byRelationship:
+          type: array
+          items:
+            type: object
+            properties:
+              relationship:
+                type: string
+              count:
+                type: integer
+        withPhone:
+          type: integer
+        withEmail:
+          type: integer
+    PositionChangesResponse:
+      type: object
+      required:
+      - positions
+      - terms
+      - byType
+      - currentHolders
+      properties:
+        positions:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+              title:
+                type: string
+              type:
+                type: string
+              countryId:
+                type: integer
+              countryName:
+                type: string
+              countryCode:
+                type: string
+        terms:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+              personName:
+                type: string
+              startDate:
+                type: string
+              endDate:
+                type:
+                - string
+                - 'null'
+              isCurrent:
+                type: integer
+              positionId:
+                type: integer
+              positionTitle:
+                type: string
+              countryId:
+                type: integer
+              countryName:
+                type: string
+        byType:
+          type: array
+          items:
+            type: object
+            properties:
+              type:
+                type: string
+              count:
+                type: integer
+        currentHolders:
+          type: integer
+    EngagementHealthResponse:
+      type: object
+      required:
+      - health
+      properties:
+        health:
+          type: array
+          items:
+            type: object
+            properties:
+              countryId:
+                type: integer
+              countryName:
+                type: string
+              countryCode:
+                type: string
+              score:
+                type:
+                - integer
+                - 'null'
+              completionPct:
+                type:
+                - integer
+                - 'null'
+              slaRate:
+                type:
+                - integer
+                - 'null'
+              failureRate:
+                type:
+                - integer
+                - 'null'
+              riskLevel:
+                type: string
+              status:
+                type: string
+              poolCount:
+                type: integer
+              completedCount:
+                type: integer
+    HeatMapResponse:
+      type: object
+      required:
+      - activity
+      - agreements
+      - contacts
+      properties:
+        activity:
+          type: array
+          items:
+            type: object
+            properties:
+              region:
+                type: string
+              actionArea:
+                type: string
+              count:
+                type: integer
+        agreements:
+          type: array
+          items:
+            type: object
+            properties:
+              region:
+                type: string
+              lifecycleState:
+                type: string
+              count:
+                type: integer
+        contacts:
+          type: array
+          items:
+            type: object
+            properties:
+              region:
+                type: string
+              count:
+                type: integer
     DashboardSummary:
       type: object
       required:

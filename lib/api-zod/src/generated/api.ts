@@ -17,6 +17,288 @@ export const HealthCheckResponse = zod.object({
 
 
 /**
+ * @summary Universal search across all entities
+ */
+export const searchAllQueryTypeDefault = `all`;
+export const searchAllQueryLimitDefault = 10;
+export const searchAllQueryLimitMax = 50;
+
+
+
+export const SearchAllQueryParams = zod.object({
+  "search": zod.coerce.string().optional(),
+  "type": zod.enum(['all', 'countries', 'contacts', 'organizations', 'agreements', 'meetings']).default(searchAllQueryTypeDefault),
+  "limit": zod.coerce.number().int().min(1).max(searchAllQueryLimitMax).default(searchAllQueryLimitDefault)
+})
+
+export const SearchAllResponse = zod.object({
+  "results": zod.array(zod.object({
+  "type": zod.enum(['countries', 'contacts', 'organizations', 'agreements', 'meetings']),
+  "id": zod.int(),
+  "title": zod.string(),
+  "subtitle": zod.string(),
+  "url": zod.string()
+})),
+  "total": zod.int()
+})
+
+
+/**
+ * @summary Country performance metrics
+ */
+export const GetCountryPerformanceQueryParams = zod.object({
+  "from": zod.date().optional(),
+  "to": zod.date().optional(),
+  "countryId": zod.coerce.number().int().optional()
+})
+
+export const GetCountryPerformanceResponse = zod.object({
+  "countries": zod.array(zod.object({
+  "id": zod.int().optional(),
+  "name": zod.string().optional(),
+  "code": zod.string().optional(),
+  "region": zod.string().optional(),
+  "status": zod.string().optional(),
+  "riskLevel": zod.string().optional(),
+  "contactsCount": zod.int().optional(),
+  "meetingsCount": zod.int().optional(),
+  "agreementsCount": zod.int().optional()
+})),
+  "meetings": zod.array(zod.object({
+  "countryId": zod.int().optional(),
+  "status": zod.string().optional(),
+  "actionArea": zod.string().optional()
+})),
+  "tasks": zod.array(zod.object({
+  "countryId": zod.int().optional(),
+  "status": zod.string().optional(),
+  "actionArea": zod.string().optional(),
+  "cadence": zod.string().nullish()
+})),
+  "actionItems": zod.array(zod.object({
+  "countryId": zod.int().optional(),
+  "status": zod.string().optional()
+}))
+})
+
+
+/**
+ * @summary DR pipeline funnel metrics
+ */
+export const GetDrFunnelQueryParams = zod.object({
+  "from": zod.date().optional(),
+  "to": zod.date().optional()
+})
+
+export const GetDrFunnelResponse = zod.object({
+  "pipeline": zod.array(zod.object({
+  "status": zod.string().optional(),
+  "count": zod.int().optional()
+})),
+  "meetingsByArea": zod.array(zod.object({
+  "actionArea": zod.string().optional(),
+  "status": zod.string().optional(),
+  "count": zod.int().optional()
+})),
+  "agreements": zod.array(zod.object({
+  "lifecycleState": zod.string().optional(),
+  "count": zod.int().optional()
+})),
+  "tasksByCadence": zod.array(zod.object({
+  "cadence": zod.string().optional(),
+  "status": zod.string().optional(),
+  "count": zod.int().optional()
+}))
+})
+
+
+/**
+ * @summary Meetings analytics
+ */
+export const GetMeetingsAnalyticsQueryParams = zod.object({
+  "from": zod.date().optional(),
+  "to": zod.date().optional()
+})
+
+export const GetMeetingsAnalyticsResponse = zod.object({
+  "meetings": zod.array(zod.object({
+  "id": zod.int().optional(),
+  "title": zod.string().optional(),
+  "date": zod.string().optional(),
+  "status": zod.string().optional(),
+  "actionArea": zod.string().optional(),
+  "countryId": zod.int().optional(),
+  "countryName": zod.string().optional(),
+  "countryCode": zod.string().optional()
+})),
+  "monthly": zod.array(zod.object({
+  "month": zod.string().optional(),
+  "count": zod.int().optional()
+})),
+  "byActionArea": zod.array(zod.object({
+  "actionArea": zod.string().optional(),
+  "count": zod.int().optional()
+}))
+})
+
+
+/**
+ * @summary Lead conversion metrics
+ */
+export const GetLeadConversionQueryParams = zod.object({
+  "from": zod.date().optional(),
+  "to": zod.date().optional()
+})
+
+export const GetLeadConversionResponse = zod.object({
+  "statusTransitions": zod.array(zod.object({
+  "fromStatus": zod.string().optional(),
+  "count": zod.int().optional()
+})),
+  "meetingToAgreement": zod.array(zod.object({
+  "meetingId": zod.int().optional(),
+  "meetingTitle": zod.string().optional(),
+  "meetingDate": zod.string().optional(),
+  "agreementCount": zod.int().optional()
+})),
+  "tasksCreated": zod.array(zod.object({
+  "month": zod.string().optional(),
+  "count": zod.int().optional()
+})),
+  "tasksCompleted": zod.array(zod.object({
+  "month": zod.string().optional(),
+  "count": zod.int().optional()
+}))
+})
+
+
+/**
+ * @summary Contact coverage metrics
+ */
+export const GetContactCoverageQueryParams = zod.object({
+  "from": zod.date().optional(),
+  "to": zod.date().optional(),
+  "countryId": zod.coerce.number().int().optional()
+})
+
+export const GetContactCoverageResponse = zod.object({
+  "contacts": zod.array(zod.object({
+  "id": zod.int().optional(),
+  "name": zod.string().optional(),
+  "title": zod.string().optional(),
+  "institution": zod.string().optional(),
+  "email": zod.string().optional(),
+  "phone": zod.string().nullish(),
+  "verificationStatus": zod.string().optional(),
+  "relationship": zod.string().optional(),
+  "countryId": zod.int().optional(),
+  "countryName": zod.string().optional(),
+  "countryCode": zod.string().optional(),
+  "lastVerified": zod.string().optional()
+})),
+  "byCountry": zod.array(zod.object({
+  "countryId": zod.int().optional(),
+  "countryName": zod.string().optional(),
+  "countryCode": zod.string().optional(),
+  "count": zod.int().optional()
+})),
+  "byVerification": zod.array(zod.object({
+  "verificationStatus": zod.string().optional(),
+  "count": zod.int().optional()
+})),
+  "byRelationship": zod.array(zod.object({
+  "relationship": zod.string().optional(),
+  "count": zod.int().optional()
+})),
+  "withPhone": zod.int(),
+  "withEmail": zod.int()
+})
+
+
+/**
+ * @summary Position changes
+ */
+export const GetPositionChangesQueryParams = zod.object({
+  "from": zod.date().optional(),
+  "to": zod.date().optional(),
+  "countryId": zod.coerce.number().int().optional()
+})
+
+export const GetPositionChangesResponse = zod.object({
+  "positions": zod.array(zod.object({
+  "id": zod.int().optional(),
+  "title": zod.string().optional(),
+  "type": zod.string().optional(),
+  "countryId": zod.int().optional(),
+  "countryName": zod.string().optional(),
+  "countryCode": zod.string().optional()
+})),
+  "terms": zod.array(zod.object({
+  "id": zod.int().optional(),
+  "personName": zod.string().optional(),
+  "startDate": zod.string().optional(),
+  "endDate": zod.string().nullish(),
+  "isCurrent": zod.int().optional(),
+  "positionId": zod.int().optional(),
+  "positionTitle": zod.string().optional(),
+  "countryId": zod.int().optional(),
+  "countryName": zod.string().optional()
+})),
+  "byType": zod.array(zod.object({
+  "type": zod.string().optional(),
+  "count": zod.int().optional()
+})),
+  "currentHolders": zod.int()
+})
+
+
+/**
+ * @summary Engagement health scores
+ */
+export const GetEngagementHealthQueryParams = zod.object({
+  "from": zod.date().optional(),
+  "to": zod.date().optional()
+})
+
+export const GetEngagementHealthResponse = zod.object({
+  "health": zod.array(zod.object({
+  "countryId": zod.int().optional(),
+  "countryName": zod.string().optional(),
+  "countryCode": zod.string().optional(),
+  "score": zod.int().nullish(),
+  "completionPct": zod.int().nullish(),
+  "slaRate": zod.int().nullish(),
+  "failureRate": zod.int().nullish(),
+  "riskLevel": zod.string().optional(),
+  "status": zod.string().optional(),
+  "poolCount": zod.int().optional(),
+  "completedCount": zod.int().optional()
+}))
+})
+
+
+/**
+ * @summary Geographic heat maps
+ */
+export const GetHeatMapResponse = zod.object({
+  "activity": zod.array(zod.object({
+  "region": zod.string().optional(),
+  "actionArea": zod.string().optional(),
+  "count": zod.int().optional()
+})),
+  "agreements": zod.array(zod.object({
+  "region": zod.string().optional(),
+  "lifecycleState": zod.string().optional(),
+  "count": zod.int().optional()
+})),
+  "contacts": zod.array(zod.object({
+  "region": zod.string().optional(),
+  "count": zod.int().optional()
+}))
+})
+
+
+/**
  * @summary Get executive dashboard summary
  */
 export const GetDashboardSummaryResponse = zod.object({

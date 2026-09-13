@@ -19,6 +19,8 @@ import { Route as DrStrategiesRouteImport } from './routes/dr-strategies'
 import { Route as IntelligenceRouteImport } from './routes/intelligence'
 import { Route as MapRouteImport } from './routes/map'
 import { Route as MeetingsRouteImport } from './routes/meetings'
+import { Route as ReportsRouteImport } from './routes/reports'
+import { Route as SearchRouteImport } from './routes/search'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as CountriesIndexRouteImport } from './routes/countries/index'
 import { Route as CountryCountryIdRouteImport } from './routes/country.$countryId'
@@ -74,6 +76,16 @@ const MeetingsRoute = MeetingsRouteImport.update({
   path: '/meetings',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ReportsRoute = ReportsRouteImport.update({
+  id: '/reports',
+  path: '/reports',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SearchRoute = SearchRouteImport.update({
+  id: '/search',
+  path: '/search',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
@@ -106,6 +118,8 @@ export interface FileRoutesByFullPath {
   '/intelligence': typeof IntelligenceRoute
   '/map': typeof MapRoute
   '/meetings': typeof MeetingsRoute
+  '/reports': typeof ReportsRoute
+  '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
   '/country/$countryId': typeof CountryCountryIdRoute
   '/meeting/$meetingId': typeof MeetingMeetingIdRoute
@@ -121,6 +135,8 @@ export interface FileRoutesByTo {
   '/intelligence': typeof IntelligenceRoute
   '/map': typeof MapRoute
   '/meetings': typeof MeetingsRoute
+  '/reports': typeof ReportsRoute
+  '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
   '/country/$countryId': typeof CountryCountryIdRoute
   '/meeting/$meetingId': typeof MeetingMeetingIdRoute
@@ -138,6 +154,8 @@ export interface FileRoutesById {
   '/intelligence': typeof IntelligenceRoute
   '/map': typeof MapRoute
   '/meetings': typeof MeetingsRoute
+  '/reports': typeof ReportsRoute
+  '/search': typeof SearchRoute
   '/settings': typeof SettingsRoute
   '/country/$countryId': typeof CountryCountryIdRoute
   '/meeting/$meetingId': typeof MeetingMeetingIdRoute
@@ -156,6 +174,8 @@ export interface FileRouteTypes {
     | '/intelligence'
     | '/map'
     | '/meetings'
+    | '/reports'
+    | '/search'
     | '/settings'
     | '/country/$countryId'
     | '/meeting/$meetingId'
@@ -171,6 +191,8 @@ export interface FileRouteTypes {
     | '/intelligence'
     | '/map'
     | '/meetings'
+    | '/reports'
+    | '/search'
     | '/settings'
     | '/country/$countryId'
     | '/meeting/$meetingId'
@@ -187,6 +209,8 @@ export interface FileRouteTypes {
     | '/intelligence'
     | '/map'
     | '/meetings'
+    | '/reports'
+    | '/search'
     | '/settings'
     | '/country/$countryId'
     | '/meeting/$meetingId'
@@ -204,6 +228,8 @@ export interface RootRouteChildren {
   IntelligenceRoute: typeof IntelligenceRoute
   MapRoute: typeof MapRoute
   MeetingsRoute: typeof MeetingsRoute
+  ReportsRoute: typeof ReportsRoute
+  SearchRoute: typeof SearchRoute
   SettingsRoute: typeof SettingsRoute
   CountryCountryIdRoute: typeof CountryCountryIdRoute
   MeetingMeetingIdRoute: typeof MeetingMeetingIdRoute
@@ -281,6 +307,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MeetingsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/reports': {
+      id: '/reports'
+      path: '/reports'
+      fullPath: '/reports'
+      preLoaderRoute: typeof ReportsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/search': {
+      id: '/search'
+      path: '/search'
+      fullPath: '/search'
+      preLoaderRoute: typeof SearchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/settings': {
       id: '/settings'
       path: '/settings'
@@ -335,6 +375,8 @@ const rootRouteChildren: RootRouteChildren = {
   IntelligenceRoute: IntelligenceRoute,
   MapRoute: MapRoute,
   MeetingsRoute: MeetingsRoute,
+  ReportsRoute: ReportsRoute,
+  SearchRoute: SearchRoute,
   SettingsRoute: SettingsRoute,
   CountryCountryIdRoute: CountryCountryIdRoute,
   MeetingMeetingIdRoute: MeetingMeetingIdRoute,

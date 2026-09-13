@@ -26,6 +26,7 @@ import {
   Search,
   Radar,
   ScrollText,
+  BarChart3,
   Settings,
   ShieldCheck,
   SlidersHorizontal,
@@ -152,9 +153,11 @@ const navItems = [
   { href: '/map', label: 'Global Map', icon: MapPin },
   { href: '/contacts', label: 'Contacts', icon: Users },
   { href: '/meetings', label: 'Meetings', icon: CalendarDays },
+  { href: '/search', label: 'Search', icon: Search },
   { href: '/intelligence', label: 'Intelligence', icon: Radar },
   { href: '/agreements', label: 'Agreements', icon: FileCheck2 },
   { href: '/dr-strategies', label: 'Strategies', icon: Layers },
+  { href: '/reports', label: 'Reports', icon: BarChart3 },
   { href: '/audit', label: 'Audit', icon: ScrollText },
 ];
 

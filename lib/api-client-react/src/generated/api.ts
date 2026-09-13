@@ -37,9 +37,11 @@ import type {
   AssignableUser,
   AuditEntry,
   Contact,
+  ContactCoverageResponse,
   ContactInput,
   Country,
   CountryInput,
+  CountryPerformanceResponse,
   CountryScorecard,
   CountryUpdate,
   CreateIntelligenceFindingBody,
@@ -54,14 +56,25 @@ import type {
   Document,
   DocumentInput,
   DocumentUpdate,
+  DrFunnelResponse,
   DrStrategy,
   DrStrategyInput,
   DrStrategyStage,
   DrStrategyUpdate,
+  EngagementHealthResponse,
+  GetContactCoverageParams,
+  GetCountryPerformanceParams,
+  GetDrFunnelParams,
+  GetEngagementHealthParams,
+  GetLeadConversionParams,
+  GetMeetingsAnalyticsParams,
+  GetPositionChangesParams,
   HealthStatus,
+  HeatMapResponse,
   IntelligenceFinding,
   IntelligenceSource,
   InvitationCreation,
+  LeadConversionResponse,
   ListActionItemsParams,
   ListActivityParams,
   ListAgreementsParams,
@@ -97,6 +110,7 @@ import type {
   MeetingTranscriptInput,
   MeetingTranscriptUpdate,
   MeetingUpdate,
+  MeetingsAnalyticsResponse,
   Ministry,
   MinistryInput,
   MinistryUpdate,
@@ -110,11 +124,14 @@ import type {
   OrganizationInput,
   OrganizationUpdate,
   Position,
+  PositionChangesResponse,
   PositionInput,
   PositionUpdate,
   RejectIntelligenceFindingBody,
   RejectIntelligenceFindingResponse,
   ScorecardList,
+  SearchAllParams,
+  SearchResults,
   Task,
   TaskInput,
   TaskUpdate,
@@ -215,6 +232,755 @@ export function useHealthCheck<TData = Awaited<ReturnType<typeof healthCheck>>, 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getHealthCheckQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getSearchAllUrl = (params?: SearchAllParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/search?${stringifiedParams}` : `/api/search`
+}
+
+/**
+ * @summary Universal search across all entities
+ */
+export const searchAll = async (params?: SearchAllParams, options?: Parameters<typeof customFetch>[1]): Promise<SearchResults> => {
+
+  return customFetch<SearchResults>(getSearchAllUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getSearchAllQueryKey = (params?: SearchAllParams,) => {
+    return [
+    `/api/search`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getSearchAllQueryOptions = <TData = Awaited<ReturnType<typeof searchAll>>, TError = ErrorType<unknown>>(params?: SearchAllParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof searchAll>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getSearchAllQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof searchAll>>> = ({ signal }) => searchAll(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof searchAll>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type SearchAllQueryResult = NonNullable<Awaited<ReturnType<typeof searchAll>>>
+export type SearchAllQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Universal search across all entities
+ */
+
+export function useSearchAll<TData = Awaited<ReturnType<typeof searchAll>>, TError = ErrorType<unknown>>(
+ params?: SearchAllParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof searchAll>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getSearchAllQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetCountryPerformanceUrl = (params?: GetCountryPerformanceParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/reports/country-performance?${stringifiedParams}` : `/api/reports/country-performance`
+}
+
+/**
+ * @summary Country performance metrics
+ */
+export const getCountryPerformance = async (params?: GetCountryPerformanceParams, options?: Parameters<typeof customFetch>[1]): Promise<CountryPerformanceResponse> => {
+
+  return customFetch<CountryPerformanceResponse>(getGetCountryPerformanceUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetCountryPerformanceQueryKey = (params?: GetCountryPerformanceParams,) => {
+    return [
+    `/api/reports/country-performance`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetCountryPerformanceQueryOptions = <TData = Awaited<ReturnType<typeof getCountryPerformance>>, TError = ErrorType<unknown>>(params?: GetCountryPerformanceParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCountryPerformance>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetCountryPerformanceQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getCountryPerformance>>> = ({ signal }) => getCountryPerformance(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getCountryPerformance>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetCountryPerformanceQueryResult = NonNullable<Awaited<ReturnType<typeof getCountryPerformance>>>
+export type GetCountryPerformanceQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Country performance metrics
+ */
+
+export function useGetCountryPerformance<TData = Awaited<ReturnType<typeof getCountryPerformance>>, TError = ErrorType<unknown>>(
+ params?: GetCountryPerformanceParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCountryPerformance>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetCountryPerformanceQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetDrFunnelUrl = (params?: GetDrFunnelParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/reports/dr-funnel?${stringifiedParams}` : `/api/reports/dr-funnel`
+}
+
+/**
+ * @summary DR pipeline funnel metrics
+ */
+export const getDrFunnel = async (params?: GetDrFunnelParams, options?: Parameters<typeof customFetch>[1]): Promise<DrFunnelResponse> => {
+
+  return customFetch<DrFunnelResponse>(getGetDrFunnelUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetDrFunnelQueryKey = (params?: GetDrFunnelParams,) => {
+    return [
+    `/api/reports/dr-funnel`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetDrFunnelQueryOptions = <TData = Awaited<ReturnType<typeof getDrFunnel>>, TError = ErrorType<unknown>>(params?: GetDrFunnelParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getDrFunnel>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetDrFunnelQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getDrFunnel>>> = ({ signal }) => getDrFunnel(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getDrFunnel>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetDrFunnelQueryResult = NonNullable<Awaited<ReturnType<typeof getDrFunnel>>>
+export type GetDrFunnelQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary DR pipeline funnel metrics
+ */
+
+export function useGetDrFunnel<TData = Awaited<ReturnType<typeof getDrFunnel>>, TError = ErrorType<unknown>>(
+ params?: GetDrFunnelParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getDrFunnel>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetDrFunnelQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetMeetingsAnalyticsUrl = (params?: GetMeetingsAnalyticsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/reports/meetings-analytics?${stringifiedParams}` : `/api/reports/meetings-analytics`
+}
+
+/**
+ * @summary Meetings analytics
+ */
+export const getMeetingsAnalytics = async (params?: GetMeetingsAnalyticsParams, options?: Parameters<typeof customFetch>[1]): Promise<MeetingsAnalyticsResponse> => {
+
+  return customFetch<MeetingsAnalyticsResponse>(getGetMeetingsAnalyticsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetMeetingsAnalyticsQueryKey = (params?: GetMeetingsAnalyticsParams,) => {
+    return [
+    `/api/reports/meetings-analytics`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetMeetingsAnalyticsQueryOptions = <TData = Awaited<ReturnType<typeof getMeetingsAnalytics>>, TError = ErrorType<unknown>>(params?: GetMeetingsAnalyticsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMeetingsAnalytics>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetMeetingsAnalyticsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMeetingsAnalytics>>> = ({ signal }) => getMeetingsAnalytics(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getMeetingsAnalytics>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetMeetingsAnalyticsQueryResult = NonNullable<Awaited<ReturnType<typeof getMeetingsAnalytics>>>
+export type GetMeetingsAnalyticsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Meetings analytics
+ */
+
+export function useGetMeetingsAnalytics<TData = Awaited<ReturnType<typeof getMeetingsAnalytics>>, TError = ErrorType<unknown>>(
+ params?: GetMeetingsAnalyticsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMeetingsAnalytics>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetMeetingsAnalyticsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetLeadConversionUrl = (params?: GetLeadConversionParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/reports/lead-conversion?${stringifiedParams}` : `/api/reports/lead-conversion`
+}
+
+/**
+ * @summary Lead conversion metrics
+ */
+export const getLeadConversion = async (params?: GetLeadConversionParams, options?: Parameters<typeof customFetch>[1]): Promise<LeadConversionResponse> => {
+
+  return customFetch<LeadConversionResponse>(getGetLeadConversionUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetLeadConversionQueryKey = (params?: GetLeadConversionParams,) => {
+    return [
+    `/api/reports/lead-conversion`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetLeadConversionQueryOptions = <TData = Awaited<ReturnType<typeof getLeadConversion>>, TError = ErrorType<unknown>>(params?: GetLeadConversionParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getLeadConversion>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetLeadConversionQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getLeadConversion>>> = ({ signal }) => getLeadConversion(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getLeadConversion>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetLeadConversionQueryResult = NonNullable<Awaited<ReturnType<typeof getLeadConversion>>>
+export type GetLeadConversionQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Lead conversion metrics
+ */
+
+export function useGetLeadConversion<TData = Awaited<ReturnType<typeof getLeadConversion>>, TError = ErrorType<unknown>>(
+ params?: GetLeadConversionParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getLeadConversion>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetLeadConversionQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetContactCoverageUrl = (params?: GetContactCoverageParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/reports/contact-coverage?${stringifiedParams}` : `/api/reports/contact-coverage`
+}
+
+/**
+ * @summary Contact coverage metrics
+ */
+export const getContactCoverage = async (params?: GetContactCoverageParams, options?: Parameters<typeof customFetch>[1]): Promise<ContactCoverageResponse> => {
+
+  return customFetch<ContactCoverageResponse>(getGetContactCoverageUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetContactCoverageQueryKey = (params?: GetContactCoverageParams,) => {
+    return [
+    `/api/reports/contact-coverage`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetContactCoverageQueryOptions = <TData = Awaited<ReturnType<typeof getContactCoverage>>, TError = ErrorType<unknown>>(params?: GetContactCoverageParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getContactCoverage>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetContactCoverageQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getContactCoverage>>> = ({ signal }) => getContactCoverage(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getContactCoverage>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetContactCoverageQueryResult = NonNullable<Awaited<ReturnType<typeof getContactCoverage>>>
+export type GetContactCoverageQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Contact coverage metrics
+ */
+
+export function useGetContactCoverage<TData = Awaited<ReturnType<typeof getContactCoverage>>, TError = ErrorType<unknown>>(
+ params?: GetContactCoverageParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getContactCoverage>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetContactCoverageQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetPositionChangesUrl = (params?: GetPositionChangesParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/reports/position-changes?${stringifiedParams}` : `/api/reports/position-changes`
+}
+
+/**
+ * @summary Position changes
+ */
+export const getPositionChanges = async (params?: GetPositionChangesParams, options?: Parameters<typeof customFetch>[1]): Promise<PositionChangesResponse> => {
+
+  return customFetch<PositionChangesResponse>(getGetPositionChangesUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetPositionChangesQueryKey = (params?: GetPositionChangesParams,) => {
+    return [
+    `/api/reports/position-changes`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetPositionChangesQueryOptions = <TData = Awaited<ReturnType<typeof getPositionChanges>>, TError = ErrorType<unknown>>(params?: GetPositionChangesParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPositionChanges>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetPositionChangesQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPositionChanges>>> = ({ signal }) => getPositionChanges(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getPositionChanges>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetPositionChangesQueryResult = NonNullable<Awaited<ReturnType<typeof getPositionChanges>>>
+export type GetPositionChangesQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Position changes
+ */
+
+export function useGetPositionChanges<TData = Awaited<ReturnType<typeof getPositionChanges>>, TError = ErrorType<unknown>>(
+ params?: GetPositionChangesParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPositionChanges>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetPositionChangesQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetEngagementHealthUrl = (params?: GetEngagementHealthParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/reports/engagement-health?${stringifiedParams}` : `/api/reports/engagement-health`
+}
+
+/**
+ * @summary Engagement health scores
+ */
+export const getEngagementHealth = async (params?: GetEngagementHealthParams, options?: Parameters<typeof customFetch>[1]): Promise<EngagementHealthResponse> => {
+
+  return customFetch<EngagementHealthResponse>(getGetEngagementHealthUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetEngagementHealthQueryKey = (params?: GetEngagementHealthParams,) => {
+    return [
+    `/api/reports/engagement-health`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetEngagementHealthQueryOptions = <TData = Awaited<ReturnType<typeof getEngagementHealth>>, TError = ErrorType<unknown>>(params?: GetEngagementHealthParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getEngagementHealth>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetEngagementHealthQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getEngagementHealth>>> = ({ signal }) => getEngagementHealth(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getEngagementHealth>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetEngagementHealthQueryResult = NonNullable<Awaited<ReturnType<typeof getEngagementHealth>>>
+export type GetEngagementHealthQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Engagement health scores
+ */
+
+export function useGetEngagementHealth<TData = Awaited<ReturnType<typeof getEngagementHealth>>, TError = ErrorType<unknown>>(
+ params?: GetEngagementHealthParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getEngagementHealth>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetEngagementHealthQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetHeatMapUrl = () => {
+
+
+
+
+  return `/api/reports/heat-map`
+}
+
+/**
+ * @summary Geographic heat maps
+ */
+export const getHeatMap = async ( options?: Parameters<typeof customFetch>[1]): Promise<HeatMapResponse> => {
+
+  return customFetch<HeatMapResponse>(getGetHeatMapUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetHeatMapQueryKey = () => {
+    return [
+    `/api/reports/heat-map`
+    ] as const;
+    }
+
+
+export const getGetHeatMapQueryOptions = <TData = Awaited<ReturnType<typeof getHeatMap>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getHeatMap>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetHeatMapQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getHeatMap>>> = ({ signal }) => getHeatMap({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getHeatMap>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetHeatMapQueryResult = NonNullable<Awaited<ReturnType<typeof getHeatMap>>>
+export type GetHeatMapQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Geographic heat maps
+ */
+
+export function useGetHeatMap<TData = Awaited<ReturnType<typeof getHeatMap>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getHeatMap>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetHeatMapQueryOptions(options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 
