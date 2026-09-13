@@ -27,6 +27,7 @@ import {
   Radar,
   ScrollText,
   BarChart3,
+  Brain,
   Settings,
   ShieldCheck,
   SlidersHorizontal,
@@ -158,6 +159,7 @@ const navItems = [
   { href: '/agreements', label: 'Agreements', icon: FileCheck2 },
   { href: '/dr-strategies', label: 'Strategies', icon: Layers },
   { href: '/reports', label: 'Reports', icon: BarChart3 },
+  { href: '/ai-workflows', label: 'AI Workflows', icon: Brain },
   { href: '/audit', label: 'Audit', icon: ScrollText },
 ];
 

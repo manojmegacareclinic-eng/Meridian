@@ -44,6 +44,318 @@ export const SearchAllResponse = zod.object({
 
 
 /**
+ * @summary List AI workflows
+ */
+export const listAiWorkflowsQueryLimitDefault = 50;
+export const listAiWorkflowsQueryLimitMax = 200;
+
+export const listAiWorkflowsQueryOffsetDefault = 0;
+export const listAiWorkflowsQueryOffsetMin = 0;
+
+
+
+export const ListAiWorkflowsQueryParams = zod.object({
+  "agentType": zod.enum(['research', 'contact_discovery', 'verification', 'meeting_assistant', 'report_writer', 'news', 'translation', 'relationship_scoring', 'document_generation']).optional(),
+  "isActive": zod.coerce.boolean().optional(),
+  "limit": zod.coerce.number().int().min(1).max(listAiWorkflowsQueryLimitMax).default(listAiWorkflowsQueryLimitDefault),
+  "offset": zod.coerce.number().int().min(listAiWorkflowsQueryOffsetMin).default(listAiWorkflowsQueryOffsetDefault)
+})
+
+export const ListAiWorkflowsResponse = zod.object({
+  "workflows": zod.array(zod.object({
+  "id": zod.int(),
+  "name": zod.string(),
+  "description": zod.string().nullish(),
+  "agentType": zod.enum(['research', 'contact_discovery', 'verification', 'meeting_assistant', 'report_writer', 'news', 'translation', 'relationship_scoring', 'document_generation']),
+  "promptTemplate": zod.string(),
+  "inputSchema": zod.looseObject({
+
+}),
+  "outputSchema": zod.looseObject({
+
+}),
+  "isActive": zod.boolean(),
+  "createdByUserId": zod.string(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})),
+  "total": zod.int()
+})
+
+
+/**
+ * @summary Create AI workflow
+ */
+export const createAiWorkflowBodyInputSchemaDefault = {};
+export const createAiWorkflowBodyOutputSchemaDefault = {};
+export const createAiWorkflowBodyIsActiveDefault = true;
+
+export const CreateAiWorkflowBody = zod.object({
+  "name": zod.string(),
+  "description": zod.string().optional(),
+  "agentType": zod.enum(['research', 'contact_discovery', 'verification', 'meeting_assistant', 'report_writer', 'news', 'translation', 'relationship_scoring', 'document_generation']),
+  "promptTemplate": zod.string(),
+  "inputSchema": zod.looseObject({
+
+}).default(createAiWorkflowBodyInputSchemaDefault),
+  "outputSchema": zod.looseObject({
+
+}).default(createAiWorkflowBodyOutputSchemaDefault),
+  "isActive": zod.boolean().default(createAiWorkflowBodyIsActiveDefault)
+})
+
+export const CreateAiWorkflowResponse = zod.object({
+  "id": zod.int(),
+  "name": zod.string(),
+  "description": zod.string().nullish(),
+  "agentType": zod.enum(['research', 'contact_discovery', 'verification', 'meeting_assistant', 'report_writer', 'news', 'translation', 'relationship_scoring', 'document_generation']),
+  "promptTemplate": zod.string(),
+  "inputSchema": zod.looseObject({
+
+}),
+  "outputSchema": zod.looseObject({
+
+}),
+  "isActive": zod.boolean(),
+  "createdByUserId": zod.string(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})
+
+
+/**
+ * @summary Get AI workflow by ID
+ */
+export const GetAiWorkflowParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+export const GetAiWorkflowResponse = zod.object({
+  "id": zod.int(),
+  "name": zod.string(),
+  "description": zod.string().nullish(),
+  "agentType": zod.enum(['research', 'contact_discovery', 'verification', 'meeting_assistant', 'report_writer', 'news', 'translation', 'relationship_scoring', 'document_generation']),
+  "promptTemplate": zod.string(),
+  "inputSchema": zod.looseObject({
+
+}),
+  "outputSchema": zod.looseObject({
+
+}),
+  "isActive": zod.boolean(),
+  "createdByUserId": zod.string(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})
+
+
+/**
+ * @summary Update AI workflow
+ */
+export const UpdateAiWorkflowParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+export const UpdateAiWorkflowBody = zod.object({
+  "name": zod.string().optional(),
+  "description": zod.string().optional(),
+  "agentType": zod.enum(['research', 'contact_discovery', 'verification', 'meeting_assistant', 'report_writer', 'news', 'translation', 'relationship_scoring', 'document_generation']).optional(),
+  "promptTemplate": zod.string().optional(),
+  "inputSchema": zod.looseObject({
+
+}).optional(),
+  "outputSchema": zod.looseObject({
+
+}).optional(),
+  "isActive": zod.boolean().optional()
+})
+
+export const UpdateAiWorkflowResponse = zod.object({
+  "id": zod.int(),
+  "name": zod.string(),
+  "description": zod.string().nullish(),
+  "agentType": zod.enum(['research', 'contact_discovery', 'verification', 'meeting_assistant', 'report_writer', 'news', 'translation', 'relationship_scoring', 'document_generation']),
+  "promptTemplate": zod.string(),
+  "inputSchema": zod.looseObject({
+
+}),
+  "outputSchema": zod.looseObject({
+
+}),
+  "isActive": zod.boolean(),
+  "createdByUserId": zod.string(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})
+
+
+/**
+ * @summary Execute an AI workflow
+ */
+export const ExecuteAiWorkflowBody = zod.object({
+  "workflowId": zod.int(),
+  "inputData": zod.looseObject({
+
+}),
+  "countryId": zod.int().nullish()
+})
+
+export const ExecuteAiWorkflowResponse = zod.object({
+  "executionId": zod.int(),
+  "status": zod.string()
+})
+
+
+/**
+ * @summary List AI executions
+ */
+export const listAiExecutionsQueryLimitDefault = 50;
+export const listAiExecutionsQueryLimitMax = 200;
+
+export const listAiExecutionsQueryOffsetDefault = 0;
+export const listAiExecutionsQueryOffsetMin = 0;
+
+
+
+export const ListAiExecutionsQueryParams = zod.object({
+  "workflowId": zod.coerce.number().int().optional(),
+  "status": zod.enum(['pending', 'running', 'completed', 'failed', 'reviewed']).optional(),
+  "countryId": zod.coerce.number().int().optional(),
+  "userId": zod.coerce.string().optional(),
+  "limit": zod.coerce.number().int().min(1).max(listAiExecutionsQueryLimitMax).default(listAiExecutionsQueryLimitDefault),
+  "offset": zod.coerce.number().int().min(listAiExecutionsQueryOffsetMin).default(listAiExecutionsQueryOffsetDefault)
+})
+
+export const ListAiExecutionsResponse = zod.object({
+  "executions": zod.array(zod.object({
+  "id": zod.int(),
+  "workflowId": zod.int(),
+  "inputData": zod.looseObject({
+
+}),
+  "outputData": zod.looseObject({
+
+}).nullish(),
+  "status": zod.enum(['pending', 'running', 'completed', 'failed', 'reviewed']),
+  "errorMessage": zod.string().nullish(),
+  "confidence": zod.int().nullish(),
+  "citations": zod.array(zod.looseObject({
+
+})).optional(),
+  "executionTimeMs": zod.int().nullish(),
+  "executedByUserId": zod.string(),
+  "countryId": zod.int().nullish(),
+  "startedAt": zod.string(),
+  "completedAt": zod.string().nullish(),
+  "reviewedAt": zod.string().nullish(),
+  "reviewedByUserId": zod.string().nullish(),
+  "reviewDecision": zod.string().nullish(),
+  "reviewNote": zod.string().nullish()
+})),
+  "total": zod.int()
+})
+
+
+/**
+ * @summary Get AI execution with outputs
+ */
+export const GetAiExecutionParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+export const GetAiExecutionResponse = zod.object({
+  "execution": zod.object({
+  "id": zod.int(),
+  "workflowId": zod.int(),
+  "inputData": zod.looseObject({
+
+}),
+  "outputData": zod.looseObject({
+
+}).nullish(),
+  "status": zod.enum(['pending', 'running', 'completed', 'failed', 'reviewed']),
+  "errorMessage": zod.string().nullish(),
+  "confidence": zod.int().nullish(),
+  "citations": zod.array(zod.looseObject({
+
+})).optional(),
+  "executionTimeMs": zod.int().nullish(),
+  "executedByUserId": zod.string(),
+  "countryId": zod.int().nullish(),
+  "startedAt": zod.string(),
+  "completedAt": zod.string().nullish(),
+  "reviewedAt": zod.string().nullish(),
+  "reviewedByUserId": zod.string().nullish(),
+  "reviewDecision": zod.string().nullish(),
+  "reviewNote": zod.string().nullish()
+}),
+  "outputs": zod.array(zod.object({
+  "id": zod.int(),
+  "executionId": zod.int(),
+  "sectionKey": zod.string(),
+  "content": zod.string(),
+  "confidence": zod.int().nullish(),
+  "citations": zod.array(zod.looseObject({
+
+})).optional(),
+  "sourceReferences": zod.array(zod.string()).optional(),
+  "createdAt": zod.string()
+}))
+})
+
+
+/**
+ * @summary Review an AI execution
+ */
+export const ReviewAiExecutionParams = zod.object({
+  "id": zod.coerce.number().int()
+})
+
+export const ReviewAiExecutionBody = zod.object({
+  "decision": zod.enum(['approved', 'rejected', 'needs_revision']),
+  "note": zod.string().nullish()
+})
+
+export const ReviewAiExecutionResponse = zod.object({
+  "id": zod.int(),
+  "workflowId": zod.int(),
+  "inputData": zod.looseObject({
+
+}),
+  "outputData": zod.looseObject({
+
+}).nullish(),
+  "status": zod.enum(['pending', 'running', 'completed', 'failed', 'reviewed']),
+  "errorMessage": zod.string().nullish(),
+  "confidence": zod.int().nullish(),
+  "citations": zod.array(zod.looseObject({
+
+})).optional(),
+  "executionTimeMs": zod.int().nullish(),
+  "executedByUserId": zod.string(),
+  "countryId": zod.int().nullish(),
+  "startedAt": zod.string(),
+  "completedAt": zod.string().nullish(),
+  "reviewedAt": zod.string().nullish(),
+  "reviewedByUserId": zod.string().nullish(),
+  "reviewDecision": zod.string().nullish(),
+  "reviewNote": zod.string().nullish()
+})
+
+
+/**
+ * @summary List available AI agent types
+ */
+export const ListAiAgentsResponse = zod.object({
+  "agents": zod.array(zod.object({
+  "type": zod.enum(['research', 'contact_discovery', 'verification', 'meeting_assistant', 'report_writer', 'news', 'translation', 'relationship_scoring', 'document_generation']),
+  "name": zod.string(),
+  "description": zod.string()
+}))
+})
+
+
+/**
  * @summary Country performance metrics
  */
 export const GetCountryPerformanceQueryParams = zod.object({

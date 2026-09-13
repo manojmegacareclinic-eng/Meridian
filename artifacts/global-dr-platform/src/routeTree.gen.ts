@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AgreementsRouteImport } from './routes/agreements'
+import { Route as AiWorkflowsRouteImport } from './routes/ai-workflows'
 import { Route as AuditRouteImport } from './routes/audit'
 import { Route as ContactsRouteImport } from './routes/contacts'
 import { Route as CountriesRouteImport } from './routes/countries'
@@ -39,6 +40,11 @@ const AdminRoute = AdminRouteImport.update({
 const AgreementsRoute = AgreementsRouteImport.update({
   id: '/agreements',
   path: '/agreements',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AiWorkflowsRoute = AiWorkflowsRouteImport.update({
+  id: '/ai-workflows',
+  path: '/ai-workflows',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuditRoute = AuditRouteImport.update({
@@ -111,6 +117,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/agreements': typeof AgreementsRoute
+  '/ai-workflows': typeof AiWorkflowsRoute
   '/audit': typeof AuditRoute
   '/contacts': typeof ContactsRoute
   '/countries': typeof CountriesRouteWithChildren
@@ -129,6 +136,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/agreements': typeof AgreementsRoute
+  '/ai-workflows': typeof AiWorkflowsRoute
   '/audit': typeof AuditRoute
   '/contacts': typeof ContactsRoute
   '/dr-strategies': typeof DrStrategiesRoute
@@ -147,6 +155,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/agreements': typeof AgreementsRoute
+  '/ai-workflows': typeof AiWorkflowsRoute
   '/audit': typeof AuditRoute
   '/contacts': typeof ContactsRoute
   '/countries': typeof CountriesRouteWithChildren
@@ -167,6 +176,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/agreements'
+    | '/ai-workflows'
     | '/audit'
     | '/contacts'
     | '/countries'
@@ -185,6 +195,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/agreements'
+    | '/ai-workflows'
     | '/audit'
     | '/contacts'
     | '/dr-strategies'
@@ -202,6 +213,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/agreements'
+    | '/ai-workflows'
     | '/audit'
     | '/contacts'
     | '/countries'
@@ -221,6 +233,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRoute
   AgreementsRoute: typeof AgreementsRoute
+  AiWorkflowsRoute: typeof AiWorkflowsRoute
   AuditRoute: typeof AuditRoute
   ContactsRoute: typeof ContactsRoute
   CountriesRoute: typeof CountriesRouteWithChildren
@@ -256,6 +269,13 @@ declare module '@tanstack/react-router' {
       path: '/agreements'
       fullPath: '/agreements'
       preLoaderRoute: typeof AgreementsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ai-workflows': {
+      id: '/ai-workflows'
+      path: '/ai-workflows'
+      fullPath: '/ai-workflows'
+      preLoaderRoute: typeof AiWorkflowsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/audit': {
@@ -368,6 +388,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRoute,
   AgreementsRoute: AgreementsRoute,
+  AiWorkflowsRoute: AiWorkflowsRoute,
   AuditRoute: AuditRoute,
   ContactsRoute: ContactsRoute,
   CountriesRoute: CountriesRouteWithChildren,

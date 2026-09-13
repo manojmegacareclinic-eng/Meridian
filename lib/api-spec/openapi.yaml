@@ -32,6 +32,7 @@ tags:
 - name: intelligence
 - name: search
 - name: reports
+- name: ai_workflows
 paths:
   /healthz:
     get:
@@ -74,6 +75,239 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SearchResults'
+  /ai-workflows:
+    get:
+      operationId: listAiWorkflows
+      tags:
+      - ai_workflows
+      summary: List AI workflows
+      parameters:
+      - name: agentType
+        in: query
+        schema:
+          type: string
+          enum: [research, contact_discovery, verification, meeting_assistant, report_writer, news, translation, relationship_scoring, document_generation]
+      - name: isActive
+        in: query
+        schema:
+          type: boolean
+      - name: limit
+        in: query
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 200
+          default: 50
+      - name: offset
+        in: query
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+      responses:
+        '200':
+          description: List of AI workflows
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AiWorkflowsListResponse'
+    post:
+      operationId: createAiWorkflow
+      tags:
+      - ai_workflows
+      summary: Create AI workflow
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateAiWorkflowBody'
+      responses:
+        '201':
+          description: Created workflow
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AiWorkflow'
+        '400':
+          description: Invalid input
+  /ai-workflows/{id}:
+    get:
+      operationId: getAiWorkflow
+      tags:
+      - ai_workflows
+      summary: Get AI workflow by ID
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+      responses:
+        '200':
+          description: Workflow details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AiWorkflow'
+        '404':
+          description: Workflow not found
+    patch:
+      operationId: updateAiWorkflow
+      tags:
+      - ai_workflows
+      summary: Update AI workflow
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateAiWorkflowBody'
+      responses:
+        '200':
+          description: Updated workflow
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AiWorkflow'
+        '404':
+          description: Workflow not found
+  /ai-workflows/execute:
+    post:
+      operationId: executeAiWorkflow
+      tags:
+      - ai_workflows
+      summary: Execute an AI workflow
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExecuteAiWorkflowBody'
+      responses:
+        '202':
+          description: Execution started
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExecuteAiWorkflowResponse'
+        '400':
+          description: Invalid input
+        '404':
+          description: Workflow not found
+  /ai-workflows/executions:
+    get:
+      operationId: listAiExecutions
+      tags:
+      - ai_workflows
+      summary: List AI executions
+      parameters:
+      - name: workflowId
+        in: query
+        schema:
+          type: integer
+      - name: status
+        in: query
+        schema:
+          type: string
+          enum: [pending, running, completed, failed, reviewed]
+      - name: countryId
+        in: query
+        schema:
+          type: integer
+      - name: userId
+        in: query
+        schema:
+          type: string
+      - name: limit
+        in: query
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 200
+          default: 50
+      - name: offset
+        in: query
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+      responses:
+        '200':
+          description: List of executions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AiExecutionsListResponse'
+  /ai-workflows/executions/{id}:
+    get:
+      operationId: getAiExecution
+      tags:
+      - ai_workflows
+      summary: Get AI execution with outputs
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+      responses:
+        '200':
+          description: Execution details with outputs
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AiExecutionWithOutputs'
+        '404':
+          description: Execution not found
+  /ai-workflows/executions/{id}/review:
+    post:
+      operationId: reviewAiExecution
+      tags:
+      - ai_workflows
+      summary: Review an AI execution
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReviewAiExecutionBody'
+      responses:
+        '200':
+          description: Reviewed execution
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AiExecution'
+        '400':
+          description: Invalid input
+        '404':
+          description: Execution not found
+  /ai-workflows/agents:
+    get:
+      operationId: listAiAgents
+      tags:
+      - ai_workflows
+      summary: List available AI agent types
+      responses:
+        '200':
+          description: List of agent types
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AiAgentsListResponse'
   /reports/country-performance:
     get:
       operationId: getCountryPerformance
@@ -2717,6 +2951,281 @@ components:
             $ref: '#/components/schemas/SearchResult'
         total:
           type: integer
+    AiWorkflow:
+      type: object
+      required:
+      - id
+      - name
+      - agentType
+      - promptTemplate
+      - inputSchema
+      - outputSchema
+      - isActive
+      - createdByUserId
+      - createdAt
+      - updatedAt
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        description:
+          type:
+          - string
+          - 'null'
+        agentType:
+          type: string
+          enum: [research, contact_discovery, verification, meeting_assistant, report_writer, news, translation, relationship_scoring, document_generation]
+        promptTemplate:
+          type: string
+        inputSchema:
+          type: object
+        outputSchema:
+          type: object
+        isActive:
+          type: boolean
+        createdByUserId:
+          type: string
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+    CreateAiWorkflowBody:
+      type: object
+      required:
+      - name
+      - agentType
+      - promptTemplate
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        agentType:
+          type: string
+          enum: [research, contact_discovery, verification, meeting_assistant, report_writer, news, translation, relationship_scoring, document_generation]
+        promptTemplate:
+          type: string
+        inputSchema:
+          type: object
+          default: {}
+        outputSchema:
+          type: object
+          default: {}
+        isActive:
+          type: boolean
+          default: true
+    UpdateAiWorkflowBody:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        agentType:
+          type: string
+          enum: [research, contact_discovery, verification, meeting_assistant, report_writer, news, translation, relationship_scoring, document_generation]
+        promptTemplate:
+          type: string
+        inputSchema:
+          type: object
+        outputSchema:
+          type: object
+        isActive:
+          type: boolean
+    AiWorkflowsListResponse:
+      type: object
+      required:
+      - workflows
+      - total
+      properties:
+        workflows:
+          type: array
+          items:
+            $ref: '#/components/schemas/AiWorkflow'
+        total:
+          type: integer
+    AiExecution:
+      type: object
+      required:
+      - id
+      - workflowId
+      - inputData
+      - status
+      - executedByUserId
+      - startedAt
+      properties:
+        id:
+          type: integer
+        workflowId:
+          type: integer
+        inputData:
+          type: object
+        outputData:
+          type:
+          - object
+          - 'null'
+        status:
+          type: string
+          enum: [pending, running, completed, failed, reviewed]
+        errorMessage:
+          type:
+          - string
+          - 'null'
+        confidence:
+          type:
+          - integer
+          - 'null'
+        citations:
+          type: array
+          items:
+            type: object
+        executionTimeMs:
+          type:
+          - integer
+          - 'null'
+        executedByUserId:
+          type: string
+        countryId:
+          type:
+          - integer
+          - 'null'
+        startedAt:
+          type: string
+        completedAt:
+          type:
+          - string
+          - 'null'
+        reviewedAt:
+          type:
+          - string
+          - 'null'
+        reviewedByUserId:
+          type:
+          - string
+          - 'null'
+        reviewDecision:
+          type:
+          - string
+          - 'null'
+        reviewNote:
+          type:
+          - string
+          - 'null'
+    AiOutput:
+      type: object
+      required:
+      - id
+      - executionId
+      - sectionKey
+      - content
+      - createdAt
+      properties:
+        id:
+          type: integer
+        executionId:
+          type: integer
+        sectionKey:
+          type: string
+        content:
+          type: string
+        confidence:
+          type:
+          - integer
+          - 'null'
+        citations:
+          type: array
+          items:
+            type: object
+        sourceReferences:
+          type: array
+          items:
+            type: string
+        createdAt:
+          type: string
+    AiExecutionWithOutputs:
+      type: object
+      required:
+      - execution
+      - outputs
+      properties:
+        execution:
+          $ref: '#/components/schemas/AiExecution'
+        outputs:
+          type: array
+          items:
+            $ref: '#/components/schemas/AiOutput'
+    ExecuteAiWorkflowBody:
+      type: object
+      required:
+      - workflowId
+      - inputData
+      properties:
+        workflowId:
+          type: integer
+        inputData:
+          type: object
+        countryId:
+          type:
+          - integer
+          - 'null'
+    ExecuteAiWorkflowResponse:
+      type: object
+      required:
+      - executionId
+      - status
+      properties:
+        executionId:
+          type: integer
+        status:
+          type: string
+    ReviewAiExecutionBody:
+      type: object
+      required:
+      - decision
+      properties:
+        decision:
+          type: string
+          enum: [approved, rejected, needs_revision]
+        note:
+          type:
+          - string
+          - 'null'
+    AiExecutionsListResponse:
+      type: object
+      required:
+      - executions
+      - total
+      properties:
+        executions:
+          type: array
+          items:
+            $ref: '#/components/schemas/AiExecution'
+        total:
+          type: integer
+    AiAgent:
+      type: object
+      required:
+      - type
+      - name
+      - description
+      properties:
+        type:
+          type: string
+          enum: [research, contact_discovery, verification, meeting_assistant, report_writer, news, translation, relationship_scoring, document_generation]
+        name:
+          type: string
+        description:
+          type: string
+    AiAgentsListResponse:
+      type: object
+      required:
+      - agents
+      properties:
+        agents:
+          type: array
+          items:
+            $ref: '#/components/schemas/AiAgent'
     CountryPerformanceResponse:
       type: object
       required:

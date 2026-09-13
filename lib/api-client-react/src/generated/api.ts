@@ -32,6 +32,12 @@ import type {
   AgreementInput,
   AgreementLifecycleUpdate,
   AgreementUpdate,
+  AiAgentsListResponse,
+  AiExecution,
+  AiExecutionWithOutputs,
+  AiExecutionsListResponse,
+  AiWorkflow,
+  AiWorkflowsListResponse,
   ApproveIntelligenceFindingBody,
   ApproveIntelligenceFindingResponse,
   AssignableUser,
@@ -44,6 +50,7 @@ import type {
   CountryPerformanceResponse,
   CountryScorecard,
   CountryUpdate,
+  CreateAiWorkflowBody,
   CreateIntelligenceFindingBody,
   CreateIntelligenceSourceBody,
   CreateInvitationBody,
@@ -62,6 +69,8 @@ import type {
   DrStrategyStage,
   DrStrategyUpdate,
   EngagementHealthResponse,
+  ExecuteAiWorkflowBody,
+  ExecuteAiWorkflowResponse,
   GetContactCoverageParams,
   GetCountryPerformanceParams,
   GetDrFunnelParams,
@@ -78,6 +87,8 @@ import type {
   ListActionItemsParams,
   ListActivityParams,
   ListAgreementsParams,
+  ListAiExecutionsParams,
+  ListAiWorkflowsParams,
   ListAuditParams,
   ListChangeEventsParams,
   ListChangeEventsResponse,
@@ -129,12 +140,14 @@ import type {
   PositionUpdate,
   RejectIntelligenceFindingBody,
   RejectIntelligenceFindingResponse,
+  ReviewAiExecutionBody,
   ScorecardList,
   SearchAllParams,
   SearchResults,
   Task,
   TaskInput,
   TaskUpdate,
+  UpdateAiWorkflowBody,
   UpdateIntelligenceSourceBody,
   UpdateUserRoleBody,
   UpdateUserRoleResponse
@@ -316,6 +329,743 @@ export function useSearchAll<TData = Awaited<ReturnType<typeof searchAll>>, TErr
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getSearchAllQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getListAiWorkflowsUrl = (params?: ListAiWorkflowsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/ai-workflows?${stringifiedParams}` : `/api/ai-workflows`
+}
+
+/**
+ * @summary List AI workflows
+ */
+export const listAiWorkflows = async (params?: ListAiWorkflowsParams, options?: Parameters<typeof customFetch>[1]): Promise<AiWorkflowsListResponse> => {
+
+  return customFetch<AiWorkflowsListResponse>(getListAiWorkflowsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListAiWorkflowsQueryKey = (params?: ListAiWorkflowsParams,) => {
+    return [
+    `/api/ai-workflows`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getListAiWorkflowsQueryOptions = <TData = Awaited<ReturnType<typeof listAiWorkflows>>, TError = ErrorType<unknown>>(params?: ListAiWorkflowsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAiWorkflows>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListAiWorkflowsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listAiWorkflows>>> = ({ signal }) => listAiWorkflows(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listAiWorkflows>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListAiWorkflowsQueryResult = NonNullable<Awaited<ReturnType<typeof listAiWorkflows>>>
+export type ListAiWorkflowsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List AI workflows
+ */
+
+export function useListAiWorkflows<TData = Awaited<ReturnType<typeof listAiWorkflows>>, TError = ErrorType<unknown>>(
+ params?: ListAiWorkflowsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAiWorkflows>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListAiWorkflowsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateAiWorkflowUrl = () => {
+
+
+
+
+  return `/api/ai-workflows`
+}
+
+/**
+ * @summary Create AI workflow
+ */
+export const createAiWorkflow = async (createAiWorkflowBody: CreateAiWorkflowBody, options?: Parameters<typeof customFetch>[1]): Promise<AiWorkflow> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) {
+      const out: Record<string, string> = {};
+      h.forEach((value, key) => {
+        out[key] = value;
+      });
+      return out;
+    }
+    if (Array.isArray(h)) return Object.fromEntries(h);
+    return h;
+  };
+return customFetch<AiWorkflow>(getCreateAiWorkflowUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(createAiWorkflowBody)
+  }
+);}
+
+
+
+
+
+export const getCreateAiWorkflowMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createAiWorkflow>>, TError,CreateAiWorkflowMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createAiWorkflow>>, TError,CreateAiWorkflowMutationVariables, TContext> => {
+
+const mutationKey = ['createAiWorkflow'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createAiWorkflow>>, CreateAiWorkflowMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  createAiWorkflow(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateAiWorkflowMutationResult = NonNullable<Awaited<ReturnType<typeof createAiWorkflow>>>
+    export type CreateAiWorkflowMutationBody = BodyType<CreateAiWorkflowBody>
+    export type CreateAiWorkflowMutationError = ErrorType<void>
+    export type CreateAiWorkflowMutationVariables = {data: BodyType<CreateAiWorkflowBody>}
+
+    /**
+ * @summary Create AI workflow
+ */
+export const useCreateAiWorkflow = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createAiWorkflow>>, TError,CreateAiWorkflowMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createAiWorkflow>>,
+        TError,
+        CreateAiWorkflowMutationVariables,
+        TContext
+      > => {
+      return useMutation(getCreateAiWorkflowMutationOptions(options));
+    }
+
+export const getGetAiWorkflowUrl = (id: number,) => {
+
+
+
+
+  return `/api/ai-workflows/${id}`
+}
+
+/**
+ * @summary Get AI workflow by ID
+ */
+export const getAiWorkflow = async (id: number, options?: Parameters<typeof customFetch>[1]): Promise<AiWorkflow> => {
+
+  return customFetch<AiWorkflow>(getGetAiWorkflowUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAiWorkflowQueryKey = (id: number,) => {
+    return [
+    `/api/ai-workflows/${id}`
+    ] as const;
+    }
+
+
+export const getGetAiWorkflowQueryOptions = <TData = Awaited<ReturnType<typeof getAiWorkflow>>, TError = ErrorType<void>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAiWorkflow>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAiWorkflowQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAiWorkflow>>> = ({ signal }) => getAiWorkflow(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAiWorkflow>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAiWorkflowQueryResult = NonNullable<Awaited<ReturnType<typeof getAiWorkflow>>>
+export type GetAiWorkflowQueryError = ErrorType<void>
+
+
+/**
+ * @summary Get AI workflow by ID
+ */
+
+export function useGetAiWorkflow<TData = Awaited<ReturnType<typeof getAiWorkflow>>, TError = ErrorType<void>>(
+ id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAiWorkflow>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAiWorkflowQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getUpdateAiWorkflowUrl = (id: number,) => {
+
+
+
+
+  return `/api/ai-workflows/${id}`
+}
+
+/**
+ * @summary Update AI workflow
+ */
+export const updateAiWorkflow = async (id: number,
+    updateAiWorkflowBody: UpdateAiWorkflowBody, options?: Parameters<typeof customFetch>[1]): Promise<AiWorkflow> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) {
+      const out: Record<string, string> = {};
+      h.forEach((value, key) => {
+        out[key] = value;
+      });
+      return out;
+    }
+    if (Array.isArray(h)) return Object.fromEntries(h);
+    return h;
+  };
+return customFetch<AiWorkflow>(getUpdateAiWorkflowUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(updateAiWorkflowBody)
+  }
+);}
+
+
+
+
+
+export const getUpdateAiWorkflowMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateAiWorkflow>>, TError,UpdateAiWorkflowMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateAiWorkflow>>, TError,UpdateAiWorkflowMutationVariables, TContext> => {
+
+const mutationKey = ['updateAiWorkflow'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateAiWorkflow>>, UpdateAiWorkflowMutationVariables> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updateAiWorkflow(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateAiWorkflowMutationResult = NonNullable<Awaited<ReturnType<typeof updateAiWorkflow>>>
+    export type UpdateAiWorkflowMutationBody = BodyType<UpdateAiWorkflowBody>
+    export type UpdateAiWorkflowMutationError = ErrorType<void>
+    export type UpdateAiWorkflowMutationVariables = {id: number;data: BodyType<UpdateAiWorkflowBody>}
+
+    /**
+ * @summary Update AI workflow
+ */
+export const useUpdateAiWorkflow = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateAiWorkflow>>, TError,UpdateAiWorkflowMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateAiWorkflow>>,
+        TError,
+        UpdateAiWorkflowMutationVariables,
+        TContext
+      > => {
+      return useMutation(getUpdateAiWorkflowMutationOptions(options));
+    }
+
+export const getExecuteAiWorkflowUrl = () => {
+
+
+
+
+  return `/api/ai-workflows/execute`
+}
+
+/**
+ * @summary Execute an AI workflow
+ */
+export const executeAiWorkflow = async (executeAiWorkflowBody: ExecuteAiWorkflowBody, options?: Parameters<typeof customFetch>[1]): Promise<ExecuteAiWorkflowResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) {
+      const out: Record<string, string> = {};
+      h.forEach((value, key) => {
+        out[key] = value;
+      });
+      return out;
+    }
+    if (Array.isArray(h)) return Object.fromEntries(h);
+    return h;
+  };
+return customFetch<ExecuteAiWorkflowResponse>(getExecuteAiWorkflowUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(executeAiWorkflowBody)
+  }
+);}
+
+
+
+
+
+export const getExecuteAiWorkflowMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof executeAiWorkflow>>, TError,ExecuteAiWorkflowMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof executeAiWorkflow>>, TError,ExecuteAiWorkflowMutationVariables, TContext> => {
+
+const mutationKey = ['executeAiWorkflow'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof executeAiWorkflow>>, ExecuteAiWorkflowMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  executeAiWorkflow(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ExecuteAiWorkflowMutationResult = NonNullable<Awaited<ReturnType<typeof executeAiWorkflow>>>
+    export type ExecuteAiWorkflowMutationBody = BodyType<ExecuteAiWorkflowBody>
+    export type ExecuteAiWorkflowMutationError = ErrorType<void>
+    export type ExecuteAiWorkflowMutationVariables = {data: BodyType<ExecuteAiWorkflowBody>}
+
+    /**
+ * @summary Execute an AI workflow
+ */
+export const useExecuteAiWorkflow = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof executeAiWorkflow>>, TError,ExecuteAiWorkflowMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof executeAiWorkflow>>,
+        TError,
+        ExecuteAiWorkflowMutationVariables,
+        TContext
+      > => {
+      return useMutation(getExecuteAiWorkflowMutationOptions(options));
+    }
+
+export const getListAiExecutionsUrl = (params?: ListAiExecutionsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/ai-workflows/executions?${stringifiedParams}` : `/api/ai-workflows/executions`
+}
+
+/**
+ * @summary List AI executions
+ */
+export const listAiExecutions = async (params?: ListAiExecutionsParams, options?: Parameters<typeof customFetch>[1]): Promise<AiExecutionsListResponse> => {
+
+  return customFetch<AiExecutionsListResponse>(getListAiExecutionsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListAiExecutionsQueryKey = (params?: ListAiExecutionsParams,) => {
+    return [
+    `/api/ai-workflows/executions`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getListAiExecutionsQueryOptions = <TData = Awaited<ReturnType<typeof listAiExecutions>>, TError = ErrorType<unknown>>(params?: ListAiExecutionsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAiExecutions>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListAiExecutionsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listAiExecutions>>> = ({ signal }) => listAiExecutions(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listAiExecutions>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListAiExecutionsQueryResult = NonNullable<Awaited<ReturnType<typeof listAiExecutions>>>
+export type ListAiExecutionsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List AI executions
+ */
+
+export function useListAiExecutions<TData = Awaited<ReturnType<typeof listAiExecutions>>, TError = ErrorType<unknown>>(
+ params?: ListAiExecutionsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAiExecutions>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListAiExecutionsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetAiExecutionUrl = (id: number,) => {
+
+
+
+
+  return `/api/ai-workflows/executions/${id}`
+}
+
+/**
+ * @summary Get AI execution with outputs
+ */
+export const getAiExecution = async (id: number, options?: Parameters<typeof customFetch>[1]): Promise<AiExecutionWithOutputs> => {
+
+  return customFetch<AiExecutionWithOutputs>(getGetAiExecutionUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAiExecutionQueryKey = (id: number,) => {
+    return [
+    `/api/ai-workflows/executions/${id}`
+    ] as const;
+    }
+
+
+export const getGetAiExecutionQueryOptions = <TData = Awaited<ReturnType<typeof getAiExecution>>, TError = ErrorType<void>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAiExecution>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAiExecutionQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAiExecution>>> = ({ signal }) => getAiExecution(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAiExecution>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAiExecutionQueryResult = NonNullable<Awaited<ReturnType<typeof getAiExecution>>>
+export type GetAiExecutionQueryError = ErrorType<void>
+
+
+/**
+ * @summary Get AI execution with outputs
+ */
+
+export function useGetAiExecution<TData = Awaited<ReturnType<typeof getAiExecution>>, TError = ErrorType<void>>(
+ id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAiExecution>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAiExecutionQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getReviewAiExecutionUrl = (id: number,) => {
+
+
+
+
+  return `/api/ai-workflows/executions/${id}/review`
+}
+
+/**
+ * @summary Review an AI execution
+ */
+export const reviewAiExecution = async (id: number,
+    reviewAiExecutionBody: ReviewAiExecutionBody, options?: Parameters<typeof customFetch>[1]): Promise<AiExecution> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) {
+      const out: Record<string, string> = {};
+      h.forEach((value, key) => {
+        out[key] = value;
+      });
+      return out;
+    }
+    if (Array.isArray(h)) return Object.fromEntries(h);
+    return h;
+  };
+return customFetch<AiExecution>(getReviewAiExecutionUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(reviewAiExecutionBody)
+  }
+);}
+
+
+
+
+
+export const getReviewAiExecutionMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof reviewAiExecution>>, TError,ReviewAiExecutionMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof reviewAiExecution>>, TError,ReviewAiExecutionMutationVariables, TContext> => {
+
+const mutationKey = ['reviewAiExecution'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof reviewAiExecution>>, ReviewAiExecutionMutationVariables> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  reviewAiExecution(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ReviewAiExecutionMutationResult = NonNullable<Awaited<ReturnType<typeof reviewAiExecution>>>
+    export type ReviewAiExecutionMutationBody = BodyType<ReviewAiExecutionBody>
+    export type ReviewAiExecutionMutationError = ErrorType<void>
+    export type ReviewAiExecutionMutationVariables = {id: number;data: BodyType<ReviewAiExecutionBody>}
+
+    /**
+ * @summary Review an AI execution
+ */
+export const useReviewAiExecution = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof reviewAiExecution>>, TError,ReviewAiExecutionMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof reviewAiExecution>>,
+        TError,
+        ReviewAiExecutionMutationVariables,
+        TContext
+      > => {
+      return useMutation(getReviewAiExecutionMutationOptions(options));
+    }
+
+export const getListAiAgentsUrl = () => {
+
+
+
+
+  return `/api/ai-workflows/agents`
+}
+
+/**
+ * @summary List available AI agent types
+ */
+export const listAiAgents = async ( options?: Parameters<typeof customFetch>[1]): Promise<AiAgentsListResponse> => {
+
+  return customFetch<AiAgentsListResponse>(getListAiAgentsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListAiAgentsQueryKey = () => {
+    return [
+    `/api/ai-workflows/agents`
+    ] as const;
+    }
+
+
+export const getListAiAgentsQueryOptions = <TData = Awaited<ReturnType<typeof listAiAgents>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAiAgents>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListAiAgentsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listAiAgents>>> = ({ signal }) => listAiAgents({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listAiAgents>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListAiAgentsQueryResult = NonNullable<Awaited<ReturnType<typeof listAiAgents>>>
+export type ListAiAgentsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List available AI agent types
+ */
+
+export function useListAiAgents<TData = Awaited<ReturnType<typeof listAiAgents>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAiAgents>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListAiAgentsQueryOptions(options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

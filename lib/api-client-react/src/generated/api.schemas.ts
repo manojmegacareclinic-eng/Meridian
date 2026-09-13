@@ -191,6 +191,231 @@ export interface SearchResults {
   total: number;
 }
 
+export type AiWorkflowAgentType = typeof AiWorkflowAgentType[keyof typeof AiWorkflowAgentType];
+
+
+export const AiWorkflowAgentType = {
+  research: 'research',
+  contact_discovery: 'contact_discovery',
+  verification: 'verification',
+  meeting_assistant: 'meeting_assistant',
+  report_writer: 'report_writer',
+  news: 'news',
+  translation: 'translation',
+  relationship_scoring: 'relationship_scoring',
+  document_generation: 'document_generation',
+} as const;
+
+export type AiWorkflowInputSchema = { [key: string]: unknown };
+
+export type AiWorkflowOutputSchema = { [key: string]: unknown };
+
+export interface AiWorkflow {
+  id: number;
+  name: string;
+  /** @nullable */
+  description?: string | null;
+  agentType: AiWorkflowAgentType;
+  promptTemplate: string;
+  inputSchema: AiWorkflowInputSchema;
+  outputSchema: AiWorkflowOutputSchema;
+  isActive: boolean;
+  createdByUserId: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type CreateAiWorkflowBodyAgentType = typeof CreateAiWorkflowBodyAgentType[keyof typeof CreateAiWorkflowBodyAgentType];
+
+
+export const CreateAiWorkflowBodyAgentType = {
+  research: 'research',
+  contact_discovery: 'contact_discovery',
+  verification: 'verification',
+  meeting_assistant: 'meeting_assistant',
+  report_writer: 'report_writer',
+  news: 'news',
+  translation: 'translation',
+  relationship_scoring: 'relationship_scoring',
+  document_generation: 'document_generation',
+} as const;
+
+export type CreateAiWorkflowBodyInputSchema = { [key: string]: unknown };
+
+export type CreateAiWorkflowBodyOutputSchema = { [key: string]: unknown };
+
+export interface CreateAiWorkflowBody {
+  name: string;
+  description?: string;
+  agentType: CreateAiWorkflowBodyAgentType;
+  promptTemplate: string;
+  inputSchema?: CreateAiWorkflowBodyInputSchema;
+  outputSchema?: CreateAiWorkflowBodyOutputSchema;
+  isActive?: boolean;
+}
+
+export type UpdateAiWorkflowBodyAgentType = typeof UpdateAiWorkflowBodyAgentType[keyof typeof UpdateAiWorkflowBodyAgentType];
+
+
+export const UpdateAiWorkflowBodyAgentType = {
+  research: 'research',
+  contact_discovery: 'contact_discovery',
+  verification: 'verification',
+  meeting_assistant: 'meeting_assistant',
+  report_writer: 'report_writer',
+  news: 'news',
+  translation: 'translation',
+  relationship_scoring: 'relationship_scoring',
+  document_generation: 'document_generation',
+} as const;
+
+export type UpdateAiWorkflowBodyInputSchema = { [key: string]: unknown };
+
+export type UpdateAiWorkflowBodyOutputSchema = { [key: string]: unknown };
+
+export interface UpdateAiWorkflowBody {
+  name?: string;
+  description?: string;
+  agentType?: UpdateAiWorkflowBodyAgentType;
+  promptTemplate?: string;
+  inputSchema?: UpdateAiWorkflowBodyInputSchema;
+  outputSchema?: UpdateAiWorkflowBodyOutputSchema;
+  isActive?: boolean;
+}
+
+export interface AiWorkflowsListResponse {
+  workflows: AiWorkflow[];
+  total: number;
+}
+
+export type AiExecutionInputData = { [key: string]: unknown };
+
+/**
+ * @nullable
+ */
+export type AiExecutionOutputData = { [key: string]: unknown } | null;
+
+export type AiExecutionStatus = typeof AiExecutionStatus[keyof typeof AiExecutionStatus];
+
+
+export const AiExecutionStatus = {
+  pending: 'pending',
+  running: 'running',
+  completed: 'completed',
+  failed: 'failed',
+  reviewed: 'reviewed',
+} as const;
+
+export type AiExecutionCitationsItem = { [key: string]: unknown };
+
+export interface AiExecution {
+  id: number;
+  workflowId: number;
+  inputData: AiExecutionInputData;
+  /** @nullable */
+  outputData?: AiExecutionOutputData;
+  status: AiExecutionStatus;
+  /** @nullable */
+  errorMessage?: string | null;
+  /** @nullable */
+  confidence?: number | null;
+  citations?: AiExecutionCitationsItem[];
+  /** @nullable */
+  executionTimeMs?: number | null;
+  executedByUserId: string;
+  /** @nullable */
+  countryId?: number | null;
+  startedAt: string;
+  /** @nullable */
+  completedAt?: string | null;
+  /** @nullable */
+  reviewedAt?: string | null;
+  /** @nullable */
+  reviewedByUserId?: string | null;
+  /** @nullable */
+  reviewDecision?: string | null;
+  /** @nullable */
+  reviewNote?: string | null;
+}
+
+export type AiOutputCitationsItem = { [key: string]: unknown };
+
+export interface AiOutput {
+  id: number;
+  executionId: number;
+  sectionKey: string;
+  content: string;
+  /** @nullable */
+  confidence?: number | null;
+  citations?: AiOutputCitationsItem[];
+  sourceReferences?: string[];
+  createdAt: string;
+}
+
+export interface AiExecutionWithOutputs {
+  execution: AiExecution;
+  outputs: AiOutput[];
+}
+
+export type ExecuteAiWorkflowBodyInputData = { [key: string]: unknown };
+
+export interface ExecuteAiWorkflowBody {
+  workflowId: number;
+  inputData: ExecuteAiWorkflowBodyInputData;
+  /** @nullable */
+  countryId?: number | null;
+}
+
+export interface ExecuteAiWorkflowResponse {
+  executionId: number;
+  status: string;
+}
+
+export type ReviewAiExecutionBodyDecision = typeof ReviewAiExecutionBodyDecision[keyof typeof ReviewAiExecutionBodyDecision];
+
+
+export const ReviewAiExecutionBodyDecision = {
+  approved: 'approved',
+  rejected: 'rejected',
+  needs_revision: 'needs_revision',
+} as const;
+
+export interface ReviewAiExecutionBody {
+  decision: ReviewAiExecutionBodyDecision;
+  /** @nullable */
+  note?: string | null;
+}
+
+export interface AiExecutionsListResponse {
+  executions: AiExecution[];
+  total: number;
+}
+
+export type AiAgentType = typeof AiAgentType[keyof typeof AiAgentType];
+
+
+export const AiAgentType = {
+  research: 'research',
+  contact_discovery: 'contact_discovery',
+  verification: 'verification',
+  meeting_assistant: 'meeting_assistant',
+  report_writer: 'report_writer',
+  news: 'news',
+  translation: 'translation',
+  relationship_scoring: 'relationship_scoring',
+  document_generation: 'document_generation',
+} as const;
+
+export interface AiAgent {
+  type: AiAgentType;
+  name: string;
+  description: string;
+}
+
+export interface AiAgentsListResponse {
+  agents: AiAgent[];
+}
+
 export type CountryPerformanceResponseCountriesItem = {
   id?: number;
   name?: string;
@@ -2029,6 +2254,62 @@ export const SearchAllType = {
   organizations: 'organizations',
   agreements: 'agreements',
   meetings: 'meetings',
+} as const;
+
+export type ListAiWorkflowsParams = {
+agentType?: ListAiWorkflowsAgentType;
+isActive?: boolean;
+/**
+ * @minimum 1
+ * @maximum 200
+ */
+limit?: number;
+/**
+ * @minimum 0
+ */
+offset?: number;
+};
+
+export type ListAiWorkflowsAgentType = typeof ListAiWorkflowsAgentType[keyof typeof ListAiWorkflowsAgentType];
+
+
+export const ListAiWorkflowsAgentType = {
+  research: 'research',
+  contact_discovery: 'contact_discovery',
+  verification: 'verification',
+  meeting_assistant: 'meeting_assistant',
+  report_writer: 'report_writer',
+  news: 'news',
+  translation: 'translation',
+  relationship_scoring: 'relationship_scoring',
+  document_generation: 'document_generation',
+} as const;
+
+export type ListAiExecutionsParams = {
+workflowId?: number;
+status?: ListAiExecutionsStatus;
+countryId?: number;
+userId?: string;
+/**
+ * @minimum 1
+ * @maximum 200
+ */
+limit?: number;
+/**
+ * @minimum 0
+ */
+offset?: number;
+};
+
+export type ListAiExecutionsStatus = typeof ListAiExecutionsStatus[keyof typeof ListAiExecutionsStatus];
+
+
+export const ListAiExecutionsStatus = {
+  pending: 'pending',
+  running: 'running',
+  completed: 'completed',
+  failed: 'failed',
+  reviewed: 'reviewed',
 } as const;
 
 export type GetCountryPerformanceParams = {

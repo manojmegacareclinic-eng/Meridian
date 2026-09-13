@@ -35,6 +35,7 @@ export * from "./drStrategies";
 export * from "./meetingAgenda";
 export * from "./actionItems";
 export * from "./tasks";
+export * from "./aiWorkflows";
 export {
   userTable as user,
   sessionTable as session,
