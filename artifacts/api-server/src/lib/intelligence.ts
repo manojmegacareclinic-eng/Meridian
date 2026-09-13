@@ -1,3 +1,8 @@
+import {
+  ListContactsResponseItem,
+  ListCountriesResponseItem,
+  ListOrganizationsResponseItem,
+} from "@workspace/api-zod";
 import { and, eq, gte, inArray } from "drizzle-orm";
 import type { Db } from "@workspace/db";
 import {
@@ -66,6 +71,21 @@ export async function applyFindingToOfficialRecord(db: Db, finding: {
   }
 
   const setValue = kind === "int" ? Number(finding.value) : finding.value;
+
+  // Applying a raw write to the official record is only safe if the resulting
+  // value is accepted by the field's own schema (enums, typed columns). Without
+  // this check a bad review could otherwise break every consumer of the record.
+  const responseSchema =
+    finding.targetType === "country"
+      ? ListCountriesResponseItem
+      : finding.targetType === "organization"
+        ? ListOrganizationsResponseItem
+        : ListContactsResponseItem;
+  const fieldShape = (responseSchema.shape as Record<string, { safeParse: (v: unknown) => { success: boolean } }>)[finding.field];
+  if (fieldShape && !fieldShape.safeParse(setValue).success) {
+    return { ok: false, reason: `Value ${JSON.stringify(finding.value)} is not accepted for '${finding.targetType}.${finding.field}' by the official schema.` };
+  }
+
   const table =
     finding.targetType === "country"
       ? countriesTable

@@ -1,8 +1,9 @@
-import { and, eq, inArray } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import {
   db,
   countriesTable,
   notificationsTable,
+  changeEventsTable,
   intelligenceSourcesTable,
   intelligenceFindingsTable,
 } from "@workspace/db";
@@ -46,7 +47,32 @@ async function ensureSource(name: string, kind: string, tier: number, baseUrl: s
 
 async function ensureFinding(sourceId: number, spec: FindingSpec, fprint: string) {
   const existing = await db.select().from(intelligenceFindingsTable).where(eq(intelligenceFindingsTable.fingerprint, fprint));
-  if (existing[0]) return existing[0];
+  let row = existing[0];
+  if (row) {
+    // Route-qa exercises approve/reject (one-way by design), so restore the
+    // seeded decision state to keep the suite re-runnable.
+    const [updated] = await db
+      .update(intelligenceFindingsTable)
+      .set({
+        topic: spec.topic,
+        headline: spec.headline,
+        summary: spec.summary,
+        confidence: spec.confidence,
+        targetType: spec.targetType,
+        targetId: spec.targetId,
+        field: spec.field,
+        value: spec.value,
+        stage: spec.stage,
+        applied: false,
+        reviewNote: spec.reviewNote,
+        reviewedByUserId: null,
+        reviewedAt: null,
+      })
+      .where(eq(intelligenceFindingsTable.id, row.id))
+      .returning();
+    row = updated;
+  }
+  if (row) return row;
   const [created] = await db
     .insert(intelligenceFindingsTable)
     .values({
@@ -93,7 +119,7 @@ async function main() {
         targetType: "country",
         targetId: scor.id,
         field: "governmentType",
-        value: "parliamentary",
+        value: "parliamentary republic",
         stage: "open",
         reviewNote: null,
       },
@@ -157,12 +183,20 @@ async function main() {
     ids.push(row.id);
   }
 
-  await db.update(countriesTable).set({ governmentType: "presidential" }).where(eq(countriesTable.id, scor.id));
+  await db.update(countriesTable).set({ governmentType: "presidential republic" }).where(eq(countriesTable.id, scor.id));
 
-  const openFindings = findings.filter((f) => f.spec.stage === "open");
-  const openIds = openFindings
-    .map((f) => ids[findings.indexOf(f)])
-    .filter((id): id is number => id != null);
+  // Route-qa exercises approve/reject (one-way by design), so restore the
+  // seeded decision state to keep the suite re-runnable; drop change events
+  // left by a prior apply so the applied-changes trail stays deterministic.
+  await db.delete(changeEventsTable).where(inArray(changeEventsTable.findingId, ids));
+  for (const { sourceId, spec, fprint } of findings) {
+    await ensureFinding(sourceId, spec, fprint);
+  }
+  const refresh = await db
+    .select({ id: intelligenceFindingsTable.id, stage: intelligenceFindingsTable.stage })
+    .from(intelligenceFindingsTable)
+    .where(inArray(intelligenceFindingsTable.id, ids));
+  const openIds = refresh.filter((f) => f.stage === "open").map((f) => f.id);
 
   await db
     .update(notificationsTable)
@@ -171,7 +205,7 @@ async function main() {
 
   console.log(`sources: ${gov.name} (tier ${gov.tier}), ${gazette.name} (tier ${gazette.tier}), ${linkedin.name} (tier ${linkedin.tier})`);
   console.log(`findings: ${ids.length} seeded (3 open + 1 rejected), ids=${ids.join(",")}`);
-  console.log(`baseline: SCOR governmentType restored to presidential; ${openIds.length} new_finding notifications reset to unread`);
+  console.log(`baseline: SCOR governmentType restored to presidential republic; ${openIds.length} new_finding notifications reset to unread`);
   console.log("seed-intelligence complete — run GET /api/notifications to reconcile the feed");
 }
 

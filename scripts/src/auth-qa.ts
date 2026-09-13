@@ -967,7 +967,7 @@ async function main() {
   //   new_finding staff alert. Disposable source/country per run; fingerprints
   //   are unique because sources get fresh ids on every run.
   const iqCountryCode = `QI${Math.floor(1 + Math.random() * 9)}`;
-  const [iqCountry] = await db.insert(countriesTable).values({ name: "QA Intelligence Land", code: iqCountryCode, region: "QA", status: "leads", riskLevel: "medium", governmentType: "presidential", electionYear: new Date().getUTCFullYear() }).returning({ id: countriesTable.id });
+  const [iqCountry] = await db.insert(countriesTable).values({ name: "QA Intelligence Land", code: iqCountryCode, region: "QA", status: "leads", riskLevel: "medium", governmentType: "presidential republic", electionYear: new Date().getUTCFullYear() }).returning({ id: countriesTable.id });
   const iqCid = iqCountry.id;
   const iqYear = new Date().getUTCFullYear();
   const iqNextYear = iqYear + 1;
@@ -1021,19 +1021,19 @@ async function main() {
   const iqF3 = await iqPostF({ sourceId: iqS1.id, topic: "election", headline: "QA dedupe gamma", url: iqFUrl, confidence: 70 });
   check("5.1 re-POST decided fingerprint -> 409 with existing id", iqF3.res.status === 409 && iqF3.json.id === iqF1Id, `status=${iqF3.res.status} id=${iqF3.json.id}`);
 
-  const iqApply = await iqPostF({ sourceId: iqS1.id, topic: "government_change", headline: "QA cabinet reshuffle confirmed", url: null, confidence: 80, targetType: "country", targetId: iqCid, field: "governmentType", value: "parliamentary" });
+  const iqApply = await iqPostF({ sourceId: iqS1.id, topic: "government_change", headline: "QA cabinet reshuffle confirmed", url: null, confidence: 80, targetType: "country", targetId: iqCid, field: "governmentType", value: "parliamentary republic" });
   const iqApplyId = iqApply.json.id ?? -1;
   iqFindings.push(iqApplyId);
   const iqApproveRes = await fetch(`${origin}/api/intelligence/findings/${iqApplyId}/approve`, { method: "POST", headers: { "content-type": "application/json", cookie: adminJar.header() }, body: JSON.stringify({ apply: true, reviewNote: "QA verified via gazette" }) });
   const iqApproveBody = (await iqApproveRes.json().catch(() => ({}))) as { stage: string; applied: boolean; changeEventId: number | null };
   check("5.2 approve+apply -> 200 applied with change event", iqApproveRes.status === 200 && iqApproveBody.stage === "approved" && iqApproveBody.applied === true && typeof iqApproveBody.changeEventId === "number", `status=${iqApproveRes.status} body=${JSON.stringify(iqApproveBody)}`);
   const [iqAppliedRow] = await db.select({ governmentType: countriesTable.governmentType }).from(countriesTable).where(eq(countriesTable.id, iqCid));
-  check("5.2 official governmentType updated", iqAppliedRow?.governmentType === "parliamentary", `govType=${iqAppliedRow?.governmentType}`);
+  check("5.2 official governmentType updated", iqAppliedRow?.governmentType === "parliamentary republic", `govType=${iqAppliedRow?.governmentType}`);
   const iqCE = await fetch(`${origin}/api/intelligence/change-events?findingId=${iqApplyId}`, { headers: { cookie: adminJar.header() } });
   const iqCEBody = (await iqCE.json().catch(() => ({}))) as { items: { field: string; beforeValue: string; afterValue: string; applied: boolean; sourceUrl: string | null }[] };
   check(
     "5.2 change event records before/after + provenance",
-    iqCE.status === 200 && iqCEBody.items.length === 1 && iqCEBody.items[0].field === "governmentType" && iqCEBody.items[0].beforeValue === "presidential" && iqCEBody.items[0].afterValue === "parliamentary" && iqCEBody.items[0].applied === true,
+    iqCE.status === 200 && iqCEBody.items.length === 1 && iqCEBody.items[0].field === "governmentType" && iqCEBody.items[0].beforeValue === "presidential republic" && iqCEBody.items[0].afterValue === "parliamentary republic" && iqCEBody.items[0].applied === true,
     JSON.stringify(iqCEBody.items[0]),
   );
   const iqAuditApplied = await db.select({ id: activityTable.id }).from(activityTable).where(and(eq(activityTable.countryId, iqCid), eq(activityTable.kind, "intelligence")));
@@ -1058,6 +1058,15 @@ async function main() {
   const iqBadGet = await fetch(`${origin}/api/intelligence/findings/${iqBadFieldId}`, { headers: { cookie: adminJar.header() } });
   const iqBadGetBody = (await iqBadGet.json().catch(() => ({}))) as { stage: string };
   check("5.4 400 leaves finding open (no forced decision)", iqBadGetBody.stage === "open", `stage=${iqBadGetBody.stage}`);
+
+  const iqBadEnum = await iqPostF({ sourceId: iqS1.id, topic: "government_change", headline: "QA invented regime label", url: null, confidence: 75, targetType: "country", targetId: iqCid, field: "governmentType", value: "parliamentary" });
+  const iqBadEnumId = iqBadEnum.json.id ?? -1;
+  iqFindings.push(iqBadEnumId);
+  const iqBadEnumApprove = await fetch(`${origin}/api/intelligence/findings/${iqBadEnumId}/approve`, { method: "POST", headers: { "content-type": "application/json", cookie: adminJar.header() }, body: JSON.stringify({ apply: true }) });
+  check("5.4 apply value outside official enum -> 400", iqBadEnumApprove.status === 400, `status=${iqBadEnumApprove.status}`);
+  const [iqEnumGuardRow] = await db.select({ governmentType: countriesTable.governmentType }).from(countriesTable).where(eq(countriesTable.id, iqCid));
+  check("5.4 guard leaves official record unchanged", iqEnumGuardRow?.governmentType === "parliamentary republic", `govType=${iqEnumGuardRow?.governmentType}`);
+
   const iqVanish = await iqPostF({ sourceId: iqS1.id, topic: "government_change", headline: "QA vanished target", url: null, confidence: 60, targetType: "country", targetId: 999999, field: "status", value: "intels" });
   const iqVanishId = iqVanish.json.id ?? -1;
   iqFindings.push(iqVanishId);

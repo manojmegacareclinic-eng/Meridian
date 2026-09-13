@@ -1,8 +1,8 @@
 # Global Diplomatic Relations — Implementation Plan
 
 **Status:** Foundation running; MVP implementation in progress  
-**Last updated:** 12 September 2026
-**Current next task:** Phase 5 — Intelligence and source verification
+**Last updated:** 13 September 2026
+**Current next task:** Phase 6 — Search, analytics, and reporting
 **Source brief:** `attached_assets/Pasted--Global-Diplomatic-Relations-Government-Engagement-Plat_1787756992171.txt`
 
 This is a living delivery plan for the Global Diplomatic Relations (GDP) platform. It translates the enterprise blueprint into an incremental plan that matches the current Replit project instead of requiring a wholesale rewrite.
@@ -134,19 +134,20 @@ and cleanup (`ALL PASS, 26`); demo and real-auth route-qa push the audit page (`
 
 ### Phase 5 — Intelligence and source verification
 
-**Status: `PLANNED` — do not automate before provenance and human review are in place.**
+**Status: `COMPLETE` — trust layer shipped (findings + human approval queue), scheduled ingestion deliberately NOT automated; step 4 is the no-automation gate, deferred by design.**
 
-1. Add a source-oriented intelligence feed for government changes, elections, diplomatic news, religious affairs, NGO news, and university news.
+1. Add a source-oriented intelligence feed for government changes, elections, diplomatic news, religious affairs, NGO news, and university news. ✓ (source-registered findings feed; topics: `government_change`, `election`, `diplomatic_news`, `religious_affairs`, plus NGO/university topics in the topic enum; stage tabs All/Open/Approved/Rejected with per-finding tier + topic + confidence; every alert carries a source link for provenance)
 2. Prioritize sources in this order:
-   - Official government websites
-   - Parliament directories
-   - Embassy websites
-   - Government gazettes
-   - Official LinkedIn
-   - Official Facebook/X
-3. Add source records, confidence, change events, and a human approval queue.
-4. Add scheduled ingestion only after rate limits, source terms, retries, and provenance are defined.
-5. Keep automated findings separate from approved official records until a reviewer accepts them.
+   - Official government websites ✓ (tier 1)
+   - Parliament directories ✓ (tier 2)
+   - Embassy websites ✓ (tier 3)
+   - Government gazettes ✓ (tier 4)
+   - Official LinkedIn ✓ (tier 5)
+   - Official Facebook/X ✓ (tier 6)
+   (source tiers drive `source-tier` ordering in the feed)
+3. Add source records, confidence, change events, and a human approval queue. ✓ (auth-qa 204/204 + route-qa 103/103 green: adopt/reject one-way decisions, confident apply-on-approve with schema-level value guard, `change_events` with before/after + provenance, `new_finding` notifications that deep-link from the header bell into the focused finding, deterministic `seed-intelligence` demo seed)
+4. Add scheduled ingestion only after rate limits, source terms, retries, and provenance are defined. (gate — no automation before provenance + human review; finding creation today is explicit, and entries that lack provenance render with a confidence flag)
+5. Keep automated findings separate from approved official records until a reviewer accepts them. ✓ (findings live in `intelligence_findings` until a reviewer approves AND explicitly chooses apply; approval writes go through a schema guard and are recorded in `change_events`)
 
 ### Phase 6 — Search, analytics, and reporting
 

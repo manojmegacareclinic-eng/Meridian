@@ -42,6 +42,7 @@ const NAV_ROUTES = [
   { path: "/countries", testid: "link-nav-countries", title: "Countries" },
   { path: "/contacts", testid: "link-nav-contacts", title: "Contacts" },
   { path: "/meetings", testid: "link-nav-meetings", title: "Meetings" },
+  { path: "/intelligence", testid: "link-nav-intelligence", title: "Intelligence" },
   { path: "/agreements", testid: "link-nav-agreements", title: "Agreements" },
   { path: "/audit", testid: "link-nav-audit", title: "Audit" },
   { path: "/settings", testid: "link-nav-settings", title: "Workspace" },
@@ -187,6 +188,150 @@ async function main() {
       check("SCER renders No data badge", await page.isVisible('[data-testid="scorecard-no-data"]'));
     } else {
       console.log("  SKIP scorecard strip flow (run seed-scorecard first)");
+    }
+
+    // Phase 5 — intelligence source verification (requires prior seed-intelligence run)
+    type IntelFinding = {
+      id: number;
+      topic: string;
+      headline: string;
+      confidence: number;
+      stage: string;
+      applied: boolean;
+      reviewNote: string | null;
+      sourceTier: number | null;
+      targetId: number | null;
+      field: string | null;
+      value: string | null;
+    };
+    type IntelSourceRow = { id: number; name: string; kind: string; tier: number; baseUrl: string; status: string };
+    type IntelFeedItem = { id: number; kind: string; title: string; entityType: string | null; entityId: number | null; isRead: boolean };
+    const intelFindings = (await fetch(`${baseURL}/api/intelligence/findings`, { headers: { accept: "application/json" } })
+      .then((r) => (r.ok ? r.json() : null))
+      .catch(() => null)) as { items: IntelFinding[] } | null;
+    const intelSources = (await fetch(`${baseURL}/api/intelligence/sources`, { headers: { accept: "application/json" } })
+      .then((r) => (r.ok ? r.json() : null))
+      .catch(() => null)) as { items: IntelSourceRow[] } | null;
+    const govChange = intelFindings?.items.find((f) => f.stage === "open" && f.topic === "government_change");
+    const election = intelFindings?.items.find((f) => f.stage === "open" && f.topic === "election");
+    const diplomatic = intelFindings?.items.find((f) => f.stage === "open" && f.topic === "diplomatic_news");
+    const rejected = intelFindings?.items.find((f) => f.stage === "rejected");
+
+    if (intelFindings && intelSources && govChange && election && diplomatic && rejected) {
+      const waitFindingStage = async (id: number, stage: string) => {
+        for (let i = 0; i < 30; i++) {
+          const row = (await fetch(`${baseURL}/api/intelligence/findings/${id}`)
+            .then((r) => (r.ok ? r.json() : null))
+            .catch(() => null)) as IntelFinding | null;
+          if (row && row.stage === stage) return true;
+          await new Promise((resolve) => setTimeout(resolve, 250));
+        }
+        return false;
+      };
+
+      // Render checks
+      await page.goto(`${baseURL}/intelligence`, { waitUntil: "load" });
+      await page.waitForSelector('[data-testid="sources-table"]', { timeout: 15000 });
+      const intelH1 = ((await page.textContent("header h1")) ?? "").trim();
+      check("intelligence header title renders", intelH1 === "Intelligence", `got "${intelH1}"`);
+      const intelNavClass = (await page.locator('[data-testid="link-nav-intelligence"]').getAttribute("class")) ?? "";
+      check("intelligence nav item highlighted as active", intelNavClass.includes("bg-[hsl(var(--sidebar-accent))]"), "active class missing");
+      const tierOrder = intelSources.items.map((s) => s.tier);
+      check("intelligence sources tier-sorted 1→5", tierOrder.every((t, i) => i === 0 || t >= tierOrder[i - 1]), `got ${tierOrder.join(",")}`);
+      const sourceRowCount = await page.locator('[data-testid^="source-row-"]').count();
+      check("sources table lists every registered source", sourceRowCount === intelSources.items.length, `got ${sourceRowCount}`);
+      const domTiers: number[] = [];
+      for (const s of intelSources.items) {
+        const raw = (await page.locator(`[data-testid="source-tier-${s.id}"]`).textContent()) ?? "";
+        domTiers.push(Number(raw.replace(/\D/g, "")));
+      }
+      check("sources table renders rows ordered tier 1→5", domTiers.every((t, i) => i === 0 || t >= domTiers[i - 1]), `got ${domTiers.join(",")}`);
+
+      const govCard = page.locator(`[data-testid="finding-card-${govChange.id}"]`);
+      await govCard.waitFor({ state: "visible", timeout: 15000 });
+      const govText = (await govCard.textContent()) ?? "";
+      check("open queue shows the government_change finding", govText.includes("Cabinet reshuffle"), govText.slice(0, 80));
+      check("finding card shows topic chip", govText.includes("Government change"), govText.slice(0, 80));
+      check("finding card shows tier chip", govText.includes("Tier 1"), govText.slice(0, 80));
+      check("finding card shows confidence gauge", /80%/.test(govText), govText.slice(0, 80));
+      check("open finding shows approve action", await page.locator(`[data-testid="button-approve-${govChange.id}"]`).isVisible());
+      check("open finding shows reject action", await page.locator(`[data-testid="button-reject-${govChange.id}"]`).isVisible());
+      const applyChecked = await page.locator(`[data-testid="checkbox-apply-${govChange.id}"]`).isChecked();
+      check("apply checkbox pre-checked when applicable", applyChecked, "expected checked");
+
+      const dipCard = page.locator(`[data-testid="finding-card-${diplomatic.id}"]`);
+      await dipCard.waitFor({ state: "visible", timeout: 15000 });
+      check("non-applicable finding shows no apply checkbox", (await page.locator(`[data-testid="checkbox-apply-${diplomatic.id}"]`).count()) === 0, "checkbox unexpectedly rendered");
+
+      await page.click('[data-testid="button-tab-rejected"]');
+      const rejCard = page.locator(`[data-testid="finding-card-${rejected.id}"]`);
+      await rejCard.waitFor({ state: "visible", timeout: 15000 });
+      check("rejected finding visible under Rejected tab", await rejCard.isVisible());
+      check("rejected finding shows review note", ((await rejCard.textContent()) ?? "").includes("Unable to confirm"), "no note text");
+      await page.click('[data-testid="button-tab-open"]');
+
+      // Bell deep-link: new_finding → /intelligence?focus=<id> with highlight
+      const intelFeed = (await fetch(`${baseURL}/api/notifications`, { headers: { accept: "application/json" } })
+        .then((r) => (r.ok ? r.json() : null))
+        .catch(() => null)) as { unreadCount: number; items: IntelFeedItem[] } | null;
+      const newFindingItem = intelFeed?.items?.find((i) => i.kind === "new_finding" && !i.isRead);
+      if (intelFeed && newFindingItem && newFindingItem.entityId != null) {
+        await page.goto(`${baseURL}/`, { waitUntil: "load" });
+        await page.waitForSelector('[data-testid="button-notifications"]', { timeout: 15000 });
+        const badge = page.locator('[data-testid="notifications-unread-badge"]');
+        await badge.waitFor({ state: "visible", timeout: 15000 });
+        const badgeText = ((await badge.textContent()) ?? "").trim();
+        check("bell unread badge reflects reconciled feed", badgeText === String(intelFeed.unreadCount), `got "${badgeText}" want ${intelFeed.unreadCount}`);
+        await page.click('[data-testid="button-notifications"]');
+        await page.waitForSelector(`[data-testid="notifications-item-${newFindingItem.id}"]`, { timeout: 15000 });
+        await page.click(`[data-testid="notifications-item-${newFindingItem.id}"]`);
+        await page.waitForURL(`**/intelligence?focus=${newFindingItem.entityId}`, { timeout: 15000 });
+        check("new_finding click deep-links to /intelligence?focus=<id>", true);
+        await page.waitForSelector(`[data-testid="finding-card-${newFindingItem.entityId}"]`, { timeout: 15000 });
+        const focusedClass = (await page.locator(`[data-testid="finding-card-${newFindingItem.entityId}"]`).getAttribute("class")) ?? "";
+        check("focused finding is ring-highlighted", focusedClass.includes("ring-2"), "ring class missing");
+      } else {
+        console.log("  SKIP new_finding bell deep-link flow (run seed-intelligence first)");
+      }
+
+      // Direct-navigation highlight
+      await page.goto(`${baseURL}/intelligence?focus=${election.id}`, { waitUntil: "load" });
+      await page.waitForSelector(`[data-testid="finding-card-${election.id}"]`, { timeout: 15000 });
+      const directClass = (await page.locator(`[data-testid="finding-card-${election.id}"]`).getAttribute("class")) ?? "";
+      check("?focus=<id> highlight works on direct navigation", directClass.includes("ring-2"), "ring class missing");
+
+      // Approve & apply the government_change finding
+      await page.goto(`${baseURL}/intelligence`, { waitUntil: "load" });
+      await page.waitForSelector(`[data-testid="button-approve-${govChange.id}"]`, { timeout: 15000 });
+      await page.click(`[data-testid="button-approve-${govChange.id}"]`);
+      check("approve & apply reaches approved stage", await waitFindingStage(govChange.id, "approved"));
+      await page.getByTestId(`finding-card-${govChange.id}`).filter({ hasText: "Applied" }).waitFor({ state: "visible", timeout: 15000 });
+      check("approved finding shows Applied badge", true);
+      const countriesAfter = (await fetch(`${baseURL}/api/countries`)
+        .then((r) => (r.ok ? r.json() : []))
+        .catch(() => [])) as { code: string; governmentType: string | null }[];
+      const scorAfter = countriesAfter.find((c) => c.code === "SCOR");
+      check("SCOR governmentType applied to parliamentary", scorAfter?.governmentType === "parliamentary republic", `got "${scorAfter?.governmentType}"`);
+      const appliedEvents = (await fetch(`${baseURL}/api/intelligence/change-events?findingId=${govChange.id}`)
+        .then((r) => (r.ok ? r.json() : null))
+        .catch(() => null)) as { items: { field: string; beforeValue: string | null; afterValue: string | null; applied: boolean }[] } | null;
+      check("change event recorded for applied finding", appliedEvents?.items?.length === 1, `got ${appliedEvents?.items?.length}`);
+      const firstEvent = appliedEvents?.items?.[0];
+      check(
+        "change event carries field + before/after",
+        firstEvent?.field === "governmentType" && firstEvent.beforeValue === "presidential republic" && firstEvent.afterValue === "parliamentary republic",
+        JSON.stringify(firstEvent),
+      );
+
+      // Approve without apply (non-applicable finding)
+      await page.click(`[data-testid="button-approve-${diplomatic.id}"]`);
+      check("non-applicable approve reaches approved stage", await waitFindingStage(diplomatic.id, "approved"));
+      const dipEvents = (await fetch(`${baseURL}/api/intelligence/change-events?findingId=${diplomatic.id}`)
+        .then((r) => (r.ok ? r.json() : null))
+        .catch(() => null)) as { items: unknown[] } | null;
+      check("non-applicable approve records no change event", (dipEvents?.items?.length ?? 0) === 0, `got ${dipEvents?.items?.length}`);
+    } else {
+      console.log("  SKIP intelligence verification flow (run seed-intelligence first)");
     }
 
     // Phase 4.4 — header bell notifications panel (requires prior seed-notify run)

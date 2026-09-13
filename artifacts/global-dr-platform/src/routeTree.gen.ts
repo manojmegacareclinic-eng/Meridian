@@ -16,6 +16,7 @@ import { Route as AuditRouteImport } from './routes/audit'
 import { Route as ContactsRouteImport } from './routes/contacts'
 import { Route as CountriesRouteImport } from './routes/countries'
 import { Route as DrStrategiesRouteImport } from './routes/dr-strategies'
+import { Route as IntelligenceRouteImport } from './routes/intelligence'
 import { Route as MapRouteImport } from './routes/map'
 import { Route as MeetingsRouteImport } from './routes/meetings'
 import { Route as SettingsRouteImport } from './routes/settings'
@@ -58,6 +59,11 @@ const DrStrategiesRoute = DrStrategiesRouteImport.update({
   path: '/dr-strategies',
   getParentRoute: () => rootRouteImport,
 } as any)
+const IntelligenceRoute = IntelligenceRouteImport.update({
+  id: '/intelligence',
+  path: '/intelligence',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const MapRoute = MapRouteImport.update({
   id: '/map',
   path: '/map',
@@ -97,6 +103,7 @@ export interface FileRoutesByFullPath {
   '/contacts': typeof ContactsRoute
   '/countries': typeof CountriesRouteWithChildren
   '/dr-strategies': typeof DrStrategiesRoute
+  '/intelligence': typeof IntelligenceRoute
   '/map': typeof MapRoute
   '/meetings': typeof MeetingsRoute
   '/settings': typeof SettingsRoute
@@ -111,6 +118,7 @@ export interface FileRoutesByTo {
   '/audit': typeof AuditRoute
   '/contacts': typeof ContactsRoute
   '/dr-strategies': typeof DrStrategiesRoute
+  '/intelligence': typeof IntelligenceRoute
   '/map': typeof MapRoute
   '/meetings': typeof MeetingsRoute
   '/settings': typeof SettingsRoute
@@ -127,6 +135,7 @@ export interface FileRoutesById {
   '/contacts': typeof ContactsRoute
   '/countries': typeof CountriesRouteWithChildren
   '/dr-strategies': typeof DrStrategiesRoute
+  '/intelligence': typeof IntelligenceRoute
   '/map': typeof MapRoute
   '/meetings': typeof MeetingsRoute
   '/settings': typeof SettingsRoute
@@ -144,6 +153,7 @@ export interface FileRouteTypes {
     | '/contacts'
     | '/countries'
     | '/dr-strategies'
+    | '/intelligence'
     | '/map'
     | '/meetings'
     | '/settings'
@@ -158,6 +168,7 @@ export interface FileRouteTypes {
     | '/audit'
     | '/contacts'
     | '/dr-strategies'
+    | '/intelligence'
     | '/map'
     | '/meetings'
     | '/settings'
@@ -173,6 +184,7 @@ export interface FileRouteTypes {
     | '/contacts'
     | '/countries'
     | '/dr-strategies'
+    | '/intelligence'
     | '/map'
     | '/meetings'
     | '/settings'
@@ -189,6 +201,7 @@ export interface RootRouteChildren {
   ContactsRoute: typeof ContactsRoute
   CountriesRoute: typeof CountriesRouteWithChildren
   DrStrategiesRoute: typeof DrStrategiesRoute
+  IntelligenceRoute: typeof IntelligenceRoute
   MapRoute: typeof MapRoute
   MeetingsRoute: typeof MeetingsRoute
   SettingsRoute: typeof SettingsRoute
@@ -245,6 +258,13 @@ declare module '@tanstack/react-router' {
       path: '/dr-strategies'
       fullPath: '/dr-strategies'
       preLoaderRoute: typeof DrStrategiesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/intelligence': {
+      id: '/intelligence'
+      path: '/intelligence'
+      fullPath: '/intelligence'
+      preLoaderRoute: typeof IntelligenceRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/map': {
@@ -312,6 +332,7 @@ const rootRouteChildren: RootRouteChildren = {
   ContactsRoute: ContactsRoute,
   CountriesRoute: CountriesRouteWithChildren,
   DrStrategiesRoute: DrStrategiesRoute,
+  IntelligenceRoute: IntelligenceRoute,
   MapRoute: MapRoute,
   MeetingsRoute: MeetingsRoute,
   SettingsRoute: SettingsRoute,

@@ -61,8 +61,13 @@ export function NotificationsPanel({ onClose }: { onClose: () => void }) {
   const sorted = [...items].sort((a, b) => Number(a.isRead) - Number(b.isRead));
 
   const focusItem = (item: NotificationItem) => {
-    if (item.countryId == null || item.kind === 'meeting_upcoming') return;
-    if (item.kind === 'position_change') {
+    if (item.kind === 'meeting_upcoming') {
+      void navigate({ to: '/meetings' });
+    } else if (item.kind === 'new_finding') {
+      void navigate({ to: '/intelligence', search: { focus: item.entityId } });
+    } else if (item.countryId == null) {
+      return;
+    } else if (item.kind === 'position_change') {
       void navigate({ to: '/country/$countryId', params: { countryId: String(item.countryId) }, search: { tab: 'government' } });
     } else if (item.kind === 'agreement_expiring') {
       void navigate({ to: '/country/$countryId', params: { countryId: String(item.countryId) }, search: { tab: 'documents' } });
