@@ -248,5 +248,5 @@ git commit -m "feat(spa): intelligence page with approve/reject queue + new_find
 - [x] **Step 1: Kill ports** — `lsof -ti tcp:3000 | xargs kill -9 2>/dev/null; lsof -ti tcp:5173 | xargs kill -9 2>/dev/null; true`.
 - [x] **Step 2: One invocation, both suites** — boot API+SPA, wait `/api/healthz`, run `seed-scorecard` + `seed-notify` + `seed-intelligence`, then `route-qa`, then `auth-qa`; capture both `ALL PASS` lines + the exact totals (record auth-qa and route-qa phase counts incl. the new Phase 5 totals).
 - [x] **Step 3: typecheck + build** — root `bun run typecheck`, SPA build — exit 0; `git status` shows only intended files.
-- [ ] **Step 4 (only after user confirms push): commit + push** — final docs/plan commit; push `origin/main` only on explicit confirmation (repo convention).
+ - [x] **Step 4 (only after user confirms push): commit + push** — final docs/plan commit; push `origin/main` only on explicit confirmation (repo convention).
 - [x] **Step 5: Verify the plan file** — every checkbox marked done except the push step; tick this plan's own Chunk 5 box as the handoff document.
