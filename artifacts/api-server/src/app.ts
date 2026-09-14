@@ -32,7 +32,25 @@ app.use(
 // before any body parser. Express 5 catch-all syntax.
 app.all("/api/auth/*splat", toNodeHandler(auth));
 
-app.use(cors());
+// CORS configuration - restrict origins in production
+const allowedOrigins = process.env.CORS_ORIGINS?.split(",").map((o) => o.trim()) ?? [
+  "http://localhost:5173",
+  "http://localhost:3000",
+];
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      // Allow requests with no origin (mobile apps, curl, etc.)
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.includes(origin)) return callback(null, true);
+      callback(new Error("Not allowed by CORS"));
+    },
+    credentials: true,
+    methods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "Cookie"],
+  }),
+);
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 

@@ -11,6 +11,7 @@
     "seed-notify": "tsx ./src/seed-notify.ts",
     "seed-intelligence": "tsx ./src/seed-intelligence.ts",
     "create-user": "tsx ./src/create-user.ts",
+    "smoke-api": "bun test ./src/smoke-api.test.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "devDependencies": {

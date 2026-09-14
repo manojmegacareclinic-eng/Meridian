@@ -21,8 +21,9 @@ export const countriesTable = pgTable("countries", {
   reviewerUserId: text("reviewer_user_id").references(() => userTable.id, { onDelete: "set null" }),
   regionalCoordinatorUserId: text("regional_coordinator_user_id").references(() => userTable.id, { onDelete: "set null" }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  deletedAt: timestamp("deleted_at", { withTimezone: true }),
 });
 
-export const insertCountrySchema = createInsertSchema(countriesTable).omit({ id: true, createdAt: true });
+export const insertCountrySchema = createInsertSchema(countriesTable).omit({ id: true, createdAt: true, deletedAt: true });
 export type InsertCountry = z.infer<typeof insertCountrySchema>;
 export type Country = typeof countriesTable.$inferSelect;

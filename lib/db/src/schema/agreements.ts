@@ -26,8 +26,9 @@ export const agreementsTable = pgTable("agreements", {
   approvedBy: text("approved_by"),
   signedAt: timestamp("signed_at", { withTimezone: true }),
   signedBy: text("signed_by"),
+  deletedAt: timestamp("deleted_at", { withTimezone: true }),
 });
 
-export const insertAgreementSchema = createInsertSchema(agreementsTable).omit({ id: true });
+export const insertAgreementSchema = createInsertSchema(agreementsTable).omit({ id: true, deletedAt: true });
 export type InsertAgreement = z.infer<typeof insertAgreementSchema>;
 export type Agreement = typeof agreementsTable.$inferSelect;

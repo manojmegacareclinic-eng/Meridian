@@ -20,8 +20,9 @@ export const meetingsTable = pgTable("meetings", {
   riskLevel: text("risk_level"),
   attachments: jsonb("attachments"),
   followUpTimeline: jsonb("follow_up_timeline"),
+  deletedAt: timestamp("deleted_at", { withTimezone: true }),
 });
 
-export const insertMeetingSchema = createInsertSchema(meetingsTable).omit({ id: true });
+export const insertMeetingSchema = createInsertSchema(meetingsTable).omit({ id: true, deletedAt: true });
 export type InsertMeeting = z.infer<typeof insertMeetingSchema>;
 export type Meeting = typeof meetingsTable.$inferSelect;

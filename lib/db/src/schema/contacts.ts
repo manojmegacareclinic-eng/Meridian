@@ -14,8 +14,10 @@ export const contactsTable = pgTable("contacts", {
   verificationStatus: text("verification_status").notNull().default("review"),
   lastVerified: date("last_verified", { mode: "string" }).notNull(),
   relationship: text("relationship").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  deletedAt: timestamp("deleted_at", { withTimezone: true }),
 });
 
-export const insertContactSchema = createInsertSchema(contactsTable).omit({ id: true });
+export const insertContactSchema = createInsertSchema(contactsTable).omit({ id: true, createdAt: true, deletedAt: true });
 export type InsertContact = z.infer<typeof insertContactSchema>;
 export type Contact = typeof contactsTable.$inferSelect;

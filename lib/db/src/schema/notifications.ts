@@ -27,6 +27,7 @@ export const notificationsTable = pgTable(
     isRead: boolean("is_read").notNull().default(false),
     readAt: timestamp("read_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
     fingerprint: text("fingerprint").notNull(),
   },
   (table) => [
@@ -34,6 +35,6 @@ export const notificationsTable = pgTable(
   ]
 );
 
-export const insertNotificationSchema = createInsertSchema(notificationsTable).omit({ id: true, createdAt: true });
+export const insertNotificationSchema = createInsertSchema(notificationsTable).omit({ id: true, createdAt: true, deletedAt: true });
 export type InsertNotification = z.infer<typeof insertNotificationSchema>;
 export type Notification = typeof notificationsTable.$inferSelect;

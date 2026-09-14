@@ -36,6 +36,7 @@ export const intelligenceSourcesTable = pgTable("intelligence_sources", {
   notes: text("notes"),
   status: text("status").notNull().default("active"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  deletedAt: timestamp("deleted_at", { withTimezone: true }),
 });
 
 export const intelligenceFindingsTable = pgTable(
@@ -61,6 +62,7 @@ export const intelligenceFindingsTable = pgTable(
     reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
     fingerprint: text("fingerprint").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
   },
   (table) => [uniqueIndex("intelligence_findings_fingerprint_unique").on(table.fingerprint)]
 );
@@ -80,11 +82,12 @@ export const changeEventsTable = pgTable("change_events", {
   reviewedByUserId: text("reviewed_by_user_id").references(() => userTable.id, { onDelete: "set null" }),
   reviewedAt: timestamp("reviewed_at", { withTimezone: true }).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  deletedAt: timestamp("deleted_at", { withTimezone: true }),
 });
 
-export const insertIntelligenceSourceSchema = createInsertSchema(intelligenceSourcesTable).omit({ id: true, createdAt: true });
-export const insertIntelligenceFindingSchema = createInsertSchema(intelligenceFindingsTable).omit({ id: true, reviewedAt: true, createdAt: true });
-export const insertChangeEventSchema = createInsertSchema(changeEventsTable).omit({ id: true, createdAt: true });
+export const insertIntelligenceSourceSchema = createInsertSchema(intelligenceSourcesTable).omit({ id: true, createdAt: true, deletedAt: true });
+export const insertIntelligenceFindingSchema = createInsertSchema(intelligenceFindingsTable).omit({ id: true, reviewedAt: true, createdAt: true, deletedAt: true });
+export const insertChangeEventSchema = createInsertSchema(changeEventsTable).omit({ id: true, createdAt: true, deletedAt: true });
 export type InsertIntelligenceSource = z.infer<typeof insertIntelligenceSourceSchema>;
 export type IntelligenceSource = typeof intelligenceSourcesTable.$inferSelect;
 export type InsertIntelligenceFinding = z.infer<typeof insertIntelligenceFindingSchema>;

@@ -23,8 +23,9 @@ export const organizationsTable = pgTable("organizations", {
   notes: text("notes"),
   metadata: jsonb("metadata"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  deletedAt: timestamp("deleted_at", { withTimezone: true }),
 });
 
-export const insertOrganizationSchema = createInsertSchema(organizationsTable).omit({ id: true, createdAt: true });
+export const insertOrganizationSchema = createInsertSchema(organizationsTable).omit({ id: true, createdAt: true, deletedAt: true });
 export type InsertOrganization = z.infer<typeof insertOrganizationSchema>;
 export type Organization = typeof organizationsTable.$inferSelect;

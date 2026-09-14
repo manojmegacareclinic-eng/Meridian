@@ -68,6 +68,7 @@ const serializeFinding = (row: typeof intelligenceFindingsTable.$inferSelect & {
   reviewedByUserId: row.reviewedByUserId ?? null,
   reviewedAt: toISO(row.reviewedAt),
   createdAt: toISO(row.createdAt),
+  deletedAt: toISO(row.deletedAt),
 });
 
 const findingFingerprint = (sourceId: number, url: string | null | undefined, headline: string): string =>
@@ -91,6 +92,7 @@ const findingsWithSource = {
   reviewedByUserId: intelligenceFindingsTable.reviewedByUserId,
   reviewedAt: intelligenceFindingsTable.reviewedAt,
   createdAt: intelligenceFindingsTable.createdAt,
+  deletedAt: intelligenceFindingsTable.deletedAt,
   fingerprint: intelligenceFindingsTable.fingerprint,
   sourceName: intelligenceSourcesTable.name,
   sourceTier: intelligenceSourcesTable.tier,
