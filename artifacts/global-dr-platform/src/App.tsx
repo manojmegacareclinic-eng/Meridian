@@ -309,7 +309,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
     void queryClient.invalidateQueries({ queryKey: getListNotificationsQueryKey() });
   };
   return <div className="min-h-[100dvh] bg-[hsl(var(--background))] text-[hsl(var(--foreground))]">
-    <aside className={`fixed inset-y-0 left-0 z-40 flex w-[260px] flex-col bg-[hsl(var(--sidebar))] px-5 py-6 text-[hsl(var(--sidebar-foreground))] shadow-xl transition-transform duration-300 lg:translate-x-0 ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+    <aside className={`fixed inset-y-0 left-0 z-40 flex w-[280px] flex-col bg-[hsl(var(--sidebar))] px-4 py-6 text-[hsl(var(--sidebar-foreground))] shadow-xl transition-transform duration-300 lg:translate-x-0 ${mobileOpen ? 'translate-x-0' : '-translate-x-full'} overflow-y-auto`}>
       <div className="mb-10 flex items-center justify-between px-2">
         <Link to="/" className="flex items-center gap-3" data-testid="link-brand">
           <span className="relative flex h-10 w-10 items-center justify-center rounded-[13px] bg-[hsl(var(--sidebar-primary))] text-[hsl(var(--sidebar-primary-foreground))]">
@@ -320,12 +320,12 @@ export function Shell({ children }: { children: React.ReactNode }) {
         <button className="text-[hsl(var(--sidebar-foreground))] lg:hidden" onClick={() => setMobileOpen(false)} aria-label="Close navigation" data-testid="button-close-navigation"><X size={18} /></button>
       </div>
       <div className="mb-3 px-3 text-[10px] font-bold uppercase tracking-[.2em] text-[hsl(190_19%_58%)]">Workspace</div>
-      <nav className="space-y-1">
+<nav className="space-y-1">
         {navItems.map(({ href, label, icon: Icon }) => {
-          const active = href === '/' ? pathname === '/' : pathname.startsWith(href);
+          const active = pathname === href;
           return <Link key={href} to={href} onClick={() => setMobileOpen(false)} className={`group flex items-center gap-3 rounded-xl px-3 py-3 text-[13px] font-semibold ${active ? 'bg-[hsl(var(--sidebar-accent))] text-[hsl(var(--sidebar-accent-foreground))]' : 'text-[hsl(190_19%_72%)] hover:bg-[hsl(var(--sidebar-accent))] hover:text-[hsl(var(--sidebar-accent-foreground))]'}`} data-testid={`link-nav-${label.toLowerCase()}`}>
-            <Icon size={17} strokeWidth={active ? 2.3 : 1.8} /><span>{label}</span>{active && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-[hsl(var(--sidebar-primary))]" />}
-          </Link>;
+            <Icon size={17} strokeWidth={active ? 2.3 : 1.8} /><span className="truncate">{label}</span>{active && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-[hsl(var(--sidebar-primary))]" />}
+          </Link>
         })}
       </nav>
       <div className="mt-9 mb-3 px-3 text-[10px] font-bold uppercase tracking-[.2em] text-[hsl(190_19%_58%)]">Governance</div>
@@ -568,7 +568,58 @@ function AgreementRow({ agreement }: { agreement: Agreement }) {
     });
   };
   const friendlyTransition = (state: string) => state === 'approved' ? 'approve' : state === 'signed' ? 'sign' : state === 'archived' ? 'archive' : state;
-  return <div className={`grid gap-3 border-b border-[hsl(var(--border))] px-5 py-4 last:border-0 hover:bg-[hsl(var(--muted)/.38)] md:grid-cols-[1.4fr_.9fr_1fr_120px_150px_110px] md:items-center md:gap-4 ${transitioning ? 'opacity-60' : ''}`} data-testid={`row-agreement-${agreement.id}`}><div><p className="text-xs font-bold">{agreement.name}</p><p className="mt-1 text-[11px] text-[hsl(var(--muted-foreground))]">Updated {formatDate(agreement.updatedAt)}</p></div><div className="hidden text-xs md:block">{agreement.type}</div><div className="flex justify-between text-xs md:block"><span className="text-[10px] uppercase tracking-[.08em] text-[hsl(var(--muted-foreground))] md:hidden">Country</span>{agreement.countryName}</div><div className="flex justify-between md:block"><span className="text-[10px] uppercase tracking-[.08em] text-[hsl(var(--muted-foreground))] md:hidden">Status</span><select value={agreement.status} onChange={(event) => updateStatus(event.target.value as 'draft' | 'review' | 'signed' | 'archived')} disabled={updateAgreement.isPending} className="h-8 rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--background))] px-2 text-[11px] font-bold" aria-label={`Update status for ${agreement.name}`} data-testid={`select-agreement-status-${agreement.id}`}><option value="draft">Draft</option><option value="review">In review</option><option value="signed">Signed</option><option value="archived">Archived</option></select></div><div className="flex justify-between md:block"><span className="text-[10px] uppercase tracking-[.08em] text-[hsl(var(--muted-foreground))] md:hidden">Lifecycle</span><StatusPill tone={lifecycleTone(lifecycle)}>{lifecycle}</StatusPill></div><div className="flex justify-end md:block"><div className="flex flex-wrap items-center gap-1.5">{lifecycleTransitions[lifecycle] && lifecycleTransitions[lifecycle].map((next) => <button key={next} onClick={() => handleLifecycle(next)} disabled={updateLifecycle.isPending} className="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))] px-2 py-1 text-[10px] font-bold text-[hsl(var(--primary))] hover:bg-[hsl(var(--muted))]" data-testid={`button-agreement-lifecycle-${next}-${agreement.id}`}>{friendlyTransition(next)}</button>)}</div></div></div>;
+  return (
+    <div
+      className={`grid gap-3 border-b border-[hsl(var(--border))] px-4 py-4 last:border-0 hover:bg-[hsl(var(--muted)/.38)] md:grid-cols-[1.4fr_1fr_1fr_100px_100px] md:items-center md:gap-3 ${transitioning ? 'opacity-60' : ''}`}
+      data-testid={`row-agreement-${agreement.id}`}
+    >
+      <div className="min-w-0">
+        <p className="text-sm font-semibold truncate">{agreement.name}</p>
+        <p className="mt-1 text-xs text-[hsl(var(--muted-foreground))] truncate">Updated {formatDate(agreement.updatedAt)}</p>
+      </div>
+      <div className="hidden text-sm md:block truncate">{agreement.type}</div>
+      <div className="flex justify-between text-xs md:block">
+        <span className="text-xs uppercase tracking-[.05em] text-[hsl(var(--muted-foreground))] md:hidden">Country</span>
+        <span className="truncate">{agreement.countryName}</span>
+      </div>
+      <div className="flex justify-between md:block">
+        <span className="text-xs uppercase tracking-[.05em] text-[hsl(var(--muted-foreground))] md:hidden">Status</span>
+        <select
+          value={agreement.status}
+          onChange={(event) => updateStatus(event.target.value as 'draft' | 'review' | 'signed' | 'archived')}
+          disabled={updateAgreement.isPending}
+          className="h-8 rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--background))] px-2 text-sm font-medium"
+          aria-label={`Update status for ${agreement.name}`}
+          data-testid={`select-agreement-status-${agreement.id}`}
+        >
+          <option value="draft">Draft</option>
+          <option value="review">In review</option>
+          <option value="signed">Signed</option>
+          <option value="archived">Archived</option>
+        </select>
+      </div>
+      <div className="flex justify-between md:block">
+        <span className="text-xs uppercase tracking-[.05em] text-[hsl(var(--muted-foreground))] md:hidden">Lifecycle</span>
+        <StatusPill tone={lifecycleTone(lifecycle)}>{lifecycle}</StatusPill>
+      </div>
+      <div className="flex justify-end md:block">
+        <div className="flex flex-wrap items-center gap-1.5">
+          {lifecycleTransitions[lifecycle] &&
+            lifecycleTransitions[lifecycle].map((next) => (
+              <button
+                key={next}
+                onClick={() => handleLifecycle(next)}
+                disabled={updateLifecycle.isPending}
+                className="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))] px-2 py-1 text-xs font-medium text-[hsl(var(--primary))] hover:bg-[hsl(var(--muted))]"
+                data-testid={`button-agreement-lifecycle-${next}-${agreement.id}`}
+              >
+                {friendlyTransition(next)}
+              </button>
+            ))}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 function lifecycleTone(state: string): 'neutral' | 'gold' | 'green' | 'red' | 'blue' {

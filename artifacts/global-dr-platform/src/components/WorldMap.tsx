@@ -1,4 +1,4 @@
-import { MapContainer, TileLayer } from "react-leaflet";
+import { MapContainer, TileLayer, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import { CountryLayer } from "./CountryLayer";
 import { FilterSidebar } from "./FilterSidebar";
@@ -7,6 +7,28 @@ import { useListCountries } from "@workspace/api-client-react";
 import type { Country } from "@workspace/api-client-react";
 import { Filter, X, MapPin } from "lucide-react";
 import { PrimaryButton, SecondaryButton, selectClass } from "@/App";
+
+interface WorldMapProps {
+  countries: Country[];
+  filters: any;
+  onFilterChange: (filters: Partial<any>) => void;
+  onColorByChange: (colorBy: string) => void;
+  onCountryClick: (countryId: number) => void;
+  isSidebarOpen: boolean;
+  setSidebarOpen: (open: boolean) => void;
+}
+
+// Child component that uses useMap to fit bounds when map is ready
+function MapBoundsFitter({ countries }: { countries: Country[] }) {
+  const map = useMap();
+  useEffect(() => {
+    map.fitBounds([
+      [-90, -180],
+      [90, 180],
+    ]);
+  }, [map]);
+  return null;
+}
 
 interface WorldMapProps {
   countries: Country[];
@@ -27,9 +49,8 @@ export function WorldMap({
   isSidebarOpen,
   setSidebarOpen,
 }: WorldMapProps) {
-  const mapRef = useRef<any>(null);
   const [geojson, setGeojson] = useState<any>(null);
-  const [mapLoaded, setMapLoaded] = useState(false);
+  const mapContainerRef = useRef<HTMLDivElement>(null);
 
   // Load GeoJSON once
   useEffect(() => {
@@ -41,17 +62,13 @@ export function WorldMap({
       .catch((err) => console.error("Failed to load GeoJSON:", err));
   }, []);
 
-  // Fit map to bounds when countries load
-  const handleMapLoad = useCallback((e: any) => {
-    setMapLoaded(true);
-    const map = e.target;
-    mapRef.current = map;
-    // Fit bounds to show all countries
-    if (mapRef.current) {
-      mapRef.current.fitBounds([
-        [-90, -180],
-        [90, 180],
-      ]);
+  // Force map to resize when container becomes visible
+  useEffect(() => {
+    const mapDiv = document.querySelector(".leaflet-container");
+    if (mapDiv) {
+      setTimeout(() => {
+        window.dispatchEvent(new Event("resize"));
+      }, 100);
     }
   }, []);
 
@@ -106,28 +123,33 @@ export function WorldMap({
         </div>
       </div>
 
-      <MapContainer
-        center={[20, 0]}
-        zoom={2}
-        minZoom={1.5}
-        maxZoom={6}
-        className="h-full w-full"
-        scrollWheelZoom={true}
-        zoomControl={false}
-      >
-        <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        />
-        {geojson && (
-          <CountryLayer
-            geojson={geojson}
-            countries={countries}
-            colorBy={filters.colorBy}
-            onCountryClick={onCountryClick}
+      <div className="h-full w-full" ref={mapContainerRef}>
+        <MapContainer
+          center={[20, 0]}
+          zoom={2}
+          minZoom={1.5}
+          maxZoom={6}
+          className="h-full w-full"
+          scrollWheelZoom={true}
+          zoomControl={false}
+        >
+          <TileLayer
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
-        )}
-      </MapContainer>
+          {geojson && (
+            <>
+              <CountryLayer
+                geojson={geojson}
+                countries={countries}
+                colorBy={filters.colorBy}
+                onCountryClick={onCountryClick}
+              />
+              <MapBoundsFitter countries={countries} />
+            </>
+          )}
+        </MapContainer>
+      </div>
 
       <FilterSidebar
         filters={{
